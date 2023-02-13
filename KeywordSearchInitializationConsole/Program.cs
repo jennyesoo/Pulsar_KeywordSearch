@@ -1,6 +1,4 @@
 ﻿// See https://aka.ms/new-console-template for more information
-using HP.Pulsar.KeywordSearch.DataTransformation;
-using HP.Pulsar.KeywordSearch.Orchestrator;
 
 internal class Program
 {
@@ -22,8 +20,8 @@ internal class Program
         */
         // init
         Initialization init = new();
-        init.Init();
-        
+
+
         /*
         // search
         Search search = new();

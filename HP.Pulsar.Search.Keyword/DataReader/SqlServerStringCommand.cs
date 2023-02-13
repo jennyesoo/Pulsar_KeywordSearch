@@ -1,14 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿namespace HP.Pulsar.Search.Keyword.DataReader;
 
-namespace HP.Pulsar.KeywordSearch.DataReader
+public class SqlServerStringCommand
 {
-    public class SqlServerStringCommand
-    {
-        public string productversion_command_all = @"SELECT p.id as ProductId,
+    public string productversion_command_all = @"SELECT p.id as ProductId,
                                                 DOTSName as ProductName,
                                                 partner.name as Partner,
                                                 pdc.Name as DevCenter,
@@ -111,7 +105,7 @@ namespace HP.Pulsar.KeywordSearch.DataReader
                                             Full JOIN ProductLine pl ON pl.Id = p.ProductLineId
                                             WHERE ps.Name <> 'Inactive' and p.FusionRequirements = 1 ";
 
-        public string productversion_command_one = @"SELECT p.id as ProductId,
+    public string productversion_command_one = @"SELECT p.id as ProductId,
                                                 DOTSName as ProductName,
                                                 partner.name as Partner,
                                                 pdc.Name as DevCenter,
@@ -214,5 +208,4 @@ namespace HP.Pulsar.KeywordSearch.DataReader
                                             Full JOIN ProductLine pl ON pl.Id = p.ProductLineId
                                             WHERE ps.Name <> 'Inactive' and p.FusionRequirements = 1 and p.id =";
 
-    }
 }

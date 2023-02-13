@@ -1,4 +1,6 @@
-﻿namespace HP.Pulsar.KeywordSearch.CommonDataStructures
+﻿using HP.Pulsar.KeywordSearch.CommonDataStructures;
+
+namespace HP.Pulsar.Search.Keyword.CommonDataStructure
 {
     public class KeywordSearchOutputModel
     {
@@ -8,8 +10,8 @@
             Values = values;
         }
 
-        public SearchType Type { get;}
+        public SearchType Type { get; }
 
-        public IEnumerable<KeyValuePair<string, string>> Values { get;}
+        public IEnumerable<KeyValuePair<string, string>> Values { get; }
     }
 }
