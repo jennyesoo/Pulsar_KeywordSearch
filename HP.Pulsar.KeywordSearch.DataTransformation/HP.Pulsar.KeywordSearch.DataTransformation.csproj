@@ -12,7 +12,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\HP.Pulsar.KeywordSearch.CommonDataStructures\HP.Pulsar.KeywordSearch.CommonDataStructures.csproj" />
-    <ProjectReference Include="..\HP.Pulsar.KeywordSearch.DataReader\HP.Pulsar.KeywordSearch.DataReader.csproj" />
   </ItemGroup>
 
 </Project>

@@ -14,7 +14,7 @@ namespace HP.Pulsar.KeywordSearch.DataReader
         {
             List<string> EndOfProduction = new List<string>();
             string SQL_Command = "Exec usp_SelectEndOfProduction " + ProductVersionId;
-            ConnectionStringProvider connect = new ConnectionStringProvider(env, SQL_Command);
+            ConnectionProvider connect = new ConnectionProvider(env, SQL_Command);
             SqlDataReader EndOfProduction_SqlData = connect.Result;
 
             while (EndOfProduction_SqlData.Read())
@@ -36,7 +36,7 @@ namespace HP.Pulsar.KeywordSearch.DataReader
         {
             List<string> ProductGroups = new List<string>();
             string SQL_Command = "Exec usp_ListWHQLSubmissions " + ProductVersionId;
-            ConnectionStringProvider connect = new ConnectionStringProvider(env, SQL_Command);
+            ConnectionProvider connect = new ConnectionProvider(env, SQL_Command);
             SqlDataReader ProductGroups_SqlData = connect.Result;
 
             while (ProductGroups_SqlData.Read())
@@ -59,7 +59,7 @@ namespace HP.Pulsar.KeywordSearch.DataReader
             string WHQLstatus_result;
             List<string> WHQLstatus = new List<string>();
             string SQL_Command = "Exec usp_ListWHQLSubmissions " + ProductVersionId;
-            ConnectionStringProvider connect = new ConnectionStringProvider(env, SQL_Command);
+            ConnectionProvider connect = new ConnectionProvider(env, SQL_Command);
             SqlDataReader WHQLstatus_SqlData = connect.Result;
 
             while (WHQLstatus_SqlData.Read())
@@ -97,7 +97,7 @@ namespace HP.Pulsar.KeywordSearch.DataReader
                 "Insert @leadproductTable exec usp_ProductVersion_release " + BusinessSegmentID +
                 "Select CONCAT (LeadProductreleaseDesc, ',') as LeadProductreleaseDesc  from @leadproductTable where LeadProductreleaseDesc != '' ";
 
-            ConnectionStringProvider connect = new ConnectionStringProvider(env, SQL_Command);
+            ConnectionProvider connect = new ConnectionProvider(env, SQL_Command);
             SqlDataReader Leadproduct_SqlData = connect.Result;
 
             while (Leadproduct_SqlData.Read())
@@ -120,7 +120,7 @@ namespace HP.Pulsar.KeywordSearch.DataReader
         {
             List<string> Chipsets = new List<string>();
             string SQL_Command = "Exec usp_getproductchipsets " + ProductVersionId;
-            ConnectionStringProvider connect = new ConnectionStringProvider(env, SQL_Command);
+            ConnectionProvider connect = new ConnectionProvider(env, SQL_Command);
             SqlDataReader Chipsets_SqlData = connect.Result;
 
             string chipsets_value = "";
@@ -162,7 +162,7 @@ namespace HP.Pulsar.KeywordSearch.DataReader
         {
             string CurrentBIOSVersions = "";
             string SQL_Command = "Select currentROM,currentWebROM From ProductVersion where ID = " + ProductVersionId;
-            ConnectionStringProvider connect = new ConnectionStringProvider(env, SQL_Command);
+            ConnectionProvider connect = new ConnectionProvider(env, SQL_Command);
             SqlDataReader CurrentROM_SqlData = connect.Result;
 
             while (CurrentROM_SqlData.Read())
@@ -174,7 +174,7 @@ namespace HP.Pulsar.KeywordSearch.DataReader
                 if (CurrentROM_value == "" && (ProductStatus == "Development" || ProductStatus == "Definition"))
                 {
                     string SQL_Command_two = "exec spListTargetedbiosversions " + ProductVersionId;
-                    ConnectionStringProvider connect_two = new ConnectionStringProvider(env, SQL_Command_two);
+                    ConnectionProvider connect_two = new ConnectionProvider(env, SQL_Command_two);
                     SqlDataReader CurrentROM_SqlData_two = connect_two.Result;
                     while (CurrentROM_SqlData_two.Read())
                     {

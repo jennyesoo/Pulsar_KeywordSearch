@@ -15,7 +15,7 @@ namespace HP.Pulsar.KeywordSearch.DataReader
 
         public ProductReader(PulsarEnvironment env, string Command)
         {
-            ConnectionStringProvider connect = new ConnectionStringProvider(env,Command);
+            ConnectionProvider connect = new ConnectionProvider(env,Command);
             SqlDataResult = connect.Result;
             SqlDataConnect = connect.SqlDataConnect;
             SqlDataEnv = env;

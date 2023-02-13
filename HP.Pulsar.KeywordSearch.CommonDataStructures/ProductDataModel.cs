@@ -65,12 +65,5 @@
         public string? Target { get; set; }
         public int? ID { get; set; }
 
-        public void GetField(string InputString)
-        {
-            var result = this.GetType().GetField(InputString);
-            //return result;
-        }
-
-
     }
 }
