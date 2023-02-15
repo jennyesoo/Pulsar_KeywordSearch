@@ -12,9 +12,14 @@
     </ItemGroup>
 
     <ItemGroup>
+        <PackageReference Include="HiNetCloud.System.Data.Entity.Design.PluralizationServices" Version="23.1.30.12" />
+        <PackageReference Include="LemmaGenerator" Version="1.1.0" />
+        <PackageReference Include="MeiliSearch" Version="0.13.1" />
         <PackageReference Include="Microsoft.Data.SqlClient" Version="5.1.0" />
         <PackageReference Include="Microsoft.Extensions.Configuration" Version="7.0.0" />
         <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="7.0.0" />
+        <PackageReference Include="System.Text.Json" Version="7.0.2" />
+        <PackageReference Include="Vse.Web.Serialization.ControlledSerializationJsonConverter" Version="1.0.4" />
     </ItemGroup>
 
 </Project>

@@ -1,5 +1,4 @@
-﻿using HP.Pulsar.KeywordSearch.CommonDataStructures;
-
+﻿
 namespace HP.Pulsar.Search.Keyword.CommonDataStructure
 {
     public class KeywordSearchOutputModel

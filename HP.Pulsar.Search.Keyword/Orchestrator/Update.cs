@@ -7,8 +7,10 @@ public class Update
 
     }
 
+    /*
     public void update(SearchType type, int id)
     {
         throw new NotImplementedException();
     }
+    */
 }

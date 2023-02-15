@@ -1,11 +1,19 @@
-﻿namespace HP.Pulsar.Search.Keyword.DataTransformation;
+﻿using HP.Pulsar.Search.Keyword.CommonDataStructure;
+using LemmaSharp;
+using LemmaSharp.Classes;
+using SevenZip.CommandLineParser;
+using System.Data.Entity.Design.PluralizationServices;
+using System.Globalization;
+using System.Runtime.Intrinsics.Arm;
 
+namespace HP.Pulsar.Search.Keyword.DataTransformation;
 public class DataProcessing
 {
     public string filePath;
     private readonly Lemmatizer lemmatizer;
     public static List<string> _noLemmatization = new List<string> { "bios", "fxs", "os", "obs", "ots" };
-
+    public static List<string> DataPropertyList = new List<string> { "servicelifedate", "createddate", "latestupdatedate", "endofproduction"};
+    
     public DataProcessing()
     {
         DirectoryInfo dir = new DirectoryInfo(AppDomain.CurrentDomain.BaseDirectory);
@@ -15,15 +23,112 @@ public class DataProcessing
         lemmatizer = new Lemmatizer(stream);
     }
 
-    public string DataProcessingCombination()
+    public IEnumerable<ProductDataModel> GetDataProcessingData(IEnumerable<ProductDataModel> products)
     {
-        return "";
+        foreach (ProductDataModel product in products)
+        {
+            product.ProductId = DataProcessingInitializationCombination(product.ProductId, "ProductId");
+            product.ProductName = DataProcessingInitializationCombination(product.ProductName, "ProductName"); 
+            product.Partner = DataProcessingInitializationCombination(product.Partner, "Partner"); 
+            product.DevCenter = DataProcessingInitializationCombination(product.DevCenter, "DevCenter"); 
+            product.Brands = DataProcessingInitializationCombination(product.Brands, "Brands"); 
+            product.SystemBoardId = DataProcessingInitializationCombination(product.SystemBoardId, "SystemBoardId");  
+            product.ServiceLifeDate = DataProcessingInitializationCombination(product.ServiceLifeDate, "ServiceLifeDate");  
+            product.ProductStatus = DataProcessingInitializationCombination(product.ProductStatus, "ProductStatus"); 
+            product.BusinessSegment = DataProcessingInitializationCombination(product.BusinessSegment, "BusinessSegment");  
+            product.CreatorName = DataProcessingInitializationCombination(product.CreatorName, "CreatorName");  
+            product.CreatedDate = DataProcessingInitializationCombination(product.CreatedDate, "CreatedDate");  
+            product.LastUpdaterName = DataProcessingInitializationCombination(product.LastUpdaterName, "LastUpdaterName");  
+            product.LatestUpdateDate = DataProcessingInitializationCombination(product.LatestUpdateDate, "LatestUpdateDate");  
+            product.SystemManager = DataProcessingInitializationCombination(product.SystemManager, "SystemManager");  
+            product.PlatformDevelopmentPM = DataProcessingInitializationCombination(product.PlatformDevelopmentPM, "PlatformDevelopmentPM");  
+            product.PlatformDevelopmentPMEmail = DataProcessingInitializationCombination(product.PlatformDevelopmentPMEmail, "PlatformDevelopmentPMEmail");  
+            product.SupplyChain = DataProcessingInitializationCombination(product.SupplyChain, "SupplyChain"); 
+            product.SupplyChainEmail = DataProcessingInitializationCombination(product.SupplyChainEmail, "SupplyChainEmail");  
+            product.ODMSystemEngineeringPM = DataProcessingInitializationCombination(product.ODMSystemEngineeringPM, "ODMSystemEngineeringPM");  
+            product.ODMSystemEngineeringPMEmail = DataProcessingInitializationCombination(product.ODMSystemEngineeringPMEmail, "ODMSystemEngineeringPMEmail");  
+            product.ConfigurationManager = DataProcessingInitializationCombination(product.ConfigurationManager, "ConfigurationManager"); 
+            product.ConfigurationManagerEmail = DataProcessingInitializationCombination(product.ConfigurationManagerEmail, "ConfigurationManagerEmail");  
+            product.CommodityPM = DataProcessingInitializationCombination(product.CommodityPM, "CommodityPM"); 
+            product.CommodityPMEmail = DataProcessingInitializationCombination(product.CommodityPMEmail, "CommodityPMEmail");  
+            product.Service = DataProcessingInitializationCombination(product.Service, "Service");  
+            product.ServiceEmail = DataProcessingInitializationCombination(product.ServiceEmail, "ServiceEmail");  
+            product.ODMHWPM = DataProcessingInitializationCombination(product.ODMHWPM, "ODMHWPM");  
+            product.ODMHWPMEmail = DataProcessingInitializationCombination(product.ODMHWPMEmail, "ODMHWPMEmail");  
+            product.ProgramOfficeProgramManager = DataProcessingInitializationCombination(product.ProgramOfficeProgramManager, "ProgramOfficeProgramManager"); 
+            product.ProgramOfficeProgramManagerEmail = DataProcessingInitializationCombination(product.ProgramOfficeProgramManagerEmail, "ProgramOfficeProgramManagerEmail");  
+            product.Quality = DataProcessingInitializationCombination(product.Quality, "Quality"); 
+            product.QualityEmail = DataProcessingInitializationCombination(product.QualityEmail, "QualityEmail"); 
+            product.PlanningPM = DataProcessingInitializationCombination(product.PlanningPM, "PlanningPM"); 
+            product.PlanningPMEmail = DataProcessingInitializationCombination(product.PlanningPMEmail, "PlanningPMEmail");  
+            product.BIOSPM = DataProcessingInitializationCombination(product.BIOSPM, "BIOSPM");  
+            product.BIOSPMEmail = DataProcessingInitializationCombination(product.BIOSPMEmail, "BIOSPMEmail"); 
+            product.SystemsEngineeringPM = DataProcessingInitializationCombination(product.SystemsEngineeringPM, "SystemsEngineeringPM"); 
+            product.SystemsEngineeringPMEmail = DataProcessingInitializationCombination(product.SystemsEngineeringPMEmail, "SystemsEngineeringPMEmail"); 
+            product.MarketingProductMgmt = DataProcessingInitializationCombination(product.MarketingProductMgmt, "MarketingProductMgmt");  
+            product.MarketingProductMgmtEmail = DataProcessingInitializationCombination(product.MarketingProductMgmtEmail, "MarketingProductMgmtEmail");  
+            product.ProcurementPM = DataProcessingInitializationCombination(product.ProcurementPM, "ProcurementPM");  
+            product.ProcurementPMEmail = DataProcessingInitializationCombination(product.ProcurementPMEmail, "ProcurementPMEmail");  
+            product.SWMarketing = DataProcessingInitializationCombination(product.SWMarketing, "SWMarketing"); 
+            product.SWMarketingEmail = DataProcessingInitializationCombination(product.SWMarketingEmail, "SWMarketingEmail"); 
+            product.ProductFamily = DataProcessingInitializationCombination(product.ProductFamily, "ProductFamily"); 
+            product.ODM = DataProcessingInitializationCombination(product.ODM, "ODM"); 
+            product.ReleaseTeam = DataProcessingInitializationCombination(product.ReleaseTeam, "ReleaseTeam");  
+            product.RegulatoryModel = DataProcessingInitializationCombination(product.RegulatoryModel, "RegulatoryModel");  
+            product.Releases = DataProcessingInitializationCombination(product.Releases, "Releases");  
+            product.Description = DataProcessingInitializationCombination(product.Description, "Description");  
+            product.ProductLine = DataProcessingInitializationCombination(product.ProductLine, "ProductLine"); 
+            product.PreinstallTeam = DataProcessingInitializationCombination(product.PreinstallTeam, "PreinstallTeam");  
+            product.MachinePNPID = DataProcessingInitializationCombination(product.MachinePNPID, "MachinePNPID");
+            product.ComponentItems = DataProcessingInitializationCombination(product.ComponentItems, "ComponentItems");
+            product.EndOfProduction = DataProcessingInitializationCombination(product.EndOfProduction, "EndOfProduction");
+            product.ProductGroups = DataProcessingInitializationCombination(product.ProductGroups, "ProductGroups");
+            product.WHQLstatus = DataProcessingInitializationCombination(product.WHQLstatus, "WHQLstatus");
+            product.LeadProduct = DataProcessingInitializationCombination(product.LeadProduct, "LeadProduct");
+            product.Chipsets = DataProcessingInitializationCombination(product.Chipsets, "Chipsets");
+            product.CurrentBIOSVersions = DataProcessingInitializationCombination(product.CurrentBIOSVersions, "CurrentBIOSVersions");
+        }
+        return products;
+    }
+
+    public string DataProcessingInitializationCombination(string PropertyValue, string propertyName)
+    {
+        if (DataPropertyList.Contains(propertyName.ToLower()))
+        {
+            PropertyValue = ChangeDateFormat(PropertyValue);
+        }
+        PropertyValue = AddPropertyName(propertyName, PropertyValue);
+        return PropertyValue;
+    }
+
+    public string PluralToSingular(string sentence)
+    {
+        PluralizationService service = PluralizationService.CreateService(CultureInfo.GetCultureInfo("en-us"));
+        var tokens = sentence.Split(" ");
+        string results = "";
+        if (tokens == null || !tokens.Any())
+        {
+            return results;
+        }
+
+        foreach (string token in tokens)
+        {
+            if (service.IsPlural(token))
+            {
+                results += " " + service.Singularize(token);
+            }
+            else
+            {
+                results += " " + token;
+            }
+        }
+        return results;
     }
 
     public string Lemmatize(string sentence)
     {
         var tokens = sentence.Split(" ");
-        Console.WriteLine(tokens);
+        //Console.WriteLine(tokens);
         string results = "";
 
         if (lemmatizer == null || tokens == null || !tokens.Any())

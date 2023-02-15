@@ -2,7 +2,7 @@
 
 public class ProductDataModel
 {
-    public int? ProductId { get; set; }
+    public string? ProductId { get; set; }
     public string? ProductName { get; set; }
     public string? Partner { get; set; }
     public string? DevCenter { get; set; }
