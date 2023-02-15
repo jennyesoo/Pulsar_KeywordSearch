@@ -1,8 +1,11 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
+using HP.Pulsar.Search.Keyword.Infrastructure;
+using HP.Pulsar.Search.Keyword.Orchestrator;
+
 internal class Program
 {
-    private static void Main(string[] args)
+    private static async Task Main(string[] args)
     {
         Console.WriteLine("Hello, World!");
 
@@ -19,8 +22,15 @@ internal class Program
                                            "End Of Production / Product Groups / WHQLstatus / Lead Product / Chipsets / component items"));
         */
         // init
-        Initialization init = new();
+        KeywordSearchInfo info = new()
+        {
+            DatabaseConnectionString = "xxxxx",
+            Environment = PulsarEnvironment.Dev,
+            SearchEngineUrl = "yyyy"
+        };
 
+        Initialization init = new(info);
+        await init.InitAsync();
 
         /*
         // search

@@ -1,18 +1,30 @@
 ﻿using HP.Pulsar.Search.Keyword.CommonDataStructure;
-using HP.Pulsar.Search.Keyword.DataTransformation;
 using HP.Pulsar.Search.Keyword.Infrastructure;
 using Microsoft.Data.SqlClient;
 
 namespace HP.Pulsar.Search.Keyword.DataReader;
 
-public class ProductReader
+public class ProductReader : IKeywordSearchDataReader
 {
     private ConnectionStringProvider _csProvider;
-    DataProcessing DataTransform = new DataProcessing();
-    private List<string> BusinessSegmentID;
-    public ProductReader(PulsarEnvironment env)
+    private List<string> _businessSegmentID;
+
+    public ProductReader(KeywordSearchInfo info)
     {
-        _csProvider = new(env);
+        _csProvider = new(info.Environment);
+    }
+
+    public async Task<IEnumerable<CommonDataModel>> GetDataAsync()
+    {
+        (IEnumerable<CommonDataModel> Products, Dictionary<int, string> BusinessSegments) data = await GetProductsAsync();
+
+        // get end of production
+
+        // get product group
+
+        // .....
+
+        return data.Products;
     }
 
     private string GetAllProductsTSqlCommandText()
@@ -137,111 +149,73 @@ public class ProductReader
     }
 
     // This function is to get all products
-    public async Task<IEnumerable<ProductDataModel>> GetProductsAsync()
+    private async Task<(IEnumerable<CommonDataModel>, Dictionary<int, string>)> GetProductsAsync()
     {
         using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
         SqlCommand command = new(GetAllProductsTSqlCommandText(), connection);
 
-        SqlParameter parameter = new SqlParameter("ProductId", -1);
+        SqlParameter parameter = new("ProductId", -1);
         command.Parameters.Add(parameter);
 
         await connection.OpenAsync();
 
         using SqlDataReader reader = command.ExecuteReader();
 
-        List<ProductDataModel> products = new List<ProductDataModel>();
-
         // This is for ID in Meilisearch
         int count = 0;
+        List<CommonDataModel> output = new();
+        Dictionary<int, string> businessSegments = new();
 
         while (reader.Read())
         {
-            if (!int.TryParse(reader["ProductId"].ToString(), out int productId))
-            {
-                // log 
+            //string businessSegmentId;
+            CommonDataModel product = new();
+            int fieldCount = reader.FieldCount;
+            string businessSegmentId = string.Empty;
+            string productId = string.Empty;
 
+            for (int i = 0; i < fieldCount; i++)
+            {
+                if (await reader.IsDBNullAsync(i))
+                {
+                    continue;
+                }
+
+                string columnName = reader.GetName(i);
+                string value = reader[i].ToString();
+                product.Add(columnName, value);
+
+                if (string.Equals("BusinessSegmentID", columnName, StringComparison.OrdinalIgnoreCase))
+                {
+                    businessSegmentId = value;
+                }
+                if (string.Equals("ProductVersionId", columnName, StringComparison.OrdinalIgnoreCase))
+                {
+                    productId = value;
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(businessSegmentId)
+                || !string.IsNullOrWhiteSpace(productId))
+            {
                 continue;
             }
 
-            ProductDataModel productDataModel = new ProductDataModel
+            if (!int.TryParse(productId, out int productIdValue))
             {
-                ProductId = productId.ToString(),
-                ProductName = reader["ProductName"].ToString(),
-                Partner = reader["Partner"].ToString(),
-                DevCenter = reader["DevCenter"].ToString(),
-                Brands = reader["Brands"].ToString(),
-                SystemBoardId = reader["SystemBoardId"].ToString(),
-                ServiceLifeDate = reader["ServiceLifeDate"].ToString(),
-                ProductStatus = reader["ProductStatus"].ToString(),
-                BusinessSegment = reader["BusinessSegment"].ToString(),
-                CreatorName = reader["CreatorName"].ToString(),
-                CreatedDate = reader["CreatedDate"].ToString(),
-                LastUpdaterName = reader["LastUpdaterName"].ToString(),
-                LatestUpdateDate = reader["LatestUpdateDate"].ToString(),
-                SystemManager = reader["SystemManager"].ToString(),
-                PlatformDevelopmentPM = reader["PlatformDevelopmentPM"].ToString(),
-                PlatformDevelopmentPMEmail = reader["PlatformDevelopmentPMEmail"].ToString(),
-                SupplyChain = reader["SupplyChain"].ToString(),
-                SupplyChainEmail = reader["SupplyChainEmail"].ToString(),
-                ODMSystemEngineeringPM = reader["ODMSystemEngineeringPM"].ToString(),
-                ODMSystemEngineeringPMEmail = reader["ODMSystemEngineeringPMEmail"].ToString(),
-                ConfigurationManager = reader["ConfigurationManager"].ToString(),
-                ConfigurationManagerEmail = reader["ConfigurationManagerEmail"].ToString(),
-                CommodityPM = reader["CommodityPM"].ToString(),
-                CommodityPMEmail = reader["CommodityPMEmail"].ToString(),
-                Service = reader["Service"].ToString(),
-                ServiceEmail = reader["ServiceEmail"].ToString(),
-                ODMHWPM = reader["ODMHWPM"].ToString(),
-                ODMHWPMEmail = reader["ODMHWPMEmail"].ToString(),
-                ProgramOfficeProgramManager = reader["ProgramOfficeProgramManager"].ToString(),
-                ProgramOfficeProgramManagerEmail = reader["ProgramOfficeProgramManagerEmail"].ToString(),
-                Quality = reader["Quality"].ToString(),
-                QualityEmail = reader["QualityEmail"].ToString(),
-                PlanningPM = reader["PlanningPM"].ToString(),
-                PlanningPMEmail = reader["PlanningPMEmail"].ToString(),
-                BIOSPM = reader["BIOSPM"].ToString(),
-                BIOSPMEmail = reader["BIOSPMEmail"].ToString(),
-                SystemsEngineeringPM = reader["SystemsEngineeringPM"].ToString(),
-                SystemsEngineeringPMEmail = reader["SystemsEngineeringPMEmail"].ToString(),
-                MarketingProductMgmt = reader["MarketingProductMgmt"].ToString(),
-                MarketingProductMgmtEmail = reader["MarketingProductMgmtEmail"].ToString(),
-                ProcurementPM = reader["ProcurementPM"].ToString(),
-                ProcurementPMEmail = reader["ProcurementPMEmail"].ToString(),
-                SWMarketing = reader["SWMarketing"].ToString(),
-                SWMarketingEmail = reader["SWMarketingEmail"].ToString(),
-                ProductFamily = reader["ProductFamily"].ToString(),
-                ODM = reader["ODM"].ToString(),
-                ReleaseTeam = reader["ReleaseTeam"].ToString(),
-                RegulatoryModel = reader["RegulatoryModel"].ToString(),
-                Releases = reader["Releases"].ToString(),
-                Description = reader["Description"].ToString(),
-                ProductLine = reader["ProductLine"].ToString(),
-                PreinstallTeam = reader["PreinstallTeam"].ToString(),
-                MachinePNPID = reader["MachinePNPID"].ToString(),
-                ComponentItems = "",
-                Target = "Product Version",
-                ID = count
-            };
-            count++;
-            BusinessSegmentID.Add(reader["BusinessSegmentID"].ToString());
-            products.Add(productDataModel);
+                continue;
+            }
 
-            /*
-            Console.Write($"EndOfProduction: {productDataModel.ServiceLifeDate}\t\n" +
-                            $"WHQLstatus: {productDataModel.CreatedDate}\t\n" +
-                            $"LeadProduct: {productDataModel.LatestUpdateDate}\t\n" +
-                            $"Chipsets: {productDataModel.EndOfProduction}\t\n" +
-                            $"ProductGroups: {productDataModel.ProductGroups}\t\n" +
-                            $"CurrentBIOSVersions: {productDataModel.CurrentBIOSVersions}\t\n" +
-                            $"Target: {productDataModel.Target}\t\n" +
-                            $"ID: {productDataModel.ID}\t\n" +
-                            "-----------------------------------------------\t\n");
-            */
+            businessSegments[productIdValue] = businessSegmentId;
+
+            product.Add("target", "product");
+            product.Add("Id", count.ToString());
+
+            output.Add(product);
+            count++;
         }
 
-        products = await GetEndOfProductionAsync(products);
-
-        return products; // if AllProductData == Null ??
+        return (output, businessSegments);
     }
 
     private string GetTSQLEndOfProductionCommandText()
@@ -374,7 +348,7 @@ public class ProductReader
             }
             else
             {
-                product.WHQLstatus = "Unknown"; 
+                product.WHQLstatus = "Unknown";
             }
         }
 
@@ -392,7 +366,7 @@ public class ProductReader
         foreach (ProductDataModel product in products)
         {
             List<string> Leadproduct = new List<string>();
-            SqlParameter parameter = new SqlParameter("BusinessSegmentID", BusinessSegmentID[count]);
+            SqlParameter parameter = new SqlParameter("BusinessSegmentID", _businessSegmentID[count]);
             count++;
             command.Parameters.Add(parameter);
             using SqlDataReader reader = command.ExecuteReader();
@@ -406,7 +380,7 @@ public class ProductReader
             {
                 product.LeadProduct = "";
             }
-            else 
+            else
             {
                 product.LeadProduct = Leadproduct[0];
             }
@@ -464,13 +438,13 @@ public class ProductReader
         }
         return products;
     }
-    
+
     private async Task<List<ProductDataModel>> GetCurrentBIOSVersionsAsync(List<ProductDataModel> products)
     {
         using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
         SqlCommand command = new(GetTSQLCurrentBIOSVersionsCommandText(), connection);
         await connection.OpenAsync();
-        
+
         foreach (ProductDataModel product in products)
         {
             List<string> CurrentBIOSVersions = new List<string>();
@@ -522,12 +496,5 @@ public class ProductReader
         }
 
         return products;
-    }
-
-
-    // This function is to get a specific product
-    public ProductDataModel GetProduct(int productId)
-    {
-        throw new NotImplementedException();
     }
 }

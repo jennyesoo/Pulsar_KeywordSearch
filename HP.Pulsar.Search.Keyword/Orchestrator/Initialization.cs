@@ -1,16 +1,20 @@
-﻿namespace HP.Pulsar.Search.Keyword.Orchestrator;
+﻿using HP.Pulsar.Search.Keyword.Infrastructure;
+
+namespace HP.Pulsar.Search.Keyword.Orchestrator;
 
 public class Initialization
 {
+    private readonly KeywordSearchInfo _info;
     private List<IInitializationOrchestrator> _orchestrators;
 
-    public Initialization()
+    public Initialization(KeywordSearchInfo info)
     {
         _orchestrators = new()
         {
-            new ProductOrchestrator()
+            new ProductOrchestrator(info)
         };
 
+        _info = info;
     }
 
     public async Task InitAsync()
