@@ -1,0 +1,4 @@
+{
+  "DatabaseConnectionString": "Server = TdcPulsarItgDb.tpc.rd.hpicorp.net\\TEST; Initial Catalog = PRS;Integrated Security=true;",
+  "MeilisearchAPIEndpoint": ""
+}

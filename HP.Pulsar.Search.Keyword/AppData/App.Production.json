@@ -1,0 +1,4 @@
+{
+  "DatabaseConnectionString": "server=TdcPulsarS02.tpc.rd.hpicorp.net;initial catalog=PRS;integrated security=SSPI",
+  "MeilisearchAPIEndpoint": ""
+}

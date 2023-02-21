@@ -21,52 +21,75 @@ public class CommonDataTranformer
         lemmatizer = new Lemmatizer(stream);
     }
 
-    public IEnumerable<CommonDataModel> Transform(IEnumerable<CommonDataModel> input)
+    public IEnumerable<CommonDataModel> Transform(IEnumerable<CommonDataModel> products)
     {
-        // rule 3
-
-        // rule 4
-
-        // rule 5
-
-        return input;
+        foreach (CommonDataModel product in products)
+        {
+            Dictionary<string, string>.KeyCollection keys = product.GetAllKeys();
+            foreach (string key in keys)
+            {
+                product.Add(key, DataProcessingInitializationCombination(product.GetValue(key), key));
+            }
+        }
+        return products;
     }
 
-    private IEnumerable<ProductDataModel> GetDataProcessingData(IEnumerable<ProductDataModel> products)
+    /*
+    private IEnumerable<CommonDataModel> GetDataProcessingData(IEnumerable<CommonDataModel> products)
     {
-        foreach (ProductDataModel product in products)
+        foreach (CommonDataModel product in products)
         {
-            product.ProductId = DataProcessingInitializationCombination(product.ProductId, "ProductId");
-            product.ProductName = DataProcessingInitializationCombination(product.ProductName, "ProductName");
-            product.Partner = DataProcessingInitializationCombination(product.Partner, "Partner");
-            product.DevCenter = DataProcessingInitializationCombination(product.DevCenter, "DevCenter");
-            product.Brands = DataProcessingInitializationCombination(product.Brands, "Brands");
-            product.SystemBoardId = DataProcessingInitializationCombination(product.SystemBoardId, "SystemBoardId");
-            product.ServiceLifeDate = DataProcessingInitializationCombination(product.ServiceLifeDate, "ServiceLifeDate");
-            product.ProductStatus = DataProcessingInitializationCombination(product.ProductStatus, "ProductStatus");
-            product.BusinessSegment = DataProcessingInitializationCombination(product.BusinessSegment, "BusinessSegment");
-            product.CreatorName = DataProcessingInitializationCombination(product.CreatorName, "CreatorName");
-            product.CreatedDate = DataProcessingInitializationCombination(product.CreatedDate, "CreatedDate");
-            product.LastUpdaterName = DataProcessingInitializationCombination(product.LastUpdaterName, "LastUpdaterName");
-            product.LatestUpdateDate = DataProcessingInitializationCombination(product.LatestUpdateDate, "LatestUpdateDate");
-            product.SystemManager = DataProcessingInitializationCombination(product.SystemManager, "SystemManager");
-            product.PlatformDevelopmentPM = DataProcessingInitializationCombination(product.PlatformDevelopmentPM, "PlatformDevelopmentPM");
-            product.PlatformDevelopmentPMEmail = DataProcessingInitializationCombination(product.PlatformDevelopmentPMEmail, "PlatformDevelopmentPMEmail");
-            product.SupplyChain = DataProcessingInitializationCombination(product.SupplyChain, "SupplyChain");
-            product.SupplyChainEmail = DataProcessingInitializationCombination(product.SupplyChainEmail, "SupplyChainEmail");
-            product.ODMSystemEngineeringPM = DataProcessingInitializationCombination(product.ODMSystemEngineeringPM, "ODMSystemEngineeringPM");
-            product.ODMSystemEngineeringPMEmail = DataProcessingInitializationCombination(product.ODMSystemEngineeringPMEmail, "ODMSystemEngineeringPMEmail");
-            product.ConfigurationManager = DataProcessingInitializationCombination(product.ConfigurationManager, "ConfigurationManager");
-            product.ConfigurationManagerEmail = DataProcessingInitializationCombination(product.ConfigurationManagerEmail, "ConfigurationManagerEmail");
-            product.CommodityPM = DataProcessingInitializationCombination(product.CommodityPM, "CommodityPM");
-            product.CommodityPMEmail = DataProcessingInitializationCombination(product.CommodityPMEmail, "CommodityPMEmail");
-            product.Service = DataProcessingInitializationCombination(product.Service, "Service");
-            product.ServiceEmail = DataProcessingInitializationCombination(product.ServiceEmail, "ServiceEmail");
-            product.ODMHWPM = DataProcessingInitializationCombination(product.ODMHWPM, "ODMHWPM");
-            product.ODMHWPMEmail = DataProcessingInitializationCombination(product.ODMHWPMEmail, "ODMHWPMEmail");
-            product.ProgramOfficeProgramManager = DataProcessingInitializationCombination(product.ProgramOfficeProgramManager, "ProgramOfficeProgramManager");
-            product.ProgramOfficeProgramManagerEmail = DataProcessingInitializationCombination(product.ProgramOfficeProgramManagerEmail, "ProgramOfficeProgramManagerEmail");
-            product.Quality = DataProcessingInitializationCombination(product.Quality, "Quality");
+            Dictionary<string, string>.KeyCollection keys = product.GetAllKeys();
+            foreach (string key in keys)
+            {
+                product.Add(key, DataProcessingInitializationCombination(product.GetValue(key), key));
+            }
+            
+            product.Add("ProductId", DataProcessingInitializationCombination(product.GetValue("ProductId"), "ProductId"));
+            product.Add("ProductName", DataProcessingInitializationCombination(product.GetValue("ProductName"), "ProductName"));
+            product.Add("DevCenter", DataProcessingInitializationCombination(product.GetValue("DevCenter") , "DevCenter"));
+            product.Add("Brands", DataProcessingInitializationCombination(product.GetValue("Brands"), "Brands"));
+            product.Add("SystemBoardId", DataProcessingInitializationCombination(product.GetValue("SystemBoardId"), "SystemBoardId"));
+            product.Add("ServiceLifeDate", DataProcessingInitializationCombination(product.GetValue("ServiceLifeDate"), "ServiceLifeDate"));
+            product.Add("ProductStatus", DataProcessingInitializationCombination(product.GetValue("ProductStatus"), "ProductStatus"));
+            product.Add("BusinessSegment", DataProcessingInitializationCombination(product.GetValue("BusinessSegment"), "BusinessSegment"));
+            product.Add("CreatorName", DataProcessingInitializationCombination(product.GetValue("CreatorName"), "CreatorName"));
+            product.Add("CreatedDate", DataProcessingInitializationCombination(product.GetValue("CreatedDate"), "CreatedDate"));
+            product.Add("LastUpdaterName", DataProcessingInitializationCombination(product.GetValue("LastUpdaterName"), "LastUpdaterName"));
+            product.Add("LatestUpdateDate", DataProcessingInitializationCombination(product.GetValue("LatestUpdateDate"), "LatestUpdateDate"));
+            product.Add("SystemManager", DataProcessingInitializationCombination(product.GetValue("SystemManager"), "SystemManager"));
+            product.Add("PlatformDevelopmentPM", DataProcessingInitializationCombination(product.GetValue("PlatformDevelopmentPM"), "PlatformDevelopmentPM"));
+            product.Add("PlatformDevelopmentPMEmail", DataProcessingInitializationCombination(product.GetValue("PlatformDevelopmentPMEmail"), "PlatformDevelopmentPMEmail"));
+            product.Add("SupplyChain", DataProcessingInitializationCombination(product.GetValue("SupplyChain"), "SupplyChain"));
+            product.Add("SupplyChainEmail", DataProcessingInitializationCombination(product.GetValue("SupplyChainEmail"), "SupplyChainEmail"));
+            product.Add("ODMSystemEngineeringPM", DataProcessingInitializationCombination(product.GetValue("ODMSystemEngineeringPM"), "ODMSystemEngineeringPM"));
+            product.Add("ODMSystemEngineeringPMEmail", DataProcessingInitializationCombination(product.GetValue("ODMSystemEngineeringPMEmail"), "ODMSystemEngineeringPMEmail"));
+            product.Add("ConfigurationManager", DataProcessingInitializationCombination(product.GetValue("ConfigurationManager"), "ConfigurationManager"));
+            product.Add("ConfigurationManagerEmail", DataProcessingInitializationCombination(product.GetValue("ConfigurationManagerEmail"), "ConfigurationManagerEmail"));
+            product.Add("CommodityPM", DataProcessingInitializationCombination(product.GetValue("CommodityPM"), "CommodityPM"));
+            product.Add("CommodityPMEmail", DataProcessingInitializationCombination(product.GetValue("CommodityPMEmail"), "CommodityPMEmail"));
+            product.Add("Service", DataProcessingInitializationCombination(product.GetValue("Service"), "Service"));
+            product.Add("ServiceEmail", DataProcessingInitializationCombination(product.GetValue("ServiceEmail"), "ServiceEmail"));
+            product.Add("ODMHWPM", DataProcessingInitializationCombination(product.GetValue("ODMHWPM"), "ODMHWPM"));
+            product.Add("ODMHWPMEmail", DataProcessingInitializationCombination(product.GetValue("ODMHWPMEmail"), "ODMHWPMEmail"));
+            product.Add("ProgramOfficeProgramManager", DataProcessingInitializationCombination(product.GetValue("ProgramOfficeProgramManager"), "ProgramOfficeProgramManager"));
+            product.Add("ProgramOfficeProgramManagerEmail", DataProcessingInitializationCombination(product.GetValue("ProgramOfficeProgramManagerEmail"), "ProgramOfficeProgramManagerEmail"));
+            product.Add("Quality", DataProcessingInitializationCombination(product.GetValue("Quality"), "Quality"));
+
+            product. = DataProcessingInitializationCombination(product.SupplyChainEmail, "SupplyChainEmail");
+            product. = DataProcessingInitializationCombination(product.ODMSystemEngineeringPM, "ODMSystemEngineeringPM");
+            product. = DataProcessingInitializationCombination(product.ODMSystemEngineeringPMEmail, "ODMSystemEngineeringPMEmail");
+            product. = DataProcessingInitializationCombination(product.ConfigurationManager, "ConfigurationManager");
+            product. = DataProcessingInitializationCombination(product.ConfigurationManagerEmail, "ConfigurationManagerEmail");
+            product. = DataProcessingInitializationCombination(product.CommodityPM, "CommodityPM");
+            product. = DataProcessingInitializationCombination(product.CommodityPMEmail, "CommodityPMEmail");
+            product. = DataProcessingInitializationCombination(product.Service, "Service");
+            product. = DataProcessingInitializationCombination(product.ServiceEmail, "ServiceEmail");
+            product. = DataProcessingInitializationCombination(product.ODMHWPM, "ODMHWPM");
+            product. = DataProcessingInitializationCombination(product.ODMHWPMEmail, "ODMHWPMEmail");
+            product. = DataProcessingInitializationCombination(product.ProgramOfficeProgramManager, "ProgramOfficeProgramManager");
+            product. = DataProcessingInitializationCombination(product.ProgramOfficeProgramManagerEmail, "ProgramOfficeProgramManagerEmail");
+            product. = DataProcessingInitializationCombination(product.Quality, "Quality");
             product.QualityEmail = DataProcessingInitializationCombination(product.QualityEmail, "QualityEmail");
             product.PlanningPM = DataProcessingInitializationCombination(product.PlanningPM, "PlanningPM");
             product.PlanningPMEmail = DataProcessingInitializationCombination(product.PlanningPMEmail, "PlanningPMEmail");
@@ -96,10 +119,11 @@ public class CommonDataTranformer
             product.LeadProduct = DataProcessingInitializationCombination(product.LeadProduct, "LeadProduct");
             product.Chipsets = DataProcessingInitializationCombination(product.Chipsets, "Chipsets");
             product.CurrentBIOSVersions = DataProcessingInitializationCombination(product.CurrentBIOSVersions, "CurrentBIOSVersions");
+            
         }
         return products;
     }
-
+   */
     private string DataProcessingInitializationCombination(string PropertyValue, string propertyName)
     {
         if (DataPropertyList.Contains(propertyName.ToLower()))
@@ -407,6 +431,14 @@ public class CommonDataTranformer
         {
             return "Current BIOS Version : " + propertyValue;
         }
-        return "";
+        else if (propertyName == "target")
+        {
+            return propertyValue;
+        }
+        else if (propertyName == "Id")
+        {
+            return propertyValue;
+        }
+        return propertyValue;
     }
 }

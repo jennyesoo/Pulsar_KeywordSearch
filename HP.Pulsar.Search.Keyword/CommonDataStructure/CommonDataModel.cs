@@ -28,4 +28,15 @@ public class CommonDataModel
 
         return string.Empty;
     }
+
+    public Dictionary<string, string>.KeyCollection GetAllKeys()
+    {
+        Dictionary<string, string>.KeyCollection keyColl = _pairs.Keys;
+        return keyColl;
+    }
+
+    public Dictionary<string, string> GetAllData() 
+    {
+        return _pairs;
+    }
 }

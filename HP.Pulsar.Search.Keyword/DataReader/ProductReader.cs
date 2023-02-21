@@ -1,6 +1,7 @@
 ﻿using HP.Pulsar.Search.Keyword.CommonDataStructure;
 using HP.Pulsar.Search.Keyword.Infrastructure;
 using Microsoft.Data.SqlClient;
+using System.Collections.Generic;
 
 namespace HP.Pulsar.Search.Keyword.DataReader;
 
@@ -16,18 +17,18 @@ public class ProductReader : IKeywordSearchDataReader
 
     public async Task<IEnumerable<CommonDataModel>> GetDataAsync()
     {
-        (IEnumerable<CommonDataModel> Products, Dictionary<int, string> BusinessSegments) data = await GetProductsAsync();
-
-        // get end of production
-
-        // get product group
-
-        // .....
-
-        return data.Products;
+        Console.WriteLine("Read Data");
+        (IEnumerable<CommonDataModel> Products, Dictionary<string, string> BusinessSegments) data = await GetProductsAsync();
+        IEnumerable<CommonDataModel>  products = await GetEndOfProductionAsync(data.Products);
+        products = await GetProductGroupsAsync(products);
+        products = await GetWHQLstatusAsync(products);
+        products = await GetLeadProductAsync(products, data.BusinessSegments);
+        products = await GetChipsetsAsync(products);
+        products = await GetCurrentBIOSVersionsAsync(products);
+        return products;
     }
 
-    private string GetAllProductsTSqlCommandText()
+    private string GetAllProductsSqlCommandText()
     {
         return @"
                 SELECT p.id AS ProductId,
@@ -149,10 +150,10 @@ public class ProductReader : IKeywordSearchDataReader
     }
 
     // This function is to get all products
-    private async Task<(IEnumerable<CommonDataModel>, Dictionary<int, string>)> GetProductsAsync()
+    private async Task<(IEnumerable<CommonDataModel>, Dictionary<string, string>)> GetProductsAsync()
     {
         using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
-        SqlCommand command = new(GetAllProductsTSqlCommandText(), connection);
+        SqlCommand command = new(GetAllProductsSqlCommandText(), connection);
 
         SqlParameter parameter = new("ProductId", -1);
         command.Parameters.Add(parameter);
@@ -164,7 +165,7 @@ public class ProductReader : IKeywordSearchDataReader
         // This is for ID in Meilisearch
         int count = 0;
         List<CommonDataModel> output = new();
-        Dictionary<int, string> businessSegments = new();
+        Dictionary<string, string> businessSegments = new();
 
         while (reader.Read())
         {
@@ -183,18 +184,23 @@ public class ProductReader : IKeywordSearchDataReader
 
                 string columnName = reader.GetName(i);
                 string value = reader[i].ToString();
-                product.Add(columnName, value);
 
                 if (string.Equals("BusinessSegmentID", columnName, StringComparison.OrdinalIgnoreCase))
                 {
                     businessSegmentId = value;
                 }
-                if (string.Equals("ProductVersionId", columnName, StringComparison.OrdinalIgnoreCase))
+                else 
+                {
+                    product.Add(columnName, value);
+                }
+
+                if (string.Equals("ProductId", columnName, StringComparison.OrdinalIgnoreCase))
                 {
                     productId = value;
                 }
             }
 
+            /*
             if (!string.IsNullOrWhiteSpace(businessSegmentId)
                 || !string.IsNullOrWhiteSpace(productId))
             {
@@ -205,16 +211,13 @@ public class ProductReader : IKeywordSearchDataReader
             {
                 continue;
             }
-
-            businessSegments[productIdValue] = businessSegmentId;
-
+            */
+            businessSegments[productId.ToString()] = businessSegmentId;
             product.Add("target", "product");
             product.Add("Id", count.ToString());
-
             output.Add(product);
             count++;
         }
-
         return (output, businessSegments);
     }
 
@@ -262,16 +265,16 @@ public class ProductReader : IKeywordSearchDataReader
     }
 
 
-    private async Task<List<ProductDataModel>> GetEndOfProductionAsync(List<ProductDataModel> products)
+    private async Task<IEnumerable<CommonDataModel>> GetEndOfProductionAsync(IEnumerable<CommonDataModel> products)
     {
         using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
-        SqlCommand command = new(GetTSQLEndOfProductionCommandText(), connection);
         await connection.OpenAsync();
 
-        foreach (ProductDataModel product in products)
+        foreach (CommonDataModel product in products)
         {
             List<string> EndOfProduction = new List<string>();
-            SqlParameter parameter = new SqlParameter("ProductId", product.ProductId);
+            SqlCommand command = new(GetTSQLEndOfProductionCommandText(), connection);
+            SqlParameter parameter = new SqlParameter("ProductId", product.GetValue("ProductId"));
             command.Parameters.Add(parameter);
             using SqlDataReader reader = command.ExecuteReader();
 
@@ -282,27 +285,27 @@ public class ProductReader : IKeywordSearchDataReader
 
             if (EndOfProduction.Count == 0)
             {
-                product.EndOfProduction = "";
+                product.Add("EndOfProduction","");
             }
             else
             {
-                product.EndOfProduction = EndOfProduction[0];
+                product.Add("EndOfProduction", EndOfProduction[0]);
             }
         }
 
         return products;
     }
 
-    private async Task<List<ProductDataModel>> GetProductGroupsAsync(List<ProductDataModel> products)
+    private async Task<IEnumerable<CommonDataModel>> GetProductGroupsAsync(IEnumerable<CommonDataModel> products)
     {
         using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
-        SqlCommand command = new(GetTSQLProductGroupsCommandText(), connection);
         await connection.OpenAsync();
 
-        foreach (ProductDataModel product in products)
+        foreach (CommonDataModel product in products)
         {
             List<string> ProductGroups = new List<string>();
-            SqlParameter parameter = new SqlParameter("ProductId", product.ProductId);
+            SqlCommand command = new(GetTSQLProductGroupsCommandText(), connection);
+            SqlParameter parameter = new SqlParameter("ProductId", product.GetValue("ProductId"));
             command.Parameters.Add(parameter);
             using SqlDataReader reader = command.ExecuteReader();
 
@@ -313,27 +316,27 @@ public class ProductReader : IKeywordSearchDataReader
 
             if (ProductGroups.Count == 0)
             {
-                product.ProductGroups = "";
+                product.Add("ProductGroups", "");
             }
             else
             {
-                product.ProductGroups = ProductGroups[0];
+                product.Add("ProductGroups", ProductGroups[0]);
             }
         }
 
         return products;
     }
 
-    private async Task<List<ProductDataModel>> GetWHQLstatusAsync(List<ProductDataModel> products)
+    private async Task<IEnumerable<CommonDataModel>> GetWHQLstatusAsync(IEnumerable<CommonDataModel> products)
     {
         using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
-        SqlCommand command = new(GetTSQLWHQLstatusCommandText(), connection);
         await connection.OpenAsync();
 
-        foreach (ProductDataModel product in products)
+        foreach (CommonDataModel product in products)
         {
             List<string> WHQLstatus = new List<string>();
-            SqlParameter parameter = new SqlParameter("ProductId", product.ProductId);
+            SqlCommand command = new(GetTSQLWHQLstatusCommandText(), connection);
+            SqlParameter parameter = new SqlParameter("ProductId", product.GetValue("ProductId"));
             command.Parameters.Add(parameter);
             using SqlDataReader reader = command.ExecuteReader();
 
@@ -344,29 +347,29 @@ public class ProductReader : IKeywordSearchDataReader
 
             if (WHQLstatus.Count == 0)
             {
-                product.WHQLstatus = "incomplete";
+                product.Add("WHQLstatus", "incomplete");
             }
             else
             {
-                product.WHQLstatus = "Unknown";
+                product.Add("WHQLstatus", "Unknown");
             }
         }
 
         return products;
     }
 
-    private async Task<List<ProductDataModel>> GetLeadProductAsync(List<ProductDataModel> products)
+    private async Task<IEnumerable<CommonDataModel>> GetLeadProductAsync(IEnumerable<CommonDataModel> products, Dictionary<string, string> BusinessSegments)
     {
         using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
-        SqlCommand command = new(GetTSQLLeadproductCommandText(), connection);
         await connection.OpenAsync();
 
         int count = 0;
 
-        foreach (ProductDataModel product in products)
+        foreach (CommonDataModel product in products)
         {
             List<string> Leadproduct = new List<string>();
-            SqlParameter parameter = new SqlParameter("BusinessSegmentID", _businessSegmentID[count]);
+            SqlCommand command = new(GetTSQLLeadproductCommandText(), connection);
+            SqlParameter parameter = new SqlParameter("BusinessSegmentID", BusinessSegments[product.GetValue("ProductId")]);
             count++;
             command.Parameters.Add(parameter);
             using SqlDataReader reader = command.ExecuteReader();
@@ -378,27 +381,27 @@ public class ProductReader : IKeywordSearchDataReader
 
             if (Leadproduct.Count == 0)
             {
-                product.LeadProduct = "";
+                product.Add("LeadProduct", "");
             }
             else
             {
-                product.LeadProduct = Leadproduct[0];
+                product.Add("LeadProduct", Leadproduct[0]);
             }
         }
 
         return products;
     }
 
-    private async Task<List<ProductDataModel>> GetChipsetsAsync(List<ProductDataModel> products)
+    private async Task<IEnumerable<CommonDataModel>> GetChipsetsAsync(IEnumerable<CommonDataModel> products)
     {
         using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
-        SqlCommand command = new(GetTSQLChipsetsCommandText(), connection);
         await connection.OpenAsync();
 
-        foreach (ProductDataModel product in products)
+        foreach (CommonDataModel product in products)
         {
             List<string> Chipsets = new List<string>();
-            SqlParameter parameter = new SqlParameter("ProductId", product.ProductId);
+            SqlCommand command = new(GetTSQLChipsetsCommandText(), connection);
+            SqlParameter parameter = new SqlParameter("ProductId", product.GetValue("ProductId"));
             command.Parameters.Add(parameter);
             using SqlDataReader reader = command.ExecuteReader();
 
@@ -407,7 +410,6 @@ public class ProductReader : IKeywordSearchDataReader
             {
                 if (reader["Selected"].ToString() == "1")
                 {
-                    Console.Write("test value : " + reader["State"].ToString());
                     if (reader["State"].ToString() == "True")
                     {
                         if (chipsets_value == "")
@@ -434,21 +436,21 @@ public class ProductReader : IKeywordSearchDataReader
                 Chipsets.Add(chipsets_value);
             }
 
-            product.Chipsets = Chipsets[0];
+            product.Add("Chipsets", Chipsets[0]);
         }
         return products;
     }
 
-    private async Task<List<ProductDataModel>> GetCurrentBIOSVersionsAsync(List<ProductDataModel> products)
+    private async Task<IEnumerable<CommonDataModel>> GetCurrentBIOSVersionsAsync(IEnumerable<CommonDataModel> products)
     {
         using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
-        SqlCommand command = new(GetTSQLCurrentBIOSVersionsCommandText(), connection);
         await connection.OpenAsync();
 
-        foreach (ProductDataModel product in products)
+        foreach (CommonDataModel product in products)
         {
             List<string> CurrentBIOSVersions = new List<string>();
-            SqlParameter parameter = new SqlParameter("ProductId", product.ProductId);
+            SqlCommand command = new(GetTSQLCurrentBIOSVersionsCommandText(), connection);
+            SqlParameter parameter = new SqlParameter("ProductId", product.GetValue("ProductId"));
             command.Parameters.Add(parameter);
             using SqlDataReader reader = command.ExecuteReader();
 
@@ -458,12 +460,12 @@ public class ProductReader : IKeywordSearchDataReader
                 string CurrentWebROM_value = reader["currentWebROM"].ToString();
                 string[] value_List = { "Development", "Definition" };
 
-                if (CurrentROM_value == "" && (product.ProductStatus == "Development" || product.ProductStatus == "Definition"))
+                if (CurrentROM_value == "" && (product.GetValue("ProductStatus") == "Development" || product.GetValue("ProductStatus") == "Definition"))
                 {
                     using SqlConnection connection_CurrentROM = new(_csProvider.GetSqlServerConnectionString());
                     SqlCommand command_CurrentROM = new(GetTSQLCurrentROMCommandText(), connection_CurrentROM);
                     await connection_CurrentROM.OpenAsync();
-                    SqlParameter parameter_CurrentROM = new SqlParameter("ProductId", product.ProductId);
+                    SqlParameter parameter_CurrentROM = new SqlParameter("ProductId", product.GetValue("ProductId"));
                     command_CurrentROM.Parameters.Add(parameter_CurrentROM);
                     using SqlDataReader reader_CurrentROM = command_CurrentROM.ExecuteReader();
                     while (reader_CurrentROM.Read())
@@ -471,7 +473,7 @@ public class ProductReader : IKeywordSearchDataReader
                         CurrentROM_value = "Targeted: " + reader_CurrentROM["TargetedVersions"];
                     }
                 }
-                else if (!value_List.Contains(product.ProductStatus))
+                else if (!value_List.Contains(product.GetValue("ProductStatus")))
                 {
                     if (CurrentROM_value == "")
                     {
@@ -490,8 +492,7 @@ public class ProductReader : IKeywordSearchDataReader
                 {
                     CurrentROM_value = "Web: " + CurrentWebROM_value;
                 }
-
-                product.CurrentBIOSVersions = CurrentROM_value;
+                product.Add("CurrentBIOSVersions", CurrentROM_value);
             }
         }
 
