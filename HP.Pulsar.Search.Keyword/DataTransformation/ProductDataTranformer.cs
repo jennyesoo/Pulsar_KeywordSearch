@@ -1,24 +1,21 @@
-﻿using System.Data.Entity.Design.PluralizationServices;
-using System.Globalization;
-using HP.Pulsar.Search.Keyword.CommonDataStructure;
-using LemmaSharp.Classes;
+﻿using HP.Pulsar.Search.Keyword.CommonDataStructure;
 
 namespace HP.Pulsar.Search.Keyword.DataTransformation;
 
-public class CommonDataTranformer
+public class ProductDataTranformer
 {
     public string filePath;
-    private readonly Lemmatizer lemmatizer;
+    //private readonly Lemmatizer lemmatizer;
     public static List<string> _noLemmatization = new List<string> { "bios", "fxs", "os", "obs", "ots" };
     public static List<string> DataPropertyList = new List<string> { "servicelifedate", "createddate", "latestupdatedate", "endofproduction" };
 
-    public CommonDataTranformer()
+    public ProductDataTranformer()
     {
         DirectoryInfo dir = new DirectoryInfo(AppDomain.CurrentDomain.BaseDirectory);
         string Path = dir.Parent.Parent.Parent.Parent.FullName;
         filePath = Path + "\\tools\\AIModel\\full7z-mlteast-en-modified.lem";
         var stream = File.OpenRead(filePath);
-        lemmatizer = new Lemmatizer(stream);
+        //lemmatizer = new Lemmatizer(stream);
     }
 
     public IEnumerable<CommonDataModel> Transform(IEnumerable<CommonDataModel> products)
@@ -44,55 +41,55 @@ public class CommonDataTranformer
         return PropertyValue;
     }
 
-    private string PluralToSingular(string sentence)
-    {
-        PluralizationService service = PluralizationService.CreateService(CultureInfo.GetCultureInfo("en-us"));
-        var tokens = sentence.Split(" ");
-        string results = "";
-        if (tokens == null || !tokens.Any())
-        {
-            return results;
-        }
+    //private string PluralToSingular(string sentence)
+    //{
+    //    PluralizationService service = PluralizationService.CreateService(CultureInfo.GetCultureInfo("en-us"));
+    //    var tokens = sentence.Split(" ");
+    //    string results = "";
+    //    if (tokens == null || !tokens.Any())
+    //    {
+    //        return results;
+    //    }
 
-        foreach (string token in tokens)
-        {
-            if (service.IsPlural(token))
-            {
-                results += " " + service.Singularize(token);
-            }
-            else
-            {
-                results += " " + token;
-            }
-        }
-        return results;
-    }
+    //    foreach (string token in tokens)
+    //    {
+    //        if (service.IsPlural(token))
+    //        {
+    //            results += " " + service.Singularize(token);
+    //        }
+    //        else
+    //        {
+    //            results += " " + token;
+    //        }
+    //    }
+    //    return results;
+    //}
 
-    private string Lemmatize(string sentence)
-    {
-        var tokens = sentence.Split(" ");
-        //Console.WriteLine(tokens);
-        string results = "";
+    //private string Lemmatize(string sentence)
+    //{
+    //    var tokens = sentence.Split(" ");
+    //    //Console.WriteLine(tokens);
+    //    string results = "";
 
-        if (lemmatizer == null || tokens == null || !tokens.Any())
-        {
-            return results;
-        }
+    //    if (lemmatizer == null || tokens == null || !tokens.Any())
+    //    {
+    //        return results;
+    //    }
 
-        foreach (string token in tokens)
-        {
-            if (_noLemmatization.Contains(token.ToLower()))
-            {
-                results += " " + token;
-            }
-            else
-            {
-                results += " " + lemmatizer.Lemmatize(token);
-            }
-        }
+    //    foreach (string token in tokens)
+    //    {
+    //        if (_noLemmatization.Contains(token.ToLower()))
+    //        {
+    //            results += " " + token;
+    //        }
+    //        else
+    //        {
+    //            results += " " + lemmatizer.Lemmatize(token);
+    //        }
+    //    }
 
-        return results;
-    }
+    //    return results;
+    //}
 
     private string ChangeDateFormat(string PropertyValue)
     {

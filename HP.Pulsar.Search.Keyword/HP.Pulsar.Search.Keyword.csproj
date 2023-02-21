@@ -5,6 +5,11 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
     <ItemGroup>
+      <Compile Remove="DataWriter\**" />
+      <EmbeddedResource Remove="DataWriter\**" />
+      <None Remove="DataWriter\**" />
+    </ItemGroup>
+    <ItemGroup>
       <Compile Remove="DataReader\PropertyProcessing.cs" />
       <Compile Remove="DataReader\SqlServerStringCommand.cs" />
     </ItemGroup>
@@ -12,10 +17,6 @@
       <None Remove="AppData\App.Beta" />
       <None Remove="AppData\json-schema1.json" />
       <None Remove="AppData\json-schema2.json" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <Folder Include="DataWriter\" />
     </ItemGroup>
 
     <ItemGroup>
@@ -27,6 +28,12 @@
         <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="7.0.0" />
         <PackageReference Include="System.Text.Json" Version="7.0.2" />
         <PackageReference Include="Vse.Web.Serialization.ControlledSerializationJsonConverter" Version="1.0.4" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Update="References\full7z-mlteast-en-modified.lem">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
     </ItemGroup>
 
 </Project>

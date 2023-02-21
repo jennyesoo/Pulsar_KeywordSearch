@@ -1,14 +1,12 @@
 ﻿using HP.Pulsar.Search.Keyword.CommonDataStructure;
 using HP.Pulsar.Search.Keyword.Infrastructure;
 using Microsoft.Data.SqlClient;
-using System.Collections.Generic;
 
 namespace HP.Pulsar.Search.Keyword.DataReader;
 
 public class ProductReader : IKeywordSearchDataReader
 {
     private ConnectionStringProvider _csProvider;
-    private List<string> _businessSegmentID;
 
     public ProductReader(KeywordSearchInfo info)
     {
@@ -18,11 +16,11 @@ public class ProductReader : IKeywordSearchDataReader
     public async Task<IEnumerable<CommonDataModel>> GetDataAsync()
     {
         Console.WriteLine("Read Data");
-        (IEnumerable<CommonDataModel> Products, Dictionary<string, string> BusinessSegments) data = await GetProductsAsync();
-        IEnumerable<CommonDataModel>  products = await GetEndOfProductionAsync(data.Products);
+        (IEnumerable<CommonDataModel> Products, Dictionary<string, string> BusinessSegments) = await GetProductsAsync();
+        IEnumerable<CommonDataModel>  products = await GetEndOfProductionAsync(Products);
         products = await GetProductGroupsAsync(products);
         products = await GetWHQLstatusAsync(products);
-        products = await GetLeadProductAsync(products, data.BusinessSegments);
+        products = await GetLeadProductAsync(products, BusinessSegments);
         products = await GetChipsetsAsync(products);
         products = await GetCurrentBIOSVersionsAsync(products);
         return products;
