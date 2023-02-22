@@ -26,22 +26,15 @@ internal class ProductOrchestrator : IInitializationOrchestrator
         ProductDataTranformer tranformer = new();
         products = tranformer.Transform(products);
 
-        // data to json
+        // data to meiliesearch format
         List<Dictionary<string, string>> allProducts = new();
         foreach (CommonDataModel product in products)
         {
             allProducts.Add(product.GetAllData());
         }
-        //string productJson = JsonSerializer.Serialize(allProducts);
 
         //// write to meiliesearch
         MeilisearchClient client = new(KeywordSearchInfo.SearchEngineUrl, "masterKey");
-        _ = new JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true
-        };
-
-        //IEnumerable<Dictionary<string, string>>? pulsar = JsonSerializer.Deserialize<IEnumerable<Dictionary<string, string>>>(productJson);
         await client.DeleteIndexAsync("Pulsar2");
         Meilisearch.Index index = client.Index("Pulsar2");
         await client.CreateIndexAsync("Pulsar2", "Id");
