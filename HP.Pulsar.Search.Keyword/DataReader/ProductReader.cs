@@ -17,13 +17,16 @@ public class ProductReader : IKeywordSearchDataReader
     {
         Console.WriteLine("Read Data");
         (IEnumerable<CommonDataModel> Products, Dictionary<string, string> BusinessSegments) = await GetProductsAsync(meiliseatchcount);
-        IEnumerable<CommonDataModel>  products = await GetEndOfProductionAsync(Products);
+        IEnumerable<CommonDataModel> products = await GetEndOfProductionAsync(Products);
+
+        // TODO - performance improvement needed
         products = await GetProductGroupsAsync(products);
         products = await GetWHQLstatusAsync(products);
         products = await GetLeadProductAsync(products, BusinessSegments);
         products = await GetChipsetsAsync(products);
         products = await GetCurrentBIOSVersionsAsync(products);
         products = await GetComponentRootListAsync(products);
+
         return products;
     }
 
@@ -186,7 +189,7 @@ public class ProductReader : IKeywordSearchDataReader
                 {
                     businessSegmentId = value;
                 }
-                else 
+                else
                 {
                     product.Add(columnName, value);
                 }
@@ -214,7 +217,7 @@ public class ProductReader : IKeywordSearchDataReader
             product.Add("target", "product");
             product.Add("Id", meiliseatchcount.ToString());
             output.Add(product);
-            
+
         }
         return (output, businessSegments);
     }
@@ -318,7 +321,7 @@ public class ProductReader : IKeywordSearchDataReader
 
             if (EndOfProduction.Count == 0)
             {
-                product.Add("EndOfProduction","");
+                product.Add("EndOfProduction", "");
             }
             else
             {

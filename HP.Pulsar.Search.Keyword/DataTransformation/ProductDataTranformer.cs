@@ -1,10 +1,7 @@
-﻿using System.Data.Entity.Design.PluralizationServices;
-using System.Globalization;
-using HP.Pulsar.Search.Keyword.CommonDataStructure;
-using LemmaSharp.Classes;
+﻿using HP.Pulsar.Search.Keyword.CommonDataStructure;
 namespace HP.Pulsar.Search.Keyword.DataTransformation;
 
-public class ProductDataTranformer
+public class ProductDataTranformer : IDataTranformer
 {
     public string filePath;
     //private readonly Lemmatizer lemmatizer;
@@ -350,7 +347,7 @@ public class ProductDataTranformer
         {
             return "Component Root : " + propertyValue;
         }
-        
+
         return propertyValue;
     }
 }

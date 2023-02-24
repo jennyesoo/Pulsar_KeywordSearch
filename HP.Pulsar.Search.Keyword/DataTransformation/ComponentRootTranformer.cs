@@ -1,47 +1,44 @@
 ﻿using HP.Pulsar.Search.Keyword.CommonDataStructure;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace HP.Pulsar.Search.Keyword.DataTransformation
 {
-    internal class ComponentRootTranformer
+    internal class ComponentRootTranformer : IDataTranformer
     {
         public static List<string> DataPropertyList = new List<string> { "" };
 
-        public IEnumerable<CommonDataModel> Transform(IEnumerable<CommonDataModel> ComponentRoots)
+        public IEnumerable<CommonDataModel> Transform(IEnumerable<CommonDataModel> componentRoots)
         {
-            foreach (CommonDataModel ComponentRoot in ComponentRoots)
+            foreach (CommonDataModel root in componentRoots)
             {
-                Dictionary<string, string>.KeyCollection keys = ComponentRoot.GetAllKeys();
-                foreach (string key in keys)
+                foreach (string key in root.GetAllKeys())
                 {
-                    ComponentRoot.Add(key, DataProcessingInitializationCombination(ComponentRoot.GetValue(key), key));
+                    root.Add(key, DataProcessingInitializationCombination(root.GetValue(key), key));
                 }
             }
-            return ComponentRoots;
+
+            return componentRoots;
         }
 
-        private string DataProcessingInitializationCombination(string PropertyValue, string propertyName)
+        private string DataProcessingInitializationCombination(string propertyValue, string propertyName)
         {
             if (DataPropertyList.Contains(propertyName.ToLower()))
             {
-                PropertyValue = ChangeDateFormat(PropertyValue);
+                propertyValue = ChangeDateFormat(propertyValue);
             }
-            PropertyValue = AddPropertyName(propertyName, PropertyValue);
-            return PropertyValue;
+
+            propertyValue = AddPropertyName(propertyName, propertyValue);
+
+            return propertyValue;
         }
 
-        private string ChangeDateFormat(string PropertyValue)
+        private string ChangeDateFormat(string propertyValue)
         {
-            return PropertyValue.Split(" ")[0];
+            return propertyValue.Split(" ")[0];
         }
 
         private string AddPropertyName(string propertyName, string propertyValue)
         {
-            if (propertyName == "ComponentRootId")
+            if (string.Equals(propertyName, "ComponentRootId"))
             {
                 return "Component Root Id : " + propertyValue;
             }

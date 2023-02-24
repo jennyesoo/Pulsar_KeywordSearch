@@ -4,5 +4,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader;
 
 internal interface IKeywordSearchDataReader
 {
-    Task<IEnumerable<CommonDataModel>> GetDataAsync( int meiliseachcount);
+    Task<CommonDataModel> GetDataAsync(int id);
+
+    Task<IEnumerable<CommonDataModel>> GetDataAsync();
 }

@@ -1,11 +1,6 @@
 ﻿using HP.Pulsar.Search.Keyword.CommonDataStructure;
 using HP.Pulsar.Search.Keyword.Infrastructure;
 using Microsoft.Data.SqlClient;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace HP.Pulsar.Search.Keyword.DataReader
 {
@@ -18,37 +13,47 @@ namespace HP.Pulsar.Search.Keyword.DataReader
 
         private ConnectionStringProvider _csProvider;
 
-        public async Task<IEnumerable<CommonDataModel>> GetDataAsync(int meiliseatchcount)
+        public Task<CommonDataModel> GetDataAsync(int componentRootId)
+        {
+            throw new NotImplementedException();
+        }
+
+        public async Task<IEnumerable<CommonDataModel>> GetDataAsync()
         {
             Console.WriteLine("Read Data");
-            IEnumerable<CommonDataModel> ComponentRoot = await GetComponentRootAsync(meiliseatchcount);
-            ComponentRoot = await GetComponentRootListAsync(ComponentRoot);
-            return ComponentRoot;
+            IEnumerable<CommonDataModel> componentRoot = await GetComponentRootAsync();
+            componentRoot = await GetComponentRootListAsync(componentRoot);
+            return componentRoot;
         }
 
         private string GetAllComponentRootSqlCommandText()
         {
             return @"
-                    SELECT root.id AS ComponentRootId,
-                        root.name AS ComponentRootName,
-                        description,
-                        vendor.Name AS VendorName,
-                        cate.name As Category,
-                        user1.FirstName + ' ' + user1.LastName AS PM,
-                        user2.FirstName + ' ' + user2.LastName AS DeveloperName,
-                        user3.FirstName + ' ' + user3.LastName AS TesterName,
-                        coreteam.Name AS CoreTeam,
-                        ComponentType.Name As ComponentType
-                    FROM DeliverableRoot root
-                    Join ComponentType on ComponentType.ComponentTypeId = root.TypeID
-                    JOIN vendor ON root.vendorid = vendor.id
-                    JOIN componentCategory cate ON cate.CategoryId = root.categoryid
-                    JOIN UserInfo user1 ON user1.userid = root.devmanagerid
-                    JOIN userinfo user2 ON user2.userid = root.DeveloperID
-                    JOIN userinfo user3 ON user3.userid = root.TesterID
-                    JOIN componentcoreteam coreteam ON coreteam.ComponentCoreTeamId = root.CoreTeamID 
-                    WHERE typeid = 2 AND root.active = 1 AND (@ComponentRootId = -1 OR root.id = @ComponentRootId);
-                ";
+SELECT root.id AS ComponentRootId,
+    root.name AS ComponentRootName,
+    description,
+    vendor.Name AS VendorName,
+    cate.name AS Category,
+    user1.FirstName + ' ' + user1.LastName AS PM,
+    user2.FirstName + ' ' + user2.LastName AS DeveloperName,
+    user3.FirstName + ' ' + user3.LastName AS TesterName,
+    coreteam.Name AS CoreTeam,
+    ComponentType.Name AS ComponentType
+FROM DeliverableRoot root
+JOIN ComponentType ON ComponentType.ComponentTypeId = root.TypeID
+JOIN Vendor ON root.vendorid = vendor.id
+JOIN componentCategory cate ON cate.CategoryId = root.categoryid
+JOIN UserInfo user1 ON user1.userid = root.devmanagerid
+JOIN UserInfo user2 ON user2.userid = root.DeveloperID
+JOIN UserInfo user3 ON user3.userid = root.TesterID
+JOIN ComponentCoreTeam coreteam ON coreteam.ComponentCoreTeamId = root.CoreTeamID
+WHERE typeid = 2
+    AND root.active = 1
+    AND (
+        @ComponentRootId = - 1
+        OR root.id = @ComponentRootId
+        );
+";
         }
 
         private string GetTSQLProductListCommandText()
@@ -64,28 +69,39 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                     FROM DeliverableRoot DR
                     where DR.Id = @ComponentRootId
                     group by DR.Id";
+
+            //            SELECT p.dotsname, r.Name
+            //FROM DeliverableRoot root
+            //join Product_DelRoot pr on root.Id = pr.DeliverableRootId
+            //join ProductVersion p on pr.ProductVersionID = p.id
+            //join ProductVersion_Release pr2 on pr2.ProductVersionID = p.Id
+            //join ProductVersionRelease r on r.Id = pr2.ReleaseId
+            //where root.id = 36886
+            //order by p.dotsname
         }
 
-        private async Task<IEnumerable<CommonDataModel>> GetComponentRootListAsync(IEnumerable<CommonDataModel> ComponentRoots)
+        // TODO - performance improvement needed
+        private async Task<IEnumerable<CommonDataModel>> GetComponentRootListAsync(IEnumerable<CommonDataModel> componentRoots)
         {
             using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
             await connection.OpenAsync();
 
-            foreach (CommonDataModel ComponentRoot in ComponentRoots)
+            foreach (CommonDataModel root in componentRoots)
             {
                 SqlCommand command = new(GetTSQLProductListCommandText(), connection);
-                SqlParameter parameter = new SqlParameter("ComponentRootId", ComponentRoot.GetValue("ComponentRootId"));
+                SqlParameter parameter = new SqlParameter("ComponentRootId", root.GetValue("ComponentRootId"));
                 command.Parameters.Add(parameter);
                 using SqlDataReader reader = command.ExecuteReader();
 
                 while (reader.Read())
                 {
-                    ComponentRoot.Add("ProductList", reader["Product"].ToString());
+                    root.Add("ProductList", reader["Product"].ToString());
                 }
             }
-            return ComponentRoots;
+            return componentRoots;
         }
-        private async Task<IEnumerable<CommonDataModel>> GetComponentRootAsync(int meiliseatchcount)
+
+        private async Task<IEnumerable<CommonDataModel>> GetComponentRootAsync()
         {
             using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
             SqlCommand command = new(GetAllComponentRootSqlCommandText(), connection);
@@ -102,7 +118,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
             while (reader.Read())
             {
                 //string businessSegmentId;
-                CommonDataModel ComponentRoot = new();
+                CommonDataModel root = new();
                 int fieldCount = reader.FieldCount;
 
                 for (int i = 0; i < fieldCount; i++)
@@ -114,15 +130,14 @@ namespace HP.Pulsar.Search.Keyword.DataReader
 
                     string columnName = reader.GetName(i);
                     string value = reader[i].ToString();
-                    ComponentRoot.Add(columnName, value);
-       
+                    root.Add(columnName, value);
                 }
 
-                meiliseatchcount++;
-                ComponentRoot.Add("target", "Component Root");
-                ComponentRoot.Add("Id", meiliseatchcount.ToString());
-                output.Add(ComponentRoot);
+                root.Add("target", "Component Root");
+
+                output.Add(root);
             }
+
             return output;
         }
     }

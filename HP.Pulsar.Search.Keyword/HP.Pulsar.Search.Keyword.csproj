@@ -5,11 +5,6 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
     <ItemGroup>
-      <Compile Remove="DataWriter\**" />
-      <EmbeddedResource Remove="DataWriter\**" />
-      <None Remove="DataWriter\**" />
-    </ItemGroup>
-    <ItemGroup>
       <Compile Remove="DataReader\PropertyProcessing.cs" />
       <Compile Remove="DataReader\SqlServerStringCommand.cs" />
     </ItemGroup>

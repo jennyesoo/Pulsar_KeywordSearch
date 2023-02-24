@@ -3,11 +3,6 @@ using HP.Pulsar.Search.Keyword.DataReader;
 using HP.Pulsar.Search.Keyword.DataTransformation;
 using HP.Pulsar.Search.Keyword.Infrastructure;
 using Meilisearch;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace HP.Pulsar.Search.Keyword.Orchestrator
 {
@@ -25,21 +20,21 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator
             // read products from database
             ComponentRootReader reader = new(KeywordSearchInfo);
 
-            IEnumerable<CommonDataModel> ComponentRoots = await reader.GetDataAsync(KeywordSearchInfo.MeilisearchCount);
+            IEnumerable<CommonDataModel> roots = await reader.GetDataAsync();
 
             // data processing
             ComponentRootTranformer tranformer = new();
-            ComponentRoots = tranformer.Transform(ComponentRoots);
+            roots = tranformer.Transform(roots);
 
             // data to meiliesearch format
             List<Dictionary<string, string>> allComponentRoots = new();
-            foreach (CommonDataModel ComponentRoot in ComponentRoots)
+            foreach (CommonDataModel ComponentRoot in roots)
             {
                 allComponentRoots.Add(ComponentRoot.GetAllData());
             }
 
             //set meilisearch count 
-            KeywordSearchInfo.MeilisearchCount = allComponentRoots.Count;
+            //KeywordSearchInfo.MeilisearchCount = allComponentRoots.Count;
 
             //// write to meiliesearch
             MeilisearchClient client = new(KeywordSearchInfo.SearchEngineUrl, "masterKey");
