@@ -11,7 +11,8 @@ public class Initialization
     {
         _orchestrators = new()
         {
-            new ProductOrchestrator(info)
+            new ProductOrchestrator(info),
+            new ComponentRootOrchestrator(info)
         };
 
         _info = info;

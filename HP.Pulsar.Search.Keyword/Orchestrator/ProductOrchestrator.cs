@@ -20,7 +20,8 @@ internal class ProductOrchestrator : IInitializationOrchestrator
     {
         // read products from database
         ProductReader reader = new(KeywordSearchInfo);
-        IEnumerable<CommonDataModel> products = await reader.GetDataAsync();
+
+        IEnumerable<CommonDataModel> products = await reader.GetDataAsync(KeywordSearchInfo.MeilisearchCount);
 
         // data processing
         ProductDataTranformer tranformer = new();
@@ -33,12 +34,15 @@ internal class ProductOrchestrator : IInitializationOrchestrator
             allProducts.Add(product.GetAllData());
         }
 
+        //set meilisearch count 
+        KeywordSearchInfo.MeilisearchCount = allProducts.Count;
+
         //// write to meiliesearch
         MeilisearchClient client = new(KeywordSearchInfo.SearchEngineUrl, "masterKey");
         await client.DeleteIndexAsync("Pulsar2");
         Meilisearch.Index index = client.Index("Pulsar2");
         await client.CreateIndexAsync("Pulsar2", "Id");
-        
+
         DateTime start = DateTime.Now;
         await index.AddDocumentsAsync(allProducts);
         DateTime end = DateTime.Now;

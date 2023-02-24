@@ -9,4 +9,5 @@ public class KeywordSearchInfo
     public string DatabaseConnectionString { get; init; }
     public string SearchEngineUrl { get; init; }
     public PulsarEnvironment Environment { get; init; }
+    public int MeilisearchCount { get; set; }
 }

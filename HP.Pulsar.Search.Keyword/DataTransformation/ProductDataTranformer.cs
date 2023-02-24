@@ -346,6 +346,11 @@ public class ProductDataTranformer
         {
             return propertyValue;
         }
+        else if (propertyName == "ComponentRootList")
+        {
+            return "Component Root : " + propertyValue;
+        }
+        
         return propertyValue;
     }
 }

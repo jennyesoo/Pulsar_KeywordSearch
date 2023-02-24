@@ -14,7 +14,8 @@ internal class Program
         {
             DatabaseConnectionString = "xxxxx",
             Environment = PulsarEnvironment.Dev,
-            SearchEngineUrl = "http://15.36.147.177:7700/"
+            SearchEngineUrl = "http://15.36.147.177:7700/",
+            MeilisearchCount = 0 
         };
 
         Initialization init = new(info);

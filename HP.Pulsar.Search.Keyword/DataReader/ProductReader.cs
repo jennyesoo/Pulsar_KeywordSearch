@@ -13,16 +13,17 @@ public class ProductReader : IKeywordSearchDataReader
         _csProvider = new(info.Environment);
     }
 
-    public async Task<IEnumerable<CommonDataModel>> GetDataAsync()
+    public async Task<IEnumerable<CommonDataModel>> GetDataAsync(int meiliseatchcount)
     {
         Console.WriteLine("Read Data");
-        (IEnumerable<CommonDataModel> Products, Dictionary<string, string> BusinessSegments) = await GetProductsAsync();
+        (IEnumerable<CommonDataModel> Products, Dictionary<string, string> BusinessSegments) = await GetProductsAsync(meiliseatchcount);
         IEnumerable<CommonDataModel>  products = await GetEndOfProductionAsync(Products);
         products = await GetProductGroupsAsync(products);
         products = await GetWHQLstatusAsync(products);
         products = await GetLeadProductAsync(products, BusinessSegments);
         products = await GetChipsetsAsync(products);
         products = await GetCurrentBIOSVersionsAsync(products);
+        products = await GetComponentRootListAsync(products);
         return products;
     }
 
@@ -148,7 +149,7 @@ public class ProductReader : IKeywordSearchDataReader
     }
 
     // This function is to get all products
-    private async Task<(IEnumerable<CommonDataModel>, Dictionary<string, string>)> GetProductsAsync()
+    private async Task<(IEnumerable<CommonDataModel>, Dictionary<string, string>)> GetProductsAsync(int meiliseatchcount)
     {
         using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
         SqlCommand command = new(GetAllProductsSqlCommandText(), connection);
@@ -160,8 +161,6 @@ public class ProductReader : IKeywordSearchDataReader
 
         using SqlDataReader reader = command.ExecuteReader();
 
-        // This is for ID in Meilisearch
-        int count = 0;
         List<CommonDataModel> output = new();
         Dictionary<string, string> businessSegments = new();
 
@@ -210,11 +209,12 @@ public class ProductReader : IKeywordSearchDataReader
                 continue;
             }
             */
+            meiliseatchcount++;
             businessSegments[productId.ToString()] = businessSegmentId;
             product.Add("target", "product");
-            product.Add("Id", count.ToString());
+            product.Add("Id", meiliseatchcount.ToString());
             output.Add(product);
-            count++;
+            
         }
         return (output, businessSegments);
     }
@@ -262,6 +262,41 @@ public class ProductReader : IKeywordSearchDataReader
         return @"exec spListTargetedbiosversions @ProductId";
     }
 
+    private string GetTSQLComponentRootListCommandText()
+    {
+        return @"select PV.id as ProductId,
+                        stuff((select ' , ' + (CONVERT(Varchar, root.Id) + ' ' +  root.Name)
+                        FROM ProductVersion p
+                        JOIN ProductStatus ps ON ps.id = p.ProductStatusID
+                        JOIN Product_DelRoot pr on pr.ProductVersionId = p.id
+                        JOIN DeliverableRoot root ON root.Id = pr.DeliverableRootId
+                        WHERE p.id=PV.id And ps.Name <> 'Inactive' and p.FusionRequirements = 1 order by p.Id
+                        for xml path('')),1,3,'') As ComponentRoot
+                FROM ProductVersion PV
+                where PV.id = @ProductId
+                group by PV.id";
+    }
+
+    private async Task<IEnumerable<CommonDataModel>> GetComponentRootListAsync(IEnumerable<CommonDataModel> products)
+    {
+        using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
+        await connection.OpenAsync();
+
+        foreach (CommonDataModel product in products)
+        {
+            List<string> EndOfProduction = new List<string>();
+            SqlCommand command = new(GetTSQLComponentRootListCommandText(), connection);
+            SqlParameter parameter = new SqlParameter("ProductId", product.GetValue("ProductId"));
+            command.Parameters.Add(parameter);
+            using SqlDataReader reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+                product.Add("ComponentRootList", reader["ComponentRoot"].ToString());
+            }
+        }
+        return products;
+    }
 
     private async Task<IEnumerable<CommonDataModel>> GetEndOfProductionAsync(IEnumerable<CommonDataModel> products)
     {
