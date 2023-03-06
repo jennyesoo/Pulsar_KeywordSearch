@@ -2,6 +2,7 @@
 using HP.Pulsar.Search.Keyword.CommonDataStructure;
 using HP.Pulsar.Search.Keyword.DataReader;
 using HP.Pulsar.Search.Keyword.DataTransformation;
+using HP.Pulsar.Search.Keyword.DataWriter;
 using HP.Pulsar.Search.Keyword.Infrastructure;
 using Meilisearch;
 
@@ -21,7 +22,7 @@ internal class ProductOrchestrator : IInitializationOrchestrator
         // read products from database
         ProductReader reader = new(KeywordSearchInfo);
 
-        IEnumerable<CommonDataModel> products = await reader.GetDataAsync(KeywordSearchInfo.MeilisearchCount);
+        IEnumerable<CommonDataModel> products = await reader.GetDataAsync();
 
         // data processing
         ProductDataTranformer tranformer = new();
@@ -34,21 +35,20 @@ internal class ProductOrchestrator : IInitializationOrchestrator
             allProducts.Add(product.GetAllData());
         }
 
-        //set meilisearch count 
-        KeywordSearchInfo.MeilisearchCount = allProducts.Count;
-
-        //// write to meiliesearch
-        MeilisearchClient client = new(KeywordSearchInfo.SearchEngineUrl, "masterKey");
-        await client.DeleteIndexAsync("Pulsar2");
-        Meilisearch.Index index = client.Index("Pulsar2");
-        await client.CreateIndexAsync("Pulsar2", "Id");
-
+        // write to meiliesearch
+        MeiliSearchWriter _meilisearch = new(KeywordSearchInfo.SearchEngineUrl, "Pulsar2");
+        await _meilisearch.CreateIndexAsync();
         DateTime start = DateTime.Now;
-        await index.AddDocumentsAsync(allProducts);
+        await _meilisearch.UpsertAsync(allProducts);
         DateTime end = DateTime.Now;
-
         Console.Write((end - start).TotalSeconds);
 
+        //MeilisearchClient client = new(KeywordSearchInfo.SearchEngineUrl, "masterKey");
+        //await client.DeleteIndexAsync("Pulsar2");
+        //await client.CreateIndexAsync("Pulsar2", "Id");
+        //Meilisearch.Index index = client.Index("Pulsar2");
+        //await index.AddDocumentsAsync(allProducts);
+        
         //throw new NotImplementedException();
     }
 }

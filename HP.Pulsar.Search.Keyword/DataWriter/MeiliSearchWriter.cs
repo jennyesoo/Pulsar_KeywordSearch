@@ -24,7 +24,7 @@ public class MeiliSearchWriter
         await _client.DeleteIndexAsync(_index);
     }
 
-    public async Task UpsertAsync(IEnumerable<CommonDataModel> models)
+    public async Task UpsertAsync(List<Dictionary<string, string>> models)
     {
         Meilisearch.Index index = _client.Index(_index);
         await index.AddDocumentsAsync(models);
