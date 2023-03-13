@@ -17,7 +17,7 @@ internal class ProductOrchestrator : IInitializationOrchestrator
 
     public KeywordSearchInfo KeywordSearchInfo { get; }
 
-    public async Task InitializeAsync()
+    public async Task<int> InitializeAsync(int _meilisearchcount)
     {
         // read products from database
         ProductReader reader = new(KeywordSearchInfo);
@@ -28,10 +28,12 @@ internal class ProductOrchestrator : IInitializationOrchestrator
         ProductDataTranformer tranformer = new();
         products = tranformer.Transform(products);
 
-        // data to meiliesearch format
+        // data to meiliesearch format and add meilisearch id 
         List<Dictionary<string, string>> allProducts = new();
         foreach (CommonDataModel product in products)
         {
+            _meilisearchcount ++;
+            product.Add("Id", _meilisearchcount.ToString());
             allProducts.Add(product.GetAllData());
         }
 
@@ -43,12 +45,13 @@ internal class ProductOrchestrator : IInitializationOrchestrator
         DateTime end = DateTime.Now;
         Console.Write((end - start).TotalSeconds);
 
+        return _meilisearchcount;
         //MeilisearchClient client = new(KeywordSearchInfo.SearchEngineUrl, "masterKey");
         //await client.DeleteIndexAsync("Pulsar2");
         //await client.CreateIndexAsync("Pulsar2", "Id");
         //Meilisearch.Index index = client.Index("Pulsar2");
         //await index.AddDocumentsAsync(allProducts);
-        
+
         //throw new NotImplementedException();
     }
 }

@@ -21,9 +21,10 @@ public class Initialization
 
     public async Task InitAsync()
     {
+        int MeilisearchCount = 0;
         foreach (IInitializationOrchestrator item in _orchestrators)
         {
-            await item.InitializeAsync();
+            MeilisearchCount = await item.InitializeAsync(MeilisearchCount);
         }
 
     }

@@ -19,7 +19,7 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator
         }
         public KeywordSearchInfo KeywordSearchInfo { get; }
 
-        public async Task InitializeAsync()
+        public async Task<int> InitializeAsync(int _meilisearchcount)
         {
             // read componentversion from database
             ComponentVersionReader reader = new(KeywordSearchInfo);
@@ -34,6 +34,8 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator
             List<Dictionary<string, string>> allComponentVersions = new();
             foreach (CommonDataModel rootversion in ComponentVersion)
             {
+                _meilisearchcount++;
+                rootversion.Add("Id", _meilisearchcount.ToString());
                 allComponentVersions.Add(rootversion.GetAllData());
             }
 
@@ -44,6 +46,8 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator
             await _meilisearch.UpsertAsync(allComponentVersions);
             DateTime end = DateTime.Now;
             Console.Write((end - start).TotalSeconds);
+
+            return _meilisearchcount;
 
         }
     }
