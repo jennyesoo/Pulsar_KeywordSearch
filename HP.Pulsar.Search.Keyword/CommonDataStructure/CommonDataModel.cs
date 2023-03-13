@@ -14,6 +14,11 @@ public class CommonDataModel
         _pairs[key] = value;
     }
 
+    public void delete(string key)
+    {
+        _pairs.Remove(key);
+    }
+
     public IEnumerable<(string, string)> Get()
     {
         return _pairs.Select(x => (x.Key, x.Value)).ToList();
