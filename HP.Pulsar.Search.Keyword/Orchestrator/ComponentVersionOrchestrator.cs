@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using HP.Pulsar.Search.Keyword.CommonDataStructure;
@@ -38,10 +39,9 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator
                 rootversion.Add("Id", _meilisearchcount.ToString());
                 allComponentVersions.Add(rootversion.GetAllData());
             }
-
+            Console.WriteLine("allComponentVersions : " + allComponentVersions.Count);
             // write to meiliesearch
             MeiliSearchWriter _meilisearch = new(KeywordSearchInfo.SearchEngineUrl, "Pulsar2");
-            await _meilisearch.CreateIndexAsync();
             DateTime start = DateTime.Now;
             await _meilisearch.UpsertAsync(allComponentVersions);
             DateTime end = DateTime.Now;

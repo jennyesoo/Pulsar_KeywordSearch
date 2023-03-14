@@ -23,7 +23,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
             Console.WriteLine("Read Data");
             IEnumerable<CommonDataModel> componentRoot = await GetComponentRootAsync();
             componentRoot = await GetPropertyValueAsync(componentRoot);
-            componentRoot = await GetComponentRootListAsync(componentRoot);
+            //componentRoot = await GetComponentRootListAsync(componentRoot);
             return componentRoot;
         }
 

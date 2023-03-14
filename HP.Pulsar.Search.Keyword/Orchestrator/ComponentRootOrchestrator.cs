@@ -35,6 +35,7 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator
                 ComponentRoot.Add("Id", _meilisearchcount.ToString());
                 allComponentRoots.Add(ComponentRoot.GetAllData());
             }
+            Console.WriteLine("allComponentRoots : " + allComponentRoots.Count);
 
             //// write to meiliesearch
             MeiliSearchWriter _meilisearch = new(KeywordSearchInfo.SearchEngineUrl, "Pulsar2");

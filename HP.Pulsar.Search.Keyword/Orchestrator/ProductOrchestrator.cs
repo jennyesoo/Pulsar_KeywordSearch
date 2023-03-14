@@ -36,10 +36,13 @@ internal class ProductOrchestrator : IInitializationOrchestrator
             product.Add("Id", _meilisearchcount.ToString());
             allProducts.Add(product.GetAllData());
         }
+        Console.WriteLine("allProducts : " + allProducts.Count);
 
         // write to meiliesearch
         MeiliSearchWriter _meilisearch = new(KeywordSearchInfo.SearchEngineUrl, "Pulsar2");
+        await _meilisearch.DeleteIndexAsync();
         await _meilisearch.CreateIndexAsync();
+        await _meilisearch.UpdateSetting();
         DateTime start = DateTime.Now;
         await _meilisearch.UpsertAsync(allProducts);
         DateTime end = DateTime.Now;

@@ -12,8 +12,8 @@ public class Initialization
         _orchestrators = new()
         {
             //new ProductOrchestrator(info),
-            new ComponentRootOrchestrator(info)
-            //new ComponentVersionOrchestrator(info)
+            //new ComponentRootOrchestrator(info),
+            new ComponentVersionOrchestrator(info)
         };
 
         _info = info;
@@ -24,6 +24,10 @@ public class Initialization
         int MeilisearchCount = 0;
         foreach (IInitializationOrchestrator item in _orchestrators)
         {
+            Console.WriteLine("===============================");
+            Console.WriteLine("MeilisearchCount");
+            Console.WriteLine(MeilisearchCount);
+            Console.WriteLine("===============================");
             MeilisearchCount = await item.InitializeAsync(MeilisearchCount);
         }
 
