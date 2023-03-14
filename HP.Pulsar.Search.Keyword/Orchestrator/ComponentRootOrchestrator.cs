@@ -20,7 +20,6 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator
         {
             // read products from database
             ComponentRootReader reader = new(KeywordSearchInfo);
-
             IEnumerable<CommonDataModel> roots = await reader.GetDataAsync();
 
             // data processing
@@ -29,28 +28,17 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator
 
             // data to meiliesearch format
             List<Dictionary<string, string>> allComponentRoots = new();
-            foreach (CommonDataModel ComponentRoot in roots)
+            foreach (CommonDataModel ComponentRoot in roots) //74282 items
             {
                 _meilisearchcount++;
                 ComponentRoot.Add("Id", _meilisearchcount.ToString());
                 allComponentRoots.Add(ComponentRoot.GetAllData());
             }
-            Console.WriteLine("allComponentRoots : " + allComponentRoots.Count);
 
             //// write to meiliesearch
             MeiliSearchWriter _meilisearch = new(KeywordSearchInfo.SearchEngineUrl, "Pulsar2");
-            DateTime start = DateTime.Now;
-            await _meilisearch.UpsertAsync(allComponentRoots);
-            DateTime end = DateTime.Now;
-            Console.Write((end - start).TotalSeconds);
-
+            await _meilisearch.UpsertAsync(allComponentRoots); //7.59s
             return _meilisearchcount;
-
-            //MeilisearchClient client = new(KeywordSearchInfo.SearchEngineUrl, "masterKey");
-            //Meilisearch.Index index = client.Index("Pulsar2");
-            //await index.AddDocumentsAsync(allComponentRoots);
-
-            //throw new NotImplementedException();
         }
     }
 }

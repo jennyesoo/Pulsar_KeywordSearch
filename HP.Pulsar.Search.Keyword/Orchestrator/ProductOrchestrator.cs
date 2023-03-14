@@ -21,7 +21,6 @@ internal class ProductOrchestrator : IInitializationOrchestrator
     {
         // read products from database
         ProductReader reader = new(KeywordSearchInfo);
-
         IEnumerable<CommonDataModel> products = await reader.GetDataAsync();
 
         // data processing
@@ -30,31 +29,20 @@ internal class ProductOrchestrator : IInitializationOrchestrator
 
         // data to meiliesearch format and add meilisearch id 
         List<Dictionary<string, string>> allProducts = new();
-        foreach (CommonDataModel product in products)
+        foreach (CommonDataModel product in products) //3241 items
         {
             _meilisearchcount ++;
             product.Add("Id", _meilisearchcount.ToString());
             allProducts.Add(product.GetAllData());
         }
-        Console.WriteLine("allProducts : " + allProducts.Count);
 
         // write to meiliesearch
         MeiliSearchWriter _meilisearch = new(KeywordSearchInfo.SearchEngineUrl, "Pulsar2");
         await _meilisearch.DeleteIndexAsync();
         await _meilisearch.CreateIndexAsync();
         await _meilisearch.UpdateSetting();
-        DateTime start = DateTime.Now;
-        await _meilisearch.UpsertAsync(allProducts);
-        DateTime end = DateTime.Now;
-        Console.Write((end - start).TotalSeconds);
+        await _meilisearch.UpsertAsync(allProducts); //0.75s
 
         return _meilisearchcount;
-        //MeilisearchClient client = new(KeywordSearchInfo.SearchEngineUrl, "masterKey");
-        //await client.DeleteIndexAsync("Pulsar2");
-        //await client.CreateIndexAsync("Pulsar2", "Id");
-        //Meilisearch.Index index = client.Index("Pulsar2");
-        //await index.AddDocumentsAsync(allProducts);
-
-        //throw new NotImplementedException();
     }
 }

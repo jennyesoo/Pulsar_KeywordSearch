@@ -155,6 +155,10 @@ public class ProductDataTranformer : IDataTranformer
         {
             return "system manager : " + propertyValue;
         }
+        else if (propertyName == "SystemManagerEmail")
+        {
+            return "system manager email : " + propertyValue;
+        }
         else if (propertyName == "PlatformDevelopmentPM")
         {
             return "platform development pm : " + propertyValue;
@@ -214,6 +218,10 @@ public class ProductDataTranformer : IDataTranformer
         else if (propertyName == "ProgramOfficeProgramManager")
         {
             return "Program Office Program Manager : " + propertyValue;
+        }
+        else if (propertyName == "ProgramOfficeProgramManagerEmail")
+        {
+            return "Program Office Program Manager email : " + propertyValue;
         }
         else if (propertyName == "Quality")
         {

@@ -15,7 +15,7 @@ namespace HP.Pulsar.Search.Keyword.DataTransformation
         public string filePath;
         //private readonly Lemmatizer lemmatizer;
         public static List<string> _noLemmatization = new List<string> { "bios", "fxs", "os", "obs", "ots" };
-        public static List<string> DataPropertyList = new List<string> { "" };
+        public static List<string> DataPropertyList = new List<string> { "IntroDate" };
 
         public ComponentVersionDataTranformer()
         {

@@ -27,7 +27,6 @@ public class MeiliSearchWriter
     public async Task UpsertAsync(List<Dictionary<string, string>> models)
     {
         Meilisearch.Index index = _client.Index(_index);
-        Console.WriteLine(models.Count);
         int _writetimes = models.Count / 20000 ;
         if (_writetimes.Equals(0))
         {
@@ -38,11 +37,10 @@ public class MeiliSearchWriter
             int firstnumber = 0;
             for (int i = 0; i < _writetimes ; i++)
             {
-                Console.WriteLine(i);
-                index.AddDocumentsAsync(models.GetRange(firstnumber, 20000));
+                await index.AddDocumentsAsync(models.GetRange(firstnumber, 20000));
                 firstnumber += 20000;
             }
-            index.AddDocumentsAsync(models.GetRange(firstnumber, models.Count % 20000));
+            await index.AddDocumentsAsync(models.GetRange(firstnumber, models.Count % 20000));
         }
         // TODO : study full functions in "index"
     }

@@ -11,9 +11,9 @@ public class Initialization
     {
         _orchestrators = new()
         {
-            //new ProductOrchestrator(info),
-            //new ComponentRootOrchestrator(info),
-            new ComponentVersionOrchestrator(info)
+            new ProductOrchestrator(info),
+            new ComponentRootOrchestrator(info),
+            new ComponentVersionOrchestrator(info) //time : 40m 
         };
 
         _info = info;
@@ -21,14 +21,11 @@ public class Initialization
 
     public async Task InitAsync()
     {
-        int MeilisearchCount = 0;
+        int MeilisearchCount = 0; //568794 items
         foreach (IInitializationOrchestrator item in _orchestrators)
         {
-            Console.WriteLine("===============================");
-            Console.WriteLine("MeilisearchCount");
-            Console.WriteLine(MeilisearchCount);
-            Console.WriteLine("===============================");
-            MeilisearchCount = await item.InitializeAsync(MeilisearchCount);
+            Console.WriteLine("Read Data : " + item);
+            MeilisearchCount = await item.InitializeAsync(MeilisearchCount); 
         }
 
     }

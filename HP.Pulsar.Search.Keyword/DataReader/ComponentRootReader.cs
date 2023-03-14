@@ -20,10 +20,9 @@ namespace HP.Pulsar.Search.Keyword.DataReader
 
         public async Task<IEnumerable<CommonDataModel>> GetDataAsync()
         {
-            Console.WriteLine("Read Data");
             IEnumerable<CommonDataModel> componentRoot = await GetComponentRootAsync();
             componentRoot = await GetPropertyValueAsync(componentRoot);
-            //componentRoot = await GetComponentRootListAsync(componentRoot);
+            componentRoot = await GetComponentRootListAsync(componentRoot);
             return componentRoot;
         }
 
@@ -262,13 +261,13 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                     root.delete("DrDvd");
                 }
 
-                if (root.GetValue("Scriptpaq").Equals("True"))
+                if (root.GetValue("ScriptPaq").Equals("True"))
                 {
-                    root.Add("Scriptpaq", "SoftPaq");
+                    root.Add("ScriptPaq", "SoftPaq");
                 }
                 else
                 {
-                    root.delete("Scriptpaq");
+                    root.delete("ScriptPaq");
                 }
 
                 if (root.GetValue("MsStore").Equals("True"))
@@ -304,7 +303,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 }
                 else
                 {
-                    root.delete("Rompaq");
+                    root.delete("Binary");
                 }
 
                 if (root.GetValue("PreinstallROM").Equals("1"))
@@ -412,7 +411,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 }
                 else
                 {
-                    root.delete("UWP Compliant");
+                    root.delete("SettingUWPCompliant");
                 }
 
                 if (root.GetValue("RoyaltyBearing").Equals("True"))
@@ -424,13 +423,13 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                     root.delete("RoyaltyBearing");
                 }
 
-                if (root.GetValue("KoreanCertificationRequired  ").Equals("True"))
+                if (root.GetValue("KoreanCertificationRequired").Equals("True"))
                 {
-                    root.Add("KoreanCertificationRequired  ", "Korean Certification Required");
+                    root.Add("KoreanCertificationRequired", "Korean Certification Required");
                 }
                 else
                 {
-                    root.delete("KoreanCertificationRequired  ");
+                    root.delete("KoreanCertificationRequired");
                 }
 
                 if (root.GetValue("WHQLCertificationRequire").Equals("1"))

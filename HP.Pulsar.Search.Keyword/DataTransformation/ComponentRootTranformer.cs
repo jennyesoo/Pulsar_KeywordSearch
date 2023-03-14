@@ -56,7 +56,7 @@ namespace HP.Pulsar.Search.Keyword.DataTransformation
             }
             else if (propertyName == "SIFunctionTestGroupCategory")
             {
-                return "SIFunctionTestGroupCategory : " + propertyValue;
+                return "SI Function Test Group Category : " + propertyValue;
             }
             else if (propertyName == "ComponentPM")
             {

@@ -32,7 +32,7 @@ public class ProductReader : IKeywordSearchDataReader
                                                 BusinessSegments);
         products = await _GetChipsetsAsync(products);
         products = await _GetCurrentBIOSVersionsAsync(products);
-        //products = await _GetComponentRootListAsync(products);
+        products = await _GetComponentRootListAsync(products);
 
         return products;
     }

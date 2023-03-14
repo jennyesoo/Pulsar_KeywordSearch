@@ -24,7 +24,6 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator
         {
             // read componentversion from database
             ComponentVersionReader reader = new(KeywordSearchInfo);
-
             IEnumerable<CommonDataModel> ComponentVersion = await reader.GetDataAsync();
 
             // data processing
@@ -33,19 +32,16 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator
 
             // data to meiliesearch format
             List<Dictionary<string, string>> allComponentVersions = new();
-            foreach (CommonDataModel rootversion in ComponentVersion)
+            foreach (CommonDataModel rootversion in ComponentVersion) //491271 items
             {
                 _meilisearchcount++;
                 rootversion.Add("Id", _meilisearchcount.ToString());
                 allComponentVersions.Add(rootversion.GetAllData());
             }
-            Console.WriteLine("allComponentVersions : " + allComponentVersions.Count);
+
             // write to meiliesearch
             MeiliSearchWriter _meilisearch = new(KeywordSearchInfo.SearchEngineUrl, "Pulsar2");
-            DateTime start = DateTime.Now;
-            await _meilisearch.UpsertAsync(allComponentVersions);
-            DateTime end = DateTime.Now;
-            Console.Write((end - start).TotalSeconds);
+            await _meilisearch.UpsertAsync(allComponentVersions);  //16s
 
             return _meilisearchcount;
 
