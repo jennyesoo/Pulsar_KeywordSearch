@@ -249,7 +249,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 }
                 else
                 {
-                    root.delete("Preinstall");
+                    root.Delete("Preinstall");
                 }
 
                 if (root.GetValue("DrDvd").Equals("True"))
@@ -258,7 +258,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 }
                 else
                 {
-                    root.delete("DrDvd");
+                    root.Delete("DrDvd");
                 }
 
                 if (root.GetValue("ScriptPaq").Equals("True"))
@@ -267,7 +267,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 }
                 else
                 {
-                    root.delete("ScriptPaq");
+                    root.Delete("ScriptPaq");
                 }
 
                 if (root.GetValue("MsStore").Equals("True"))
@@ -276,7 +276,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 }
                 else
                 {
-                    root.delete("MsStore");
+                    root.Delete("MsStore");
                 }
 
                 if (root.GetValue("FloppyDisk").Equals("1"))
@@ -285,7 +285,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 }
                 else
                 {
-                    root.delete("FloppyDisk");
+                    root.Delete("FloppyDisk");
                 }
 
                 if (root.GetValue("Patch").Equals("1"))
@@ -294,7 +294,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 }
                 else
                 {
-                    root.delete("Patch");
+                    root.Delete("Patch");
                 }
 
                 if (root.GetValue("Binary").Equals("1"))
@@ -303,7 +303,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 }
                 else
                 {
-                    root.delete("Binary");
+                    root.Delete("Binary");
                 }
 
                 if (root.GetValue("PreinstallROM").Equals("1"))
@@ -312,7 +312,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 }
                 else
                 {
-                    root.delete("PreinstallROM");
+                    root.Delete("PreinstallROM");
                 }
 
                 if (root.GetValue("CAB").Equals("1"))
@@ -321,7 +321,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 }
                 else
                 {
-                    root.delete("CAB");
+                    root.Delete("CAB");
                 }
 
                 if (root.GetValue("Softpaq").Equals("1"))
@@ -330,7 +330,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 }
                 else
                 {
-                    root.delete("Softpaq");
+                    root.Delete("Softpaq");
                 }
 
                 if (root.GetValue("IconDesktop").Equals("True"))
@@ -339,7 +339,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 }
                 else
                 {
-                    root.delete("IconDesktop");
+                    root.Delete("IconDesktop");
                 }
               
                 if (root.GetValue("IconMenu").Equals("True"))
@@ -348,7 +348,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 }
                 else
                 {
-                    root.delete("IconMenu");
+                    root.Delete("IconMenu");
                 }
 
                 if (root.GetValue("IconTray").Equals("True"))
@@ -357,7 +357,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 }
                 else
                 {
-                    root.delete("IconTray");
+                    root.Delete("IconTray");
                 }
 
                 if (root.GetValue("IconPanel").Equals("True"))
@@ -366,7 +366,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 }
                 else
                 {
-                    root.delete("IconPanel");
+                    root.Delete("IconPanel");
                 }
 
                 if (root.GetValue("IconInfoCenter").Equals("True"))
@@ -375,7 +375,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 }
                 else
                 {
-                    root.delete("IconInfoCenter");
+                    root.Delete("IconInfoCenter");
                 }
 
                 if (root.GetValue("IconTile").Equals("True"))
@@ -384,7 +384,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 }
                 else
                 {
-                    root.delete("IconTile");
+                    root.Delete("IconTile");
                 }
 
                 if (root.GetValue("IconTaskBarIcon").Equals("True"))
@@ -393,7 +393,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 }
                 else
                 {
-                    root.delete("IconTaskBarIcon");
+                    root.Delete("IconTaskBarIcon");
                 }
 
                 if (root.GetValue("SettingFWML").Equals("True"))
@@ -402,7 +402,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 }
                 else
                 {
-                    root.delete("SettingFWML");
+                    root.Delete("SettingFWML");
                 }
 
                 if (root.GetValue("SettingUWPCompliant").Equals("True"))
@@ -411,7 +411,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 }
                 else
                 {
-                    root.delete("SettingUWPCompliant");
+                    root.Delete("SettingUWPCompliant");
                 }
 
                 if (root.GetValue("RoyaltyBearing").Equals("True"))
@@ -420,7 +420,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 }
                 else
                 {
-                    root.delete("RoyaltyBearing");
+                    root.Delete("RoyaltyBearing");
                 }
 
                 if (root.GetValue("KoreanCertificationRequired").Equals("True"))
@@ -429,7 +429,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 }
                 else
                 {
-                    root.delete("KoreanCertificationRequired");
+                    root.Delete("KoreanCertificationRequired");
                 }
 
                 if (root.GetValue("WHQLCertificationRequire").Equals("1"))
@@ -438,7 +438,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 }
                 else
                 {
-                    root.delete("WHQLCertificationRequire");
+                    root.Delete("WHQLCertificationRequire");
                 }
 
                 if (root.GetValue("LimitFuncTestGroupVisability").Equals("True"))
@@ -447,7 +447,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 }
                 else
                 {
-                    root.delete("LimitFuncTestGroupVisability");
+                    root.Delete("LimitFuncTestGroupVisability");
                 }
 
                 if (root.GetValue("Visibility").Equals("True"))
@@ -456,16 +456,16 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 }
                 else
                 {
-                    root.delete("Visibility");
+                    root.Delete("Visibility");
                 }
 
                 if (GetCDAsync(root).Equals(1))
                 {
                     root.Add("CD", "CD");
                 }
-                root.delete("CDImage");
-                root.delete("ISOImage");
-                root.delete("AR");
+                root.Delete("CDImage");
+                root.Delete("ISOImage");
+                root.Delete("AR");
                 _output.Add(root);
             }
             return _output;

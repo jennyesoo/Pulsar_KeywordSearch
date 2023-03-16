@@ -1,10 +1,8 @@
-﻿using System.Text.Json;
-using HP.Pulsar.Search.Keyword.CommonDataStructure;
+﻿using HP.Pulsar.Search.Keyword.CommonDataStructure;
 using HP.Pulsar.Search.Keyword.DataReader;
 using HP.Pulsar.Search.Keyword.DataTransformation;
 using HP.Pulsar.Search.Keyword.DataWriter;
 using HP.Pulsar.Search.Keyword.Infrastructure;
-using Meilisearch;
 
 namespace HP.Pulsar.Search.Keyword.Orchestrator;
 
@@ -17,7 +15,7 @@ internal class ProductOrchestrator : IInitializationOrchestrator
 
     public KeywordSearchInfo KeywordSearchInfo { get; }
 
-    public async Task<int> InitializeAsync(int _meilisearchcount)
+    public async Task<int> InitializeAsync(int meilisearchStartId)
     {
         // read products from database
         ProductReader reader = new(KeywordSearchInfo);
@@ -31,8 +29,8 @@ internal class ProductOrchestrator : IInitializationOrchestrator
         List<Dictionary<string, string>> allProducts = new();
         foreach (CommonDataModel product in products) //3241 items
         {
-            _meilisearchcount ++;
-            product.Add("Id", _meilisearchcount.ToString());
+            meilisearchStartId++;
+            product.Add("Id", meilisearchStartId.ToString());
             allProducts.Add(product.GetAllData());
         }
 
@@ -43,6 +41,6 @@ internal class ProductOrchestrator : IInitializationOrchestrator
         await _meilisearch.UpdateSetting();
         await _meilisearch.UpsertAsync(allProducts); //0.75s
 
-        return _meilisearchcount;
+        return meilisearchStartId;
     }
 }

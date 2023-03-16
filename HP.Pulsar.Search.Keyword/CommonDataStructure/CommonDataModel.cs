@@ -1,12 +1,14 @@
-﻿namespace HP.Pulsar.Search.Keyword.CommonDataStructure;
+﻿using System.Collections.Concurrent;
+
+namespace HP.Pulsar.Search.Keyword.CommonDataStructure;
 
 public class CommonDataModel
 {
-    private readonly Dictionary<string, string> _pairs;
+    private readonly ConcurrentDictionary<string, string> _pairs;
 
     public CommonDataModel()
     {
-        _pairs = new Dictionary<string, string>();
+        _pairs = new(StringComparer.OrdinalIgnoreCase);
     }
 
     public void Add(string key, string value)
@@ -14,9 +16,9 @@ public class CommonDataModel
         _pairs[key] = value;
     }
 
-    public void delete(string key)
+    public void Delete(string key)
     {
-        _pairs.Remove(key);
+        _pairs.Remove(key, out _);
     }
 
     public IEnumerable<(string, string)> Get()
@@ -34,13 +36,12 @@ public class CommonDataModel
         return string.Empty;
     }
 
-    public Dictionary<string, string>.KeyCollection GetAllKeys()
+    public ICollection<string> GetAllKeys()
     {
-        Dictionary<string, string>.KeyCollection keyColl = _pairs.Keys;
-        return keyColl;
+        return _pairs.Keys;
     }
 
-    public Dictionary<string, string> GetAllData() 
+    public IReadOnlyDictionary<string, string> GetAllData()
     {
         return _pairs;
     }

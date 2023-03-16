@@ -141,7 +141,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 }
                 else
                 {
-                    rootversion.delete("Preinstall");
+                    rootversion.Delete("Preinstall");
                 }
 
                 if (rootversion.GetValue("DrDvd").Equals("True"))
@@ -150,7 +150,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 }
                 else
                 {
-                    rootversion.delete("DrDvd");
+                    rootversion.Delete("DrDvd");
                 }
 
                 if (rootversion.GetValue("Scriptpaq").Equals("True"))
@@ -159,7 +159,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 }
                 else
                 {
-                    rootversion.delete("Scriptpaq");
+                    rootversion.Delete("Scriptpaq");
                 }
 
 
@@ -169,7 +169,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 }
                 else
                 {
-                    rootversion.delete("MsStore");
+                    rootversion.Delete("MsStore");
                 }
 
                 if (rootversion.GetValue("FloppyDisk").Equals("1"))
@@ -178,7 +178,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 }
                 else
                 {
-                    rootversion.delete("FloppyDisk");
+                    rootversion.Delete("FloppyDisk");
                 }
 
                 if (rootversion.GetValue("Rompaq").Equals("1"))
@@ -187,7 +187,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 }
                 else
                 {
-                    rootversion.delete("Rompaq");
+                    rootversion.Delete("Rompaq");
                 }
 
                 if (rootversion.GetValue("PreinstallROM").Equals("1"))
@@ -196,7 +196,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 }
                 else
                 {
-                    rootversion.delete("PreinstallROM");
+                    rootversion.Delete("PreinstallROM");
                 }
 
                 if (rootversion.GetValue("CAB").Equals("1"))
@@ -205,16 +205,16 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 }
                 else
                 {
-                    rootversion.delete("CAB");
+                    rootversion.Delete("CAB");
                 }
 
                 if (GetCDAsync(rootversion).Equals(1))
                 {
                     rootversion.Add("CD", "CD");
                 }
-                rootversion.delete("CDImage");
-                rootversion.delete("ISOImage");
-                rootversion.delete("AR");
+                rootversion.Delete("CDImage");
+                rootversion.Delete("ISOImage");
+                rootversion.Delete("AR");
                 _output.Add(rootversion);
             }
             return _output;
@@ -249,7 +249,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 }
                 else
                 {
-                    rootversion.delete("IconDesktop");
+                    rootversion.Delete("IconDesktop");
                 }
 
                 if (rootversion.GetValue("IconMenu").Equals("True"))
@@ -258,7 +258,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 }
                 else
                 {
-                    rootversion.delete("IconMenu");
+                    rootversion.Delete("IconMenu");
                 }
 
                 if (rootversion.GetValue("IconTray").Equals("True"))
@@ -267,7 +267,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 }
                 else
                 {
-                    rootversion.delete("IconTray");
+                    rootversion.Delete("IconTray");
                 }
 
                 if (rootversion.GetValue("IconPanel").Equals("True"))
@@ -276,7 +276,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 }
                 else
                 {
-                    rootversion.delete("IconPanel");
+                    rootversion.Delete("IconPanel");
                 }
 
                 if (rootversion.GetValue("IconInfoCenter").Equals("True"))
@@ -285,7 +285,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 }
                 else
                 {
-                    rootversion.delete("IconInfoCenter");
+                    rootversion.Delete("IconInfoCenter");
                 }
 
                 if (rootversion.GetValue("IconTile").Equals("True"))
@@ -294,7 +294,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 }
                 else
                 {
-                    rootversion.delete("IconTile");
+                    rootversion.Delete("IconTile");
                 }
 
                 if (rootversion.GetValue("IconTaskBarIcon").Equals("True"))
@@ -303,7 +303,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 }
                 else
                 {
-                    rootversion.delete("IconTaskBarIcon");
+                    rootversion.Delete("IconTaskBarIcon");
                 }
 
                 _output.Add(rootversion);
@@ -323,7 +323,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 }
                 else
                 {
-                    rootversion.delete("SettingFWML");
+                    rootversion.Delete("SettingFWML");
                 }
 
                 if (rootversion.GetValue("SettingUWPCompliant").Equals("True"))
@@ -332,7 +332,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 }
                 else
                 {
-                    rootversion.delete("SettingUWPCompliant");
+                    rootversion.Delete("SettingUWPCompliant");
                 }
                 _output.Add(rootversion);
             }
