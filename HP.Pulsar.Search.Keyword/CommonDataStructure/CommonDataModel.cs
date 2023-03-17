@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using Meilisearch;
 
 namespace HP.Pulsar.Search.Keyword.CommonDataStructure;
 
@@ -21,11 +22,6 @@ public class CommonDataModel
         _pairs.Remove(key, out _);
     }
 
-    public IEnumerable<(string, string)> Get()
-    {
-        return _pairs.Select(x => (x.Key, x.Value)).ToList();
-    }
-
     public string GetValue(string key)
     {
         if (_pairs.ContainsKey(key))
@@ -36,12 +32,12 @@ public class CommonDataModel
         return string.Empty;
     }
 
-    public ICollection<string> GetAllKeys()
+    public IEnumerable<string> GetKeys()
     {
         return _pairs.Keys;
     }
 
-    public IReadOnlyDictionary<string, string> GetAllData()
+    public IEnumerable<KeyValuePair<string, string>> GetElements()
     {
         return _pairs;
     }

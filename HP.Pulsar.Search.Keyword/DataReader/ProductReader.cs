@@ -18,21 +18,17 @@ public class ProductReader : IKeywordSearchDataReader
         throw new NotImplementedException();
     }
 
-
     public async Task<IEnumerable<CommonDataModel>> GetDataAsync()
     {
         IEnumerable<CommonDataModel> products = await GetProductsAsync();
 
-        // TODO - performance improvement needed
         List<Task> tasks = new()
         {
             GetEndOfProductionDateAsync(products),
             GetProductGroupsAsync(products),
-//            GetWhqlstatusAsync(products),
             GetLeadProductAsync(products),
             GetChipsetsAsync(products),
-            GetCurrentBiosVersionsAsync(products),
-            GetComponentRootListAsync(products)
+//            GetComponentRootListAsync(products)
         };
 
         await Task.WhenAll(tasks);
@@ -40,7 +36,7 @@ public class ProductReader : IKeywordSearchDataReader
         return products;
     }
 
-    private string GetAllProductsSqlCommandText()
+    private string GetProductsCommandText()
     {
         return @"
 SELECT p.id AS ProductId,
@@ -165,7 +161,7 @@ WHERE ps.Name <> 'Inactive'
         using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
         await connection.OpenAsync();
 
-        SqlCommand command = new(GetAllProductsSqlCommandText(), connection);
+        SqlCommand command = new(GetProductsCommandText(), connection);
 
         using SqlDataReader reader = command.ExecuteReader();
 
@@ -268,54 +264,6 @@ WHERE p_c.ChipsetId IS NOT NULL
 ";
     }
 
-    private string GetCurrentBIOSVersionsCommandText()
-    {
-        return @"Select currentROM,currentWebROM From ProductVersion where ID =  @ProductId";
-    }
-
-    private string GetCurrentROMCommandText()
-    {
-        return @"exec spListTargetedbiosversions @ProductId";
-    }
-
-    private string GetComponentRootListCommandText()
-    {
-        return @"select PV.id as ProductId,
-                        stuff((select ' , ' + (CONVERT(Varchar, root.Id) + ' ' +  root.Name)
-                        FROM ProductVersion p
-                        JOIN ProductStatus ps ON ps.id = p.ProductStatusID
-                        JOIN Product_DelRoot pr on pr.ProductVersionId = p.id
-                        JOIN DeliverableRoot root ON root.Id = pr.DeliverableRootId
-                        WHERE p.id=PV.id And ps.Name <> 'Inactive' and p.FusionRequirements = 1 order by p.Id
-                        for xml path('')),1,3,'') As ComponentRoot
-                FROM ProductVersion PV
-                where PV.id = @ProductId
-                group by PV.id";
-    }
-
-    private async Task<IEnumerable<CommonDataModel>> GetComponentRootListAsync(IEnumerable<CommonDataModel> products)
-    {
-        using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
-        await connection.OpenAsync();
-
-        foreach (CommonDataModel product in products)
-        {
-            List<string> EndOfProduction = new List<string>();
-            SqlCommand command = new(GetComponentRootListCommandText(),
-                                        connection);
-            SqlParameter parameter = new SqlParameter("ProductId",
-                                                        product.GetValue("ProductId"));
-            command.Parameters.Add(parameter);
-            using SqlDataReader reader = command.ExecuteReader();
-
-            while (await reader.ReadAsync())
-            {
-                product.Add("ComponentRootList", reader["ComponentRoot"].ToString());
-            }
-        }
-        return products;
-    }
-
     private async Task GetEndOfProductionDateAsync(IEnumerable<CommonDataModel> products)
     {
         using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
@@ -410,11 +358,6 @@ WHERE p_c.ChipsetId IS NOT NULL
         }
     }
 
-    private async Task<IEnumerable<CommonDataModel>> GetWhqlstatusAsync(IEnumerable<CommonDataModel> products)
-    {
-        // ProductWHQL is empty, which means PRS doesn't have product whql data. So let's ignore WHQL data.
-    }
-
     private async Task GetLeadProductAsync(IEnumerable<CommonDataModel> products)
     {
         using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
@@ -486,63 +429,5 @@ WHERE p_c.ChipsetId IS NOT NULL
                 product.Add("Chipsets", string.Join(" ", chipsets[productId]));
             }
         }
-    }
-
-    private async Task<IEnumerable<CommonDataModel>> GetCurrentBiosVersionsAsync(IEnumerable<CommonDataModel> products)
-    {
-        using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
-        await connection.OpenAsync();
-
-        foreach (CommonDataModel product in products)
-        {
-            List<string> CurrentBIOSVersions = new List<string>();
-            SqlCommand command = new(GetCurrentBIOSVersionsCommandText(), connection);
-            SqlParameter parameter = new SqlParameter("ProductId", product.GetValue("ProductId"));
-            command.Parameters.Add(parameter);
-            using SqlDataReader reader = command.ExecuteReader();
-
-            while (reader.Read())
-            {
-                string CurrentROM_value = reader["currentROM"].ToString();
-                string CurrentWebROM_value = reader["currentWebROM"].ToString();
-                string[] value_List = { "Development", "Definition" };
-
-                if (CurrentROM_value == "" && (product.GetValue("ProductStatus") == "Development" || product.GetValue("ProductStatus") == "Definition"))
-                {
-                    using SqlConnection connection_CurrentROM = new(_csProvider.GetSqlServerConnectionString());
-                    SqlCommand command_CurrentROM = new(GetCurrentROMCommandText(), connection_CurrentROM);
-                    await connection_CurrentROM.OpenAsync();
-                    SqlParameter parameter_CurrentROM = new SqlParameter("ProductId", product.GetValue("ProductId"));
-                    command_CurrentROM.Parameters.Add(parameter_CurrentROM);
-                    using SqlDataReader reader_CurrentROM = command_CurrentROM.ExecuteReader();
-                    while (reader_CurrentROM.Read())
-                    {
-                        CurrentROM_value = "Targeted: " + reader_CurrentROM["TargetedVersions"];
-                    }
-                }
-                else if (!value_List.Contains(product.GetValue("ProductStatus")))
-                {
-                    if (CurrentROM_value == "")
-                    {
-                        CurrentROM_value = "Factory: ";
-                    }
-                    else
-                    {
-                        CurrentROM_value = "Factory: UnKnown";
-                    }
-                }
-                if (CurrentROM_value != "" && CurrentWebROM_value != "")
-                {
-                    CurrentROM_value += "Web: " + CurrentWebROM_value;
-                }
-                else if (CurrentROM_value == "" && CurrentWebROM_value != "")
-                {
-                    CurrentROM_value = "Web: " + CurrentWebROM_value;
-                }
-                product.Add("CurrentBIOSVersions", CurrentROM_value);
-            }
-        }
-
-        return products;
     }
 }

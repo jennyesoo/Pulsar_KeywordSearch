@@ -1,6 +1,4 @@
-﻿using System.Data.Entity.Design.PluralizationServices;
-using System.Globalization;
-using HP.Pulsar.Search.Keyword.CommonDataStructure;
+﻿using HP.Pulsar.Search.Keyword.CommonDataStructure;
 using LemmaSharp.Classes;
 
 namespace HP.Pulsar.Search.Keyword.DataTransformation;
@@ -23,8 +21,7 @@ public class CommonDataTranformer
     {
         foreach (CommonDataModel product in products)
         {
-            Dictionary<string, string>.KeyCollection keys = product.GetAllKeys();
-            foreach (string key in keys)
+            foreach (string key in product.GetKeys())
             {
                 product.Add(key, DataProcessingInitializationCombination(product.GetValue(key), key));
             }

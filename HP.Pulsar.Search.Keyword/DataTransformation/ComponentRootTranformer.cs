@@ -10,7 +10,7 @@ namespace HP.Pulsar.Search.Keyword.DataTransformation
         {
             foreach (CommonDataModel root in componentRoots)
             {
-                foreach (string key in root.GetAllKeys())
+                foreach (string key in root.GetKeys())
                 {
                     root.Add(key, DataProcessingInitializationCombination(root.GetValue(key), key));
                 }

@@ -3,15 +3,15 @@ namespace HP.Pulsar.Search.Keyword.DataTransformation;
 
 public class ProductDataTranformer : IDataTranformer
 {
-    public string filePath;
+    //private string _filePath;
     //private readonly Lemmatizer lemmatizer;
-    public static List<string> _noLemmatization = new List<string> { "bios", "fxs", "os", "obs", "ots" };
-    public static List<string> DataPropertyList = new List<string> { "servicelifedate", "createddate", "latestupdatedate", "endofproduction" };
+    //private static List<string> _noLemmatization = new() { "bios", "fxs", "os", "obs", "ots" };
+    private static List<string> _dataPropertyList = new() { "servicelifedate", "createddate", "latestupdatedate", "endofproduction" };
 
     public ProductDataTranformer()
     {
-        filePath = "References\\full7z-mlteast-en-modified.lem";
-        var stream = File.OpenRead(filePath);
+        //_filePath = "References\\full7z-mlteast-en-modified.lem";
+        //FileStream stream = File.OpenRead(_filePath);
         //lemmatizer = new Lemmatizer(stream);
     }
 
@@ -19,8 +19,7 @@ public class ProductDataTranformer : IDataTranformer
     {
         foreach (CommonDataModel product in products)
         {
-            Dictionary<string, string>.KeyCollection keys = product.GetAllKeys();
-            foreach (string key in keys)
+            foreach (string key in product.GetKeys())
             {
                 product.Add(key, DataProcessingInitializationCombination(product.GetValue(key), key));
             }
@@ -30,12 +29,12 @@ public class ProductDataTranformer : IDataTranformer
 
     private string DataProcessingInitializationCombination(string PropertyValue, string propertyName)
     {
-        if (DataPropertyList.Contains(propertyName.ToLower()))
+        if (_dataPropertyList.Contains(propertyName.ToLower()))
         {
             PropertyValue = ChangeDateFormat(PropertyValue);
         }
-        PropertyValue = AddPropertyName(propertyName, PropertyValue);
-        return PropertyValue;
+
+        return AddPropertyName(propertyName, PropertyValue);
     }
 
     //private string PluralToSingular(string sentence)

@@ -6,54 +6,90 @@ namespace HP.Pulsar.Search.Keyword.DataWriter;
 public class MeiliSearchWriter
 {
     private readonly MeilisearchClient _client;
-    private readonly string _index;
+    private readonly string _uid;
 
-    public MeiliSearchWriter(string url, string indexName)
+    public MeiliSearchWriter(string url, string uid)
     {
         _client = new(url, "masterKey");
-        _index = indexName;
+        _uid = uid;
     }
 
     public async Task CreateIndexAsync()
     {
-        await _client.CreateIndexAsync(_index, "Id");
+        if (await UidExistsAsync(_uid))
+        {
+            throw new ArgumentException("Duplicated uid");
+        }
+
+        await _client.CreateIndexAsync(_uid, "primaryKey");
     }
 
     public async Task DeleteIndexAsync()
     {
-        await _client.DeleteIndexAsync(_index);
+        if (await UidExistsAsync(_uid))
+        {
+            await _client.DeleteIndexAsync(_uid);
+            return;
+        }
+
+        throw new ArgumentException("UID not found");
     }
 
-    public async Task UpsertAsync(List<Dictionary<string, string>> models)
+    public async Task<bool> UidExistsAsync(string uid)
     {
-        Meilisearch.Index index = _client.Index(_index);
-        int _writetimes = models.Count / 20000 ;
-        if (_writetimes.Equals(0))
+        ResourceResults<IEnumerable<Meilisearch.Index>> indexes = await _client.GetAllIndexesAsync();
+
+        foreach (Meilisearch.Index index in indexes.Results)
         {
-            await index.AddDocumentsAsync(models);
-        }
-        else
-        {
-            int firstnumber = 0;
-            for (int i = 0; i < _writetimes ; i++)
+            if (string.Equals(index.Uid, uid, StringComparison.OrdinalIgnoreCase))
             {
-                await index.AddDocumentsAsync(models.GetRange(firstnumber, 20000));
-                firstnumber += 20000;
+                return true;
             }
-            await index.AddDocumentsAsync(models.GetRange(firstnumber, models.Count % 20000));
         }
-        // TODO : study full functions in "index"
+
+        return false;
     }
 
-    public async Task UpdateSetting()
+    public async Task AddElementsAsync(IEnumerable<CommonDataModel> elements)
     {
-        Settings newSettings = new Settings
+        if (!await UidExistsAsync(_uid))
+        {
+            throw new ArgumentException("UID not found");
+        }
+
+        if (elements?.Any() != true)
+        {
+            return;
+        }
+
+        List<IEnumerable<KeyValuePair<string, string>>> pairs = new();
+
+        foreach (CommonDataModel product in elements)
+        {
+            pairs.Add(product.GetElements());
+        }
+
+        Meilisearch.Index index = _client.Index(_uid);
+        await index.AddDocumentsAsync(pairs);
+    }
+
+    // TODO - update element missing
+
+    public async Task UpdateSettingAsync()
+    {
+        if (!await UidExistsAsync(_uid))
+        {
+            throw new ArgumentException("UID not found");
+        }
+
+        Settings newSettings = new()
         {
             RankingRules = new string[]
-             {
+            {
                 "words"
             }
         };
-        TaskInfo task = await _client.Index(_index).UpdateSettingsAsync(newSettings);
+
+        await _client.Index(_uid).UpdateSettingsAsync(newSettings);
     }
 }
