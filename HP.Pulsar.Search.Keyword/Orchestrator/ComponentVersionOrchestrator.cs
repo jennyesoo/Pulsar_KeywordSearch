@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
-using HP.Pulsar.Search.Keyword.CommonDataStructure;
+﻿using HP.Pulsar.Search.Keyword.CommonDataStructure;
 using HP.Pulsar.Search.Keyword.DataReader;
 using HP.Pulsar.Search.Keyword.DataTransformation;
 using HP.Pulsar.Search.Keyword.DataWriter;
@@ -18,33 +12,38 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator
         {
             KeywordSearchInfo = keywordSearchInfo;
         }
+
         public KeywordSearchInfo KeywordSearchInfo { get; }
 
-        public async Task<int> InitializeAsync(int _meilisearchcount)
+        public async Task<int> InitializeAsync(int startId)
         {
             // read componentversion from database
             ComponentVersionReader reader = new(KeywordSearchInfo);
-            IEnumerable<CommonDataModel> ComponentVersion = await reader.GetDataAsync();
+            IEnumerable<CommonDataModel> versions = await reader.GetDataAsync();
 
             // data processing
             ComponentVersionDataTranformer tranformer = new();
-            ComponentVersion = tranformer.Transform(ComponentVersion);
+            versions = tranformer.Transform(versions);
 
-            // data to meiliesearch format
-            List<Dictionary<string, string>> allComponentVersions = new();
-            foreach (CommonDataModel rootversion in ComponentVersion) //491271 items
+            // add meilisearch id
+            foreach (CommonDataModel product in versions)
             {
-                _meilisearchcount++;
-                rootversion.Add("Id", _meilisearchcount.ToString());
-                allComponentVersions.Add(rootversion.GetAllData());
+                product.Add("Id", startId.ToString());
+                startId++;
             }
 
             // write to meiliesearch
-            MeiliSearchWriter _meilisearch = new(KeywordSearchInfo.SearchEngineUrl, "Pulsar2");
-            await _meilisearch.UpsertAsync(allComponentVersions);  //16s
+            MeiliSearchWriter writer = new(KeywordSearchInfo.SearchEngineUrl, KeywordSearchInfo.SearchEngineIndexName);
 
-            return _meilisearchcount;
+            if (!await writer.UidExistsAsync(KeywordSearchInfo.SearchEngineIndexName))
+            {
+                await writer.CreateIndexAsync();
+                await writer.UpdateSettingAsync();
+            }
 
+            await writer.AddElementsAsync(versions);
+
+            return startId;
         }
     }
 }

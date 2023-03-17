@@ -1,12 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using HP.Pulsar.Search.Keyword.CommonDataStructure;
-using HP.Pulsar.Search.Keyword.DataReader;
-using HP.Pulsar.Search.Keyword.Infrastructure;
-using Microsoft.Data.SqlClient;
+﻿using HP.Pulsar.Search.Keyword.CommonDataStructure;
 
 namespace HP.Pulsar.Search.Keyword.DataTransformation
 {
@@ -24,17 +16,16 @@ namespace HP.Pulsar.Search.Keyword.DataTransformation
             //lemmatizer = new Lemmatizer(stream);
         }
 
-        public IEnumerable<CommonDataModel> Transform(IEnumerable<CommonDataModel> ComponentVersion)
+        public IEnumerable<CommonDataModel> Transform(IEnumerable<CommonDataModel> componentVersions)
         {
-            foreach (CommonDataModel rootversion in ComponentVersion)
+            foreach (CommonDataModel rootversion in componentVersions)
             {
-                Dictionary<string, string>.KeyCollection keys = rootversion.GetAllKeys();
-                foreach (string key in keys)
+                foreach (string key in rootversion.GetKeys())
                 {
                     rootversion.Add(key, DataProcessingInitializationCombination(rootversion.GetValue(key), key));
                 }
             }
-            return ComponentVersion;
+            return componentVersions;
         }
 
         private string DataProcessingInitializationCombination(string PropertyValue, string propertyName)

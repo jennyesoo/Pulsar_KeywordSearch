@@ -1,15 +1,15 @@
-﻿using System.Text.Json;
-using HP.Pulsar.Search.Keyword.CommonDataStructure;
+﻿using HP.Pulsar.Search.Keyword.CommonDataStructure;
 using HP.Pulsar.Search.Keyword.DataReader;
 using HP.Pulsar.Search.Keyword.DataTransformation;
 using HP.Pulsar.Search.Keyword.DataWriter;
 using HP.Pulsar.Search.Keyword.Infrastructure;
-using Meilisearch;
 
 namespace HP.Pulsar.Search.Keyword.Orchestrator;
 
 internal class ProductOrchestrator : IInitializationOrchestrator
 {
+    private const string _searchEngineIndexName = "Pulsar2";
+
     public ProductOrchestrator(KeywordSearchInfo keywordSearchInfo)
     {
         KeywordSearchInfo = keywordSearchInfo;
@@ -17,7 +17,7 @@ internal class ProductOrchestrator : IInitializationOrchestrator
 
     public KeywordSearchInfo KeywordSearchInfo { get; }
 
-    public async Task<int> InitializeAsync(int _meilisearchcount)
+    public async Task<int> InitializeAsync(int startId)
     {
         // read products from database
         ProductReader reader = new(KeywordSearchInfo);
@@ -27,22 +27,24 @@ internal class ProductOrchestrator : IInitializationOrchestrator
         ProductDataTranformer tranformer = new();
         products = tranformer.Transform(products);
 
-        // data to meiliesearch format and add meilisearch id 
-        List<Dictionary<string, string>> allProducts = new();
-        foreach (CommonDataModel product in products) //3241 items
+        // add meilisearch id
+        foreach(CommonDataModel product in products)
         {
-            _meilisearchcount ++;
-            product.Add("Id", _meilisearchcount.ToString());
-            allProducts.Add(product.GetAllData());
+            product.Add("Id", startId.ToString());
+            startId++;
         }
 
         // write to meiliesearch
-        MeiliSearchWriter _meilisearch = new(KeywordSearchInfo.SearchEngineUrl, "Pulsar2");
-        await _meilisearch.DeleteIndexAsync();
-        await _meilisearch.CreateIndexAsync();
-        await _meilisearch.UpdateSetting();
-        await _meilisearch.UpsertAsync(allProducts); //0.75s
+        MeiliSearchWriter writer = new(KeywordSearchInfo.SearchEngineUrl, _searchEngineIndexName);
 
-        return _meilisearchcount;
+        if (!await writer.UidExistsAsync(_searchEngineIndexName))
+        {
+            await writer.CreateIndexAsync();
+            await writer.UpdateSettingAsync();
+        }
+
+        await writer.AddElementsAsync(products);
+
+        return startId;
     }
 }
