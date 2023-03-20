@@ -37,7 +37,7 @@ public class CommonDataModel
         return _pairs.Keys;
     }
 
-    public IEnumerable<KeyValuePair<string, string>> GetElements()
+    public IReadOnlyDictionary<string, string> GetElements()
     {
         return _pairs;
     }

@@ -21,7 +21,7 @@ public class MeiliSearchWriter
             throw new ArgumentException("Duplicated uid");
         }
 
-        await _client.CreateIndexAsync(_uid, "primaryKey");
+        await _client.CreateIndexAsync(_uid, "Id");
     }
 
     public async Task DeleteIndexAsync()
@@ -62,16 +62,15 @@ public class MeiliSearchWriter
             return;
         }
 
-        List<IEnumerable<KeyValuePair<string, string>>> pairs = new();
-
+        Meilisearch.Index index = _client.Index(_uid);
+        List<IReadOnlyDictionary<string, string>> pairs = new();
         foreach (CommonDataModel product in elements)
         {
             pairs.Add(product.GetElements());
         }
-
-        Meilisearch.Index index = _client.Index(_uid);
         await index.AddDocumentsAsync(pairs);
     }
+  
 
     // TODO - update element missing
 

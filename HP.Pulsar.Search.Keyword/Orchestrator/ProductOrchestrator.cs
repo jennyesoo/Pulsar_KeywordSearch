@@ -8,7 +8,6 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator;
 
 internal class ProductOrchestrator : IInitializationOrchestrator
 {
-    private const string _searchEngineIndexName = "Pulsar2";
 
     public ProductOrchestrator(KeywordSearchInfo keywordSearchInfo)
     {
@@ -35,9 +34,9 @@ internal class ProductOrchestrator : IInitializationOrchestrator
         }
 
         // write to meiliesearch
-        MeiliSearchWriter writer = new(KeywordSearchInfo.SearchEngineUrl, _searchEngineIndexName);
+        MeiliSearchWriter writer = new(KeywordSearchInfo.SearchEngineUrl, KeywordSearchInfo.SearchEngineIndexName);
 
-        if (!await writer.UidExistsAsync(_searchEngineIndexName))
+        if (!await writer.UidExistsAsync(KeywordSearchInfo.SearchEngineIndexName))
         {
             await writer.CreateIndexAsync();
             await writer.UpdateSettingAsync();
