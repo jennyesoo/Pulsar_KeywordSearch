@@ -34,8 +34,8 @@ internal class ProductOrchestrator : IInitializationOrchestrator
         }
 
         // write to meiliesearch
-        MeiliSearchWriter writer3 = new(KeywordSearchInfo.SearchEngineUrl, "Pulsar3");
-        await writer3.DeleteIndexAsync();
+        MeiliSearchWriter writer3 = new(KeywordSearchInfo.SearchEngineUrl, "Pulsar3"); //for test
+        await writer3.DeleteIndexAsync(); //for test
 
         MeiliSearchWriter writer = new(KeywordSearchInfo.SearchEngineUrl, KeywordSearchInfo.SearchEngineIndexName);
 
