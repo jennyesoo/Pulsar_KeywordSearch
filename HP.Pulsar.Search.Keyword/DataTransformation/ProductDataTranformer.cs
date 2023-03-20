@@ -27,14 +27,14 @@ public class ProductDataTranformer : IDataTranformer
         return products;
     }
 
-    private string DataProcessingInitializationCombination(string PropertyValue, string propertyName)
+    private string DataProcessingInitializationCombination(string propertyValue, string propertyName)
     {
         if (_dataPropertyList.Contains(propertyName.ToLower()))
         {
-            PropertyValue = ChangeDateFormat(PropertyValue);
+            propertyValue = ChangeDateFormat(propertyValue);
         }
 
-        return AddPropertyName(propertyName, PropertyValue);
+        return AddPropertyName(propertyName, propertyValue);
     }
 
     //private string PluralToSingular(string sentence)
@@ -87,9 +87,9 @@ public class ProductDataTranformer : IDataTranformer
     //    return results;
     //}
 
-    private string ChangeDateFormat(string PropertyValue)
+    private string ChangeDateFormat(string propertyValue)
     {
-        return PropertyValue.Split(" ")[0];
+        return propertyValue.Split(" ")[0];
     }
 
     private string AddPropertyName(string propertyName, string propertyValue)

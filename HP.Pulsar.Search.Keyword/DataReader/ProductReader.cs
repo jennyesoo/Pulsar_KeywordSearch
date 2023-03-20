@@ -328,7 +328,6 @@ WHERE p_c.ChipsetId IS NOT NULL
         using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
         await connection.OpenAsync();
 
-        List<string> ProductGroups = new();
         SqlCommand command = new(GetProductGroupsCommandText(), connection);
         using SqlDataReader reader = command.ExecuteReader();
         Dictionary<int, List<string>> productGroups = new();
@@ -350,7 +349,7 @@ WHERE p_c.ChipsetId IS NOT NULL
 
         foreach (CommonDataModel product in products)
         {
-            if (int.TryParse(product.GetValue("Id"), out int productId)
+            if (int.TryParse(product.GetValue("ProductId"), out int productId)
                 && productGroups.ContainsKey(productId))
             {
                 product.Add("ProductGroups", string.Join(" ", productGroups[productId]));
@@ -387,7 +386,7 @@ WHERE p_c.ChipsetId IS NOT NULL
 
         foreach (CommonDataModel product in products)
         {
-            if (int.TryParse(product.GetValue("Id"), out int productId)
+            if (int.TryParse(product.GetValue("ProductId"), out int productId)
                && leadProducts.ContainsKey(productId))
             {
                 product.Add("LeadProduct", string.Join(", ", leadProducts[productId]));
@@ -423,7 +422,7 @@ WHERE p_c.ChipsetId IS NOT NULL
 
         foreach (CommonDataModel product in products)
         {
-            if (int.TryParse(product.GetValue("Id"), out int productId)
+            if (int.TryParse(product.GetValue("ProductId"), out int productId)
               && chipsets.ContainsKey(productId))
             {
                 product.Add("Chipsets", string.Join(" ", chipsets[productId]));
