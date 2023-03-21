@@ -8,7 +8,6 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator;
 
 internal class ProductOrchestrator : IInitializationOrchestrator
 {
-
     public ProductOrchestrator(KeywordSearchInfo keywordSearchInfo)
     {
         KeywordSearchInfo = keywordSearchInfo;
@@ -27,14 +26,14 @@ internal class ProductOrchestrator : IInitializationOrchestrator
         products = tranformer.Transform(products);
 
         // add meilisearch id
-        foreach(CommonDataModel product in products)
+        foreach (CommonDataModel product in products)
         {
             product.Add("Id", startId.ToString());
             startId++;
         }
 
         // write to meiliesearch
-        MeiliSearchWriter writer3 = new(KeywordSearchInfo.SearchEngineUrl, "Pulsar3"); //for test
+        MeiliSearchWriter writer3 = new(KeywordSearchInfo.SearchEngineUrl, KeywordSearchInfo.SearchEngineIndexName); //for test
         await writer3.DeleteIndexAsync(); //for test
 
         MeiliSearchWriter writer = new(KeywordSearchInfo.SearchEngineUrl, KeywordSearchInfo.SearchEngineIndexName);

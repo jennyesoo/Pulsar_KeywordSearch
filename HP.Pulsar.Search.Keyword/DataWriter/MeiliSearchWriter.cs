@@ -70,7 +70,7 @@ public class MeiliSearchWriter
         }
         await index.AddDocumentsAsync(pairs);
     }
-  
+
 
     // TODO - update element missing
 
