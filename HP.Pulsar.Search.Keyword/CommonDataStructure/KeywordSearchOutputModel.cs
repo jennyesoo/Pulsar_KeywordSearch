@@ -5,12 +5,12 @@ namespace HP.Pulsar.Search.Keyword.CommonDataStructure
     {
         public KeywordSearchOutputModel(SearchType type, IEnumerable<KeyValuePair<string, string>> values)
         {
-            Type = type;
-            Values = values;
+            _type = type;
+            _values = values;
         }
 
-        public SearchType Type { get; }
+        public SearchType _type { get; }
 
-        public IEnumerable<KeyValuePair<string, string>> Values { get; }
+        public IEnumerable<KeyValuePair<string, string>> _values { get; }
     }
 }

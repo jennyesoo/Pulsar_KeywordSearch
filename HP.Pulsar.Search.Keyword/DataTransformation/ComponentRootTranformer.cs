@@ -390,10 +390,6 @@ namespace HP.Pulsar.Search.Keyword.DataTransformation
             {
                 return "Limit Function Test Group Visability : " + propertyValue;
             }
-            else if (propertyName == "NamingStandard")
-            {
-                return "Naming Standard : " + propertyValue;
-            }
             else if (propertyName == "ML")
             {
                 return "ML : " + propertyValue;

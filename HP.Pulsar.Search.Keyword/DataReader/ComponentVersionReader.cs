@@ -13,18 +13,18 @@ namespace HP.Pulsar.Search.Keyword.DataReader
             _csProvider = new(info.Environment);
         }
 
-        public async Task<CommonDataModel> GetDataAsync(int ProductId)
+        public async Task<CommonDataModel> GetDataAsync(int productId)
         {
             throw new NotImplementedException();
         }
 
         public async Task<IEnumerable<CommonDataModel>> GetDataAsync()
         {
-            IEnumerable<CommonDataModel> ComponentVersions = await GetComponentVersionAsync();
-            ComponentVersions = await GetPackagingAsync(ComponentVersions);
-            ComponentVersions = await GetTouchPointAsync(ComponentVersions);
-            ComponentVersions = await GetOtherSettingAsync(ComponentVersions);
-            return ComponentVersions;
+            IEnumerable<CommonDataModel> componentVersions = await GetComponentVersionAsync();
+            componentVersions = await GetPackagingAsync(componentVersions);
+            componentVersions = await GetTouchPointAsync(componentVersions);
+            componentVersions = await GetOtherSettingAsync(componentVersions);
+            return componentVersions;
         }
 
         private async Task<IEnumerable<CommonDataModel>> GetComponentVersionAsync()
@@ -40,7 +40,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
 
             while (reader.Read())
             {
-                CommonDataModel ComponentVersion = new();
+                CommonDataModel componentVersion = new();
                 int fieldCount = reader.FieldCount;
 
                 for (int i = 0; i < fieldCount; i++)
@@ -49,9 +49,12 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                     {
                         continue;
                     }
-                    string columnName = reader.GetName(i);
-                    string value = reader[i].ToString();
-                    ComponentVersion.Add(columnName, value);
+                    if (!string.IsNullOrEmpty(reader[i].ToString()))
+                    {
+                        string columnName = reader.GetName(i);
+                        string value = reader[i].ToString();
+                        componentVersion.Add(columnName, value);
+                    }
                 }
 
                 /*
@@ -66,8 +69,8 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                     continue;
                 }
                 */
-                ComponentVersion.Add("target", "ComponentVersion");
-                output.Add(ComponentVersion);
+                componentVersion.Add("target", "ComponentVersion");
+                output.Add(componentVersion);
             }
             return output;
         }
@@ -129,11 +132,11 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                     where (@ComponentVersionId = -1 OR Dv.ID = @ComponentVersionId)";
         }
 
-        private async Task<IEnumerable<CommonDataModel>> GetPackagingAsync(IEnumerable<CommonDataModel> ComponentVersions)
+        private async Task<IEnumerable<CommonDataModel>> GetPackagingAsync(IEnumerable<CommonDataModel> componentVersions)
         {
-            List<CommonDataModel> _output = new List<CommonDataModel>();
+            List<CommonDataModel> output = new List<CommonDataModel>();
 
-            foreach (CommonDataModel rootversion in ComponentVersions)
+            foreach (CommonDataModel rootversion in componentVersions)
             {
                 if (rootversion.GetValue("Preinstall").Equals("1"))
                 {
@@ -215,9 +218,9 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 rootversion.Delete("CDImage");
                 rootversion.Delete("ISOImage");
                 rootversion.Delete("AR");
-                _output.Add(rootversion);
+                output.Add(rootversion);
             }
-            return _output;
+            return output;
         }
 
         private async Task<int> GetCDAsync(CommonDataModel rootversion)
@@ -237,11 +240,11 @@ namespace HP.Pulsar.Search.Keyword.DataReader
             return 0;
         }
 
-        private async Task<IEnumerable<CommonDataModel>> GetTouchPointAsync(IEnumerable<CommonDataModel> ComponentVersions)
+        private async Task<IEnumerable<CommonDataModel>> GetTouchPointAsync(IEnumerable<CommonDataModel> componentVersions)
         {
-            List<CommonDataModel> _output = new List<CommonDataModel>();
+            List<CommonDataModel> output = new List<CommonDataModel>();
 
-            foreach (CommonDataModel rootversion in ComponentVersions)
+            foreach (CommonDataModel rootversion in componentVersions)
             {                
                 if (rootversion.GetValue("IconDesktop").Equals("True"))
                 {
@@ -306,16 +309,16 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                     rootversion.Delete("IconTaskBarIcon");
                 }
 
-                _output.Add(rootversion);
+                output.Add(rootversion);
             }
-            return _output;
+            return output;
         }
 
-        private async Task<IEnumerable<CommonDataModel>> GetOtherSettingAsync(IEnumerable<CommonDataModel> ComponentVersions)
+        private async Task<IEnumerable<CommonDataModel>> GetOtherSettingAsync(IEnumerable<CommonDataModel> componentVersions)
         {
-            List<CommonDataModel> _output = new List<CommonDataModel>();
+            List<CommonDataModel> output = new List<CommonDataModel>();
 
-            foreach (CommonDataModel rootversion in ComponentVersions)
+            foreach (CommonDataModel rootversion in componentVersions)
             {
                 if (rootversion.GetValue("SettingFWML").Equals("True"))
                 {
@@ -334,9 +337,9 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 {
                     rootversion.Delete("SettingUWPCompliant");
                 }
-                _output.Add(rootversion);
+                output.Add(rootversion);
             }
-            return _output;
+            return output;
         }
     }
 }

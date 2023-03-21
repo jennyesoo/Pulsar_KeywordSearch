@@ -1,6 +1,7 @@
 ﻿using HP.Pulsar.Search.Keyword.CommonDataStructure;
 using HP.Pulsar.Search.Keyword.Infrastructure;
 using Microsoft.Data.SqlClient;
+using Microsoft.IdentityModel.Tokens;
 
 namespace HP.Pulsar.Search.Keyword.DataReader
 {
@@ -120,7 +121,6 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                         root.IrsComponentCloneId,
                         CPSW.Description As PrismSWType,
                         root.LimitFuncTestGroupVisability,
-                        Ns.Name As NamingStandard,
                         root.ML,
                         root.AgencyLead,
                         root.SortOrder,
@@ -144,7 +144,6 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                     left JOIN userinfo user3 ON user3.userid = root.TesterID
                     left JOIN userinfo user4 ON user4.userid = root.SioApproverId
                     left JOIN componentcoreteam coreteam ON coreteam.ComponentCoreTeamId = root.CoreTeamID 
-                    left Join NamingStandard Ns on Ns.NamingStandardID = root.NamingStandardID
                     left JOIN ComponentPrismSWType CPSW on CPSW.PRISMTypeID = root.PrismSWType 
                     left Join SWSetupCategory sws on sws.ID = root.SWSetupCategoryID
                     left Join ComponentTransferServer cts on cts.Id = root.TransferServerId
@@ -223,25 +222,24 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                     {
                         continue;
                     }
-
-                    string columnName = reader.GetName(i);
-                    string value = reader[i].ToString();
-                    root.Add(columnName, value);
+                    if (!string.IsNullOrEmpty(reader[i].ToString()))
+                    {
+                        string columnName = reader.GetName(i);
+                        string value = reader[i].ToString();
+                        root.Add(columnName, value);
+                    }
                 }
-
                 root.Add("target", "Component Root");
-
                 output.Add(root);
             }
-
             return output;
         }
 
-        private async Task<IEnumerable<CommonDataModel>> GetPropertyValueAsync(IEnumerable<CommonDataModel> ComponentRoots)
+        private async Task<IEnumerable<CommonDataModel>> GetPropertyValueAsync(IEnumerable<CommonDataModel> componentRoots)
         {
-            List<CommonDataModel> _output = new List<CommonDataModel>();
+            List<CommonDataModel> output = new List<CommonDataModel>();
 
-            foreach (CommonDataModel root in ComponentRoots)
+            foreach (CommonDataModel root in componentRoots)
             {
                 if (root.GetValue("Preinstall").Equals("1"))
                 {
@@ -466,9 +464,9 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 root.Delete("CDImage");
                 root.Delete("ISOImage");
                 root.Delete("AR");
-                _output.Add(root);
+                output.Add(root);
             }
-            return _output;
+            return output;
         }
 
         private Task<int> GetCDAsync(CommonDataModel root)

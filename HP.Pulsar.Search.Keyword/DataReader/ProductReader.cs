@@ -13,7 +13,7 @@ public class ProductReader : IKeywordSearchDataReader
         _csProvider = new(info.Environment);
     }
 
-    public async Task<CommonDataModel> GetDataAsync(int ProductId)
+    public async Task<CommonDataModel> GetDataAsync(int productId)
     {
         throw new NotImplementedException();
     }
@@ -179,13 +179,13 @@ WHERE ps.Name <> 'Inactive'
                 {
                     continue;
                 }
-
-                string columnName = reader.GetName(i);
-                string value = reader[i].ToString();
-
-                product.Add(columnName, value);
+                if (!string.IsNullOrEmpty(reader[i].ToString()))
+                {
+                    string columnName = reader.GetName(i);
+                    string value = reader[i].ToString();
+                    product.Add(columnName, value);
+                }
             }
-
             product.Add("target", "product");
             output.Add(product);
         }
