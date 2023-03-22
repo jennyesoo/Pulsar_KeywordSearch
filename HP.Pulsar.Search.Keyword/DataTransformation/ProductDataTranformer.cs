@@ -21,7 +21,15 @@ public class ProductDataTranformer : IDataTranformer
         {
             foreach (string key in product.GetKeys())
             {
-                product.Add(key, DataProcessingInitializationCombination(product.GetValue(key), key));
+                string propertyValue = product.GetValue(key);
+                if ( key.Equals("CreatorName") & propertyValue.Equals("dbo"))
+                {
+                    product.Delete(key);
+                }
+                else
+                {
+                    product.Add(key, DataProcessingInitializationCombination(propertyValue, key));
+                }
             }
         }
         return products;
@@ -34,7 +42,8 @@ public class ProductDataTranformer : IDataTranformer
             propertyValue = ChangeDateFormat(propertyValue);
         }
 
-        return AddPropertyName(propertyName, propertyValue);
+        //return AddPropertyName(propertyName, propertyValue);
+        return propertyValue;
     }
 
     //private string PluralToSingular(string sentence)

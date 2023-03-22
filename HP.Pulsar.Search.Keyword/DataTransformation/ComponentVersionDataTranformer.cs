@@ -4,15 +4,15 @@ namespace HP.Pulsar.Search.Keyword.DataTransformation
 {
     public class ComponentVersionDataTranformer : IDataTranformer
     {
-        public string filePath;
+        //public string _filePath;
         //private readonly Lemmatizer lemmatizer;
-        public static List<string> _noLemmatization = new List<string> { "bios", "fxs", "os", "obs", "ots" };
-        public static List<string> DataPropertyList = new List<string> { "IntroDate" };
+        //public static List<string> _noLemmatization = new List<string> { "bios", "fxs", "os", "obs", "ots" };
+        public static List<string> _dataPropertyList = new List<string> { "IntroDate" };
 
         public ComponentVersionDataTranformer()
         {
-            filePath = "References\\full7z-mlteast-en-modified.lem";
-            var stream = File.OpenRead(filePath);
+            //_filePath = "References\\full7z-mlteast-en-modified.lem";
+            //var stream = File.OpenRead(_filePath);
             //lemmatizer = new Lemmatizer(stream);
         }
 
@@ -28,14 +28,14 @@ namespace HP.Pulsar.Search.Keyword.DataTransformation
             return componentVersions;
         }
 
-        private string DataProcessingInitializationCombination(string PropertyValue, string propertyName)
+        private string DataProcessingInitializationCombination(string propertyValue, string propertyName)
         {
-            if (DataPropertyList.Contains(propertyName.ToLower()))
+            if (_dataPropertyList.Contains(propertyName.ToLower()))
             {
-                PropertyValue = ChangeDateFormat(PropertyValue);
+                propertyValue = ChangeDateFormat(propertyValue);
             }
-            PropertyValue = AddPropertyName(propertyName, PropertyValue);
-            return PropertyValue;
+            //PropertyValue = AddPropertyName(propertyName, PropertyValue);
+            return propertyValue;
         }
 
         //private string PluralToSingular(string sentence)
@@ -88,9 +88,9 @@ namespace HP.Pulsar.Search.Keyword.DataTransformation
         //    return results;
         //}
 
-        private string ChangeDateFormat(string PropertyValue)
+        private string ChangeDateFormat(string propertyValue)
         {
-            return PropertyValue.Split(" ")[0];
+            return propertyValue.Split(" ")[0];
         }
 
         private string AddPropertyName(string propertyName, string propertyValue)

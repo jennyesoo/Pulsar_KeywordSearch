@@ -4,7 +4,7 @@ namespace HP.Pulsar.Search.Keyword.DataTransformation
 {
     internal class ComponentRootTranformer : IDataTranformer
     {
-        public static List<string> DataPropertyList = new List<string> { "created" , "muiawareDate" , "updated" };
+        public static List<string> _dataPropertyList = new List<string> { "created" , "muiawareDate" , "updated" };
 
         public IEnumerable<CommonDataModel> Transform(IEnumerable<CommonDataModel> componentRoots)
         {
@@ -21,12 +21,12 @@ namespace HP.Pulsar.Search.Keyword.DataTransformation
 
         private string DataProcessingInitializationCombination(string propertyValue, string propertyName)
         {
-            if (DataPropertyList.Contains(propertyName.ToLower()))
+            if (_dataPropertyList.Contains(propertyName.ToLower()))
             {
                 propertyValue = ChangeDateFormat(propertyValue);
             }
 
-            propertyValue = AddPropertyName(propertyName, propertyValue);
+            //propertyValue = AddPropertyName(propertyName, propertyValue);
 
             return propertyValue;
         }
