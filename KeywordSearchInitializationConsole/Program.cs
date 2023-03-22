@@ -15,7 +15,7 @@ internal class Program
             DatabaseConnectionString = "xxxxx",
             Environment = PulsarEnvironment.Dev,
             SearchEngineUrl = "http://15.36.147.177:7700/",
-            SearchEngineIndexName = "Pulsar3"
+            SearchEngineIndexName = "Pulsar4"
         };
 
         Initialization init = new(info);

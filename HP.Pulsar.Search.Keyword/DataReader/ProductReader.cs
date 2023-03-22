@@ -151,8 +151,7 @@ FULL JOIN UserInfo user_MPM ON user_MPM.userid = p.ConsMarketingID
 FULL JOIN UserInfo user_ProPM ON user_ProPM.userid = p.ProcurementPMID
 FULL JOIN UserInfo user_SWM ON user_SWM.userid = p.SwMarketingId
 FULL JOIN ProductLine pl ON pl.Id = p.ProductLineId
-WHERE ps.Name <> 'Inactive' and where (@ProductId = -1 OR p.Id = @ProductId)""
-";
+WHERE ps.Name <> 'Inactive' and (@ProductId = -1 OR p.Id = @ProductId)";
     }
 
     // This function is to get all products

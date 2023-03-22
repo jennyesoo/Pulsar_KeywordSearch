@@ -106,7 +106,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                         root.FtpSitePath,
                         root.DrDvd,
                         root.MsStore,
-                        root.ErdComments,
+                        root.ErdComments
 
                     FROM DeliverableRoot root
                     left JOIN vendor ON root.vendorid = vendor.id
@@ -162,7 +162,10 @@ namespace HP.Pulsar.Search.Keyword.DataReader
 
                 while (reader.Read())
                 {
-                    root.Add("ProductList", reader["Product"].ToString());
+                    if (reader["Product"].ToString().IsNullOrEmpty() == false)
+                    {
+                        root.Add("ProductList", reader["Product"].ToString());
+                    }
                 }
             }
             return componentRoots;
