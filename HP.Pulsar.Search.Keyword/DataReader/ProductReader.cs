@@ -120,7 +120,7 @@ SELECT p.id AS ProductId,
         WHEN p.PreinstallTeam = 5
             THEN 'CDC'
         WHEN p.PreinstallTeam = 6
-            THEN 'Houston – Thin Client'
+            THEN 'Houston - Thin Client'
         WHEN p.PreinstallTeam = 7
             THEN 'Mobility'
         WHEN p.PreinstallTeam = 8
@@ -152,7 +152,12 @@ FULL JOIN UserInfo user_MPM ON user_MPM.userid = p.ConsMarketingID
 FULL JOIN UserInfo user_ProPM ON user_ProPM.userid = p.ProcurementPMID
 FULL JOIN UserInfo user_SWM ON user_SWM.userid = p.SwMarketingId
 FULL JOIN ProductLine pl ON pl.Id = p.ProductLineId
-WHERE ps.Name <> 'Inactive' and (@ProductId = -1 OR p.Id = @ProductId)";
+WHERE ps.Name <> 'Inactive'
+    AND (
+        @ProductId = - 1
+        OR p.Id = @ProductId
+        )
+";
     }
 
     // This function is to get all products
@@ -243,8 +248,8 @@ GROUP BY pb.ProductVersionId
     private string GetTSQLLeadproductCommandText()
     {
         return @"
-SELECT distinct lp.ID as ProductId,
-     lp.DotsName + ' (' + lpr.Name + ')' as LeadProduct
+SELECT DISTINCT lp.ID AS ProductId,
+    lp.DotsName + ' (' + lpr.Name + ')' AS LeadProduct
 FROM ProductVersionRelease pr WITH (NOLOCK)
 JOIN ProductVersion_Release pv WITH (NOLOCK) ON pr.id = pv.ReleaseID
 JOIN ProductVersion_Release lpv WITH (NOLOCK) ON lpv.id = pv.LeadProductreleaseID
@@ -267,19 +272,31 @@ WHERE p_c.ChipsetId IS NOT NULL
     private string GetBiosVersionText()
     {
         return @"
-Select dbo.Concatenate(v.version) as TargetedVersions, pd.ProductVersionId 
-from (SELECT deliverableversionid , pd.productversionid
-FROm product_deliverable pd with (NOLOCK) 
-WHERe targeted=1)pd 
-INNER JOIN deliverableversion v with (NOLOCK) ON v.id = pd.deliverableversionid 
-INNER JOIN deliverableroot r with (NOLOCK) ON r.id = v.deliverablerootid 
-where  r.categoryid = 161 and (isnumeric(left(v.version,1) ) = 0 or (left(v.version,1) = '0' and substring(v.version,3,1) = '.'))
-group by pd.productversionid ";
+SELECT dbo.Concatenate(v.version) AS TargetedVersions,
+    pd.ProductVersionId
+FROM (
+    SELECT deliverableversionid,
+        pd.productversionid
+    FROM product_deliverable pd WITH (NOLOCK)
+    WHERE targeted = 1
+    ) pd
+INNER JOIN deliverableversion v WITH (NOLOCK) ON v.id = pd.deliverableversionid
+INNER JOIN deliverableroot r WITH (NOLOCK) ON r.id = v.deliverablerootid
+WHERE r.categoryid = 161
+    AND (
+        isnumeric(left(v.version, 1)) = 0
+        OR (
+            left(v.version, 1) = '0'
+            AND substring(v.version, 3, 1) = '.'
+            )
+        )
+GROUP BY pd.productversionid
+";
     }
 
     private string GetCurrentROMText()
     {
-        return @"Select id,currentROM,currentWebROM From ProductVersion";
+        return "Select id,currentROM,currentWebROM From ProductVersion";
     }
 
     private async Task GetEndOfProductionDateAsync(IEnumerable<CommonDataModel> products)
@@ -451,17 +468,17 @@ group by pd.productversionid ";
     private async Task GetCurrentBIOSVersionsAsync(IEnumerable<CommonDataModel> products)
     {
         Dictionary<int, string> biosVersion = await GetTargetBIOSVersionAsync();
-        (Dictionary<int, string> currentROM, Dictionary<int, string> currentWebROM) = await GetCurrentROMOrCurrentWebROMAsync();
+        Dictionary<int, (string, string)> currentROM = await GetCurrentROMOrCurrentWebROMAsync();
 
         foreach (CommonDataModel product in products)
         {
             if (int.TryParse(product.GetValue("ProductId").ToString(), out int productId))
             {
                 product.Add("CurrentBIOSVersions", await GetTargetedVersionsAsync(productId,
-                                                                                 product.GetValue("ProductStatus"),
-                                                                                 currentROM[productId],
-                                                                                 currentWebROM[productId],
-                                                                                 biosVersion));
+                                                                                  product.GetValue("ProductStatus"),
+                                                                                  currentROM[productId].Item1,
+                                                                                  currentROM[productId].Item2,
+                                                                                  biosVersion));
             }
         }
     }
@@ -508,36 +525,34 @@ group by pd.productversionid ";
 
         while (await reader.ReadAsync())
         {
-            if (!int.TryParse(reader["ProductVersionId"].ToString(), out int productVersionId))
+            if (!int.TryParse(reader["ProductVersionId"].ToString(), out int productId))
             {
                 continue;
             }
 
-            biosVersion[productVersionId] = reader["TargetedVersions"].ToString();
+            biosVersion[productId] = reader["TargetedVersions"].ToString();
         }
         return biosVersion;
     }
 
-    public async Task<(Dictionary<int, string>, Dictionary<int, string>)> GetCurrentROMOrCurrentWebROMAsync()
+    public async Task<Dictionary<int, (string, string)>> GetCurrentROMOrCurrentWebROMAsync()
     {
         using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
         await connection.OpenAsync();
         SqlCommand command = new(GetCurrentROMText(), connection);
 
         using SqlDataReader reader = command.ExecuteReader();
-        Dictionary<int, string> currentROM = new();
-        Dictionary<int, string> currentWebROM = new();
+        Dictionary<int, (string, string)> currentROM = new();
 
         while (await reader.ReadAsync())
         {
-            if (!int.TryParse(reader["id"].ToString(), out int productVersionId))
+            if (!int.TryParse(reader["id"].ToString(), out int productId))
             {
                 continue;
             }
-            currentROM[productVersionId] = reader["currentROM"].ToString();
-            currentWebROM[productVersionId] = reader["currentWebROM"].ToString();
+            currentROM[productId] = (reader["currentROM"].ToString() , reader["currentWebROM"].ToString());
         }
-        return (currentROM, currentWebROM);
+        return currentROM;
     }
 
 }
