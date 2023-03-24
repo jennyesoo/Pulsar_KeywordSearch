@@ -28,6 +28,7 @@ public class ProductReader : IKeywordSearchDataReader
             GetProductGroupsAsync(products),
             GetLeadProductAsync(products),
             GetChipsetsAsync(products),
+            GetCurrentBIOSVersionsAsync(products)
 //            GetComponentRootListAsync(products)
         };
 
@@ -263,6 +264,24 @@ WHERE p_c.ChipsetId IS NOT NULL
 ";
     }
 
+    private string GetBiosVersionText()
+    {
+        return @"
+Select dbo.Concatenate(v.version) as TargetedVersions, pd.ProductVersionId 
+from (SELECT deliverableversionid , pd.productversionid
+FROm product_deliverable pd with (NOLOCK) 
+WHERe targeted=1)pd 
+INNER JOIN deliverableversion v with (NOLOCK) ON v.id = pd.deliverableversionid 
+INNER JOIN deliverableroot r with (NOLOCK) ON r.id = v.deliverablerootid 
+where  r.categoryid = 161 and (isnumeric(left(v.version,1) ) = 0 or (left(v.version,1) = '0' and substring(v.version,3,1) = '.'))
+group by pd.productversionid ";
+    }
+
+    private string GetCurrentROMText()
+    {
+        return @"Select id,currentROM,currentWebROM From ProductVersion";
+    }
+
     private async Task GetEndOfProductionDateAsync(IEnumerable<CommonDataModel> products)
     {
         using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
@@ -428,4 +447,97 @@ WHERE p_c.ChipsetId IS NOT NULL
             }
         }
     }
+
+    private async Task GetCurrentBIOSVersionsAsync(IEnumerable<CommonDataModel> products)
+    {
+        Dictionary<int, string> biosVersion = await GetTargetBIOSVersionAsync();
+        (Dictionary<int, string> currentROM, Dictionary<int, string> currentWebROM) = await GetCurrentROMOrCurrentWebROMAsync();
+
+        foreach (CommonDataModel product in products)
+        {
+            if (int.TryParse(product.GetValue("ProductId").ToString(), out int productId))
+            {
+                product.Add("CurrentBIOSVersions", await GetTargetedVersionsAsync(productId,
+                                                                                 product.GetValue("ProductStatus"),
+                                                                                 currentROM[productId],
+                                                                                 currentWebROM[productId],
+                                                                                 biosVersion));
+            }
+        }
+    }
+
+    private async Task<string> GetTargetedVersionsAsync(int productId, string statusName, string currentROM, string currentWebROM, Dictionary<int, string> biosVersion)
+    {
+        statusName = statusName ?? string.Empty;
+
+        if (string.IsNullOrEmpty(currentROM) && (statusName.Equals("Development", StringComparison.OrdinalIgnoreCase) || statusName.Equals("Definition", StringComparison.OrdinalIgnoreCase)))
+        {
+            string value = string.Empty;
+            if (biosVersion.ContainsKey(productId))
+            {
+                value = biosVersion[productId];
+            }
+            currentROM = $"Targeted: {value}";
+            
+        }
+        else if (!statusName.Equals("Development", StringComparison.OrdinalIgnoreCase) && !statusName.Equals("Definition", StringComparison.OrdinalIgnoreCase))
+        {
+            currentROM = string.IsNullOrEmpty(currentROM) ? $"Factory: {currentROM}" : $"Factory: UnKnown";
+        }
+
+        if (!string.IsNullOrEmpty(currentROM) && !string.IsNullOrEmpty(currentWebROM))
+        {
+            currentROM += $" Web: {currentWebROM}";
+        }
+        else if (string.IsNullOrEmpty(currentROM) && !string.IsNullOrEmpty(currentWebROM))
+        {
+            currentROM = $"Web: {currentWebROM}";
+        }
+
+        return currentROM;
+    }
+
+    public async Task<Dictionary<int, string>> GetTargetBIOSVersionAsync()
+    {
+        using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
+        await connection.OpenAsync();
+        SqlCommand command = new(GetBiosVersionText(), connection);
+
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, string> biosVersion = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["ProductVersionId"].ToString(), out int productVersionId))
+            {
+                continue;
+            }
+
+            biosVersion[productVersionId] = reader["TargetedVersions"].ToString();
+        }
+        return biosVersion;
+    }
+
+    public async Task<(Dictionary<int, string>, Dictionary<int, string>)> GetCurrentROMOrCurrentWebROMAsync()
+    {
+        using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
+        await connection.OpenAsync();
+        SqlCommand command = new(GetCurrentROMText(), connection);
+
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, string> currentROM = new();
+        Dictionary<int, string> currentWebROM = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["id"].ToString(), out int productVersionId))
+            {
+                continue;
+            }
+            currentROM[productVersionId] = reader["currentROM"].ToString();
+            currentWebROM[productVersionId] = reader["currentWebROM"].ToString();
+        }
+        return (currentROM, currentWebROM);
+    }
+
 }
