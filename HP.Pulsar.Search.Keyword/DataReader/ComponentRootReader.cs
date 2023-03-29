@@ -205,6 +205,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                     }
                 }
                 root.Add("target", "Component Root");
+                root.Add("Id", "ComponentRoot-" + root.GetValue("ComponentRootId"));
                 output.Add(root);
             }
             return output;
