@@ -16,7 +16,7 @@ internal class ProductOrchestrator : IInitializationOrchestrator
 
     public KeywordSearchInfo KeywordSearchInfo { get; }
 
-    public async Task<int> InitializeAsync(int startId)
+    public async Task InitializeAsync()
     {
         // read products from database
         ProductReader reader = new(KeywordSearchInfo);
@@ -26,15 +26,8 @@ internal class ProductOrchestrator : IInitializationOrchestrator
         ProductDataTranformer tranformer = new();
         products = tranformer.Transform(products);
 
-        // add meilisearch id
-        foreach(CommonDataModel product in products)
-        {
-            product.Add("Id", startId.ToString());
-            startId++;
-        }
-
         // write to meiliesearch
-        //MeiliSearchWriter writer3 = new(KeywordSearchInfo.SearchEngineUrl, "Pulsar3"); //for test
+        //MeiliSearchWriter writer3 = new(KeywordSearchInfo.SearchEngineUrl, "Pulsar2"); //for test
         //await writer3.DeleteIndexAsync(); //for test
 
         MeiliSearchWriter writer = new(KeywordSearchInfo.SearchEngineUrl, KeywordSearchInfo.SearchEngineIndexName);
@@ -46,7 +39,5 @@ internal class ProductOrchestrator : IInitializationOrchestrator
         }
 
         await writer.AddElementsAsync(products);
-
-        return startId;
     }
 }

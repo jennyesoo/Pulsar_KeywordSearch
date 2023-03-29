@@ -1,4 +1,6 @@
-﻿using HP.Pulsar.Search.Keyword.CommonDataStructure;
+﻿using System.Globalization;
+using System;
+using HP.Pulsar.Search.Keyword.CommonDataStructure;
 namespace HP.Pulsar.Search.Keyword.DataTransformation;
 
 public class ProductDataTranformer : IDataTranformer
@@ -6,7 +8,7 @@ public class ProductDataTranformer : IDataTranformer
     //private string _filePath;
     //private readonly Lemmatizer lemmatizer;
     //private static List<string> _noLemmatization = new() { "bios", "fxs", "os", "obs", "ots" };
-    private static List<string> _dataPropertyList = new() { "servicelifedate", "createddate", "latestupdatedate", "endofproduction" };
+    private static List<string> _dataPropertyList = new() { "servicelifedate", "createddate", "latestupdatedate", "endofproductiondate" };
 
     public ProductDataTranformer()
     {
@@ -98,7 +100,18 @@ public class ProductDataTranformer : IDataTranformer
 
     private string ChangeDateFormat(string propertyValue)
     {
-        return propertyValue.Split(" ")[0];
+        CultureInfo enUS = new CultureInfo("en-US");
+        DateTime dateValue;
+
+        if (DateTime.TryParseExact(propertyValue, "G", enUS,
+                                 DateTimeStyles.None, out dateValue))
+        {
+            return dateValue.ToString("yyyy/MM/dd");
+        }
+        else
+        { 
+            return propertyValue;
+        }
     }
 
     private string AddPropertyName(string propertyName, string propertyValue)

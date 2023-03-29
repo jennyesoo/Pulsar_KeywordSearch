@@ -1,19 +1,20 @@
-﻿using HP.Pulsar.Search.Keyword.CommonDataStructure;
+﻿using System.Globalization;
+using HP.Pulsar.Search.Keyword.CommonDataStructure;
 using LemmaSharp.Classes;
 
 namespace HP.Pulsar.Search.Keyword.DataTransformation;
 
 public class CommonDataTranformer
 {
-    public string filePath;
+    public string _filePath;
     private readonly Lemmatizer lemmatizer;
     public static List<string> _noLemmatization = new List<string> { "bios", "fxs", "os", "obs", "ots" };
     public static List<string> DataPropertyList = new List<string> { "servicelifedate", "createddate", "latestupdatedate", "endofproduction" };
 
     public CommonDataTranformer()
     {
-        filePath = ".\full7z-mlteast-en-modified.lem";
-        var stream = File.OpenRead(filePath);
+        _filePath = ".\full7z-mlteast-en-modified.lem";
+        var stream = File.OpenRead(_filePath);
         lemmatizer = new Lemmatizer(stream);
     }
 
@@ -29,14 +30,14 @@ public class CommonDataTranformer
         return products;
     }
 
-    private string DataProcessingInitializationCombination(string PropertyValue, string propertyName)
+    private string DataProcessingInitializationCombination(string propertyValue, string propertyName)
     {
         if (DataPropertyList.Contains(propertyName.ToLower()))
         {
-            PropertyValue = ChangeDateFormat(PropertyValue);
+            propertyValue = ChangeDateFormat(propertyValue);
         }
-        PropertyValue = AddPropertyName(propertyName, PropertyValue);
-        return PropertyValue;
+        propertyValue = AddPropertyName(propertyName, propertyValue);
+        return propertyValue;
     }
 
     //private string PluralToSingular(string sentence)
@@ -89,9 +90,20 @@ public class CommonDataTranformer
     //    return results;
     //}
 
-    private string ChangeDateFormat(string PropertyValue)
+    private string ChangeDateFormat(string propertyValue)
     {
-        return PropertyValue.Split(" ")[0];
+        CultureInfo enUS = new CultureInfo("en-US");
+        DateTime dateValue;
+
+        if (DateTime.TryParseExact(propertyValue, "G", enUS,
+                                 DateTimeStyles.None, out dateValue))
+        {
+            return dateValue.ToString("yyyy/MM/dd");
+        }
+        else
+        {
+            return propertyValue;
+        }
     }
 
     private string AddPropertyName(string propertyName, string propertyValue)

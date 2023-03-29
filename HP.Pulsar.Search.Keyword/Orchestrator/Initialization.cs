@@ -12,18 +12,16 @@ public class Initialization
         {
             new ProductOrchestrator(info),
             new ComponentRootOrchestrator(info),
-            new ComponentVersionOrchestrator(info) //time : 40m 
+            new ComponentVersionOrchestrator(info) 
         };
     }
 
     public async Task InitAsync()
     {
-        int count = 0; //568794 items
-
         foreach (IInitializationOrchestrator item in _orchestrators)
         {
             Console.WriteLine("Read Data : " + item);
-            count = await item.InitializeAsync(count);
+            await item.InitializeAsync();
         }
     }
 }

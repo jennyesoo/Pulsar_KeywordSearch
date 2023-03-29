@@ -1,4 +1,5 @@
-﻿using HP.Pulsar.Search.Keyword.CommonDataStructure;
+﻿using System.Globalization;
+using HP.Pulsar.Search.Keyword.CommonDataStructure;
 
 namespace HP.Pulsar.Search.Keyword.DataTransformation
 {
@@ -7,7 +8,7 @@ namespace HP.Pulsar.Search.Keyword.DataTransformation
         //public string _filePath;
         //private readonly Lemmatizer lemmatizer;
         //public static List<string> _noLemmatization = new List<string> { "bios", "fxs", "os", "obs", "ots" };
-        public static List<string> _dataPropertyList = new List<string> { "IntroDate" };
+        public static List<string> _dataPropertyList = new List<string> { "introdate" };
 
         public ComponentVersionDataTranformer()
         {
@@ -90,7 +91,18 @@ namespace HP.Pulsar.Search.Keyword.DataTransformation
 
         private string ChangeDateFormat(string propertyValue)
         {
-            return propertyValue.Split(" ")[0];
+            CultureInfo enUS = new CultureInfo("en-US");
+            DateTime dateValue;
+
+            if (DateTime.TryParseExact(propertyValue, "G", enUS,
+                                     DateTimeStyles.None, out dateValue))
+            {
+                return dateValue.ToString("yyyy/MM/dd");
+            }
+            else
+            {
+                return propertyValue;
+            }
         }
 
         private string AddPropertyName(string propertyName, string propertyValue)

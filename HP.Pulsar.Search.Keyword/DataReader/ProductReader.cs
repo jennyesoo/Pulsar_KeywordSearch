@@ -192,6 +192,7 @@ WHERE ps.Name <> 'Inactive'
                 }
             }
             product.Add("target", "product");
+            product.Add("Id", "Product-" + product.GetValue("ProductId"));
             output.Add(product);
         }
 
