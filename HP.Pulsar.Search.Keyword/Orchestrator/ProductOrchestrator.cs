@@ -27,9 +27,6 @@ internal class ProductOrchestrator : IInitializationOrchestrator
         products = tranformer.Transform(products);
 
         // write to meiliesearch
-        //MeiliSearchWriter writer3 = new(KeywordSearchInfo.SearchEngineUrl, "Pulsar2"); //for test
-        //await writer3.DeleteIndexAsync(); //for test
-
         MeiliSearchWriter writer = new(KeywordSearchInfo.SearchEngineUrl, KeywordSearchInfo.SearchEngineIndexName);
 
         if (!await writer.UidExistsAsync(KeywordSearchInfo.SearchEngineIndexName))
