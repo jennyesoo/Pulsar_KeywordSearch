@@ -1,4 +1,5 @@
-﻿using HP.Pulsar.Search.Keyword.CommonDataStructure;
+﻿using System.Globalization;
+using HP.Pulsar.Search.Keyword.CommonDataStructure;
 using HP.Pulsar.Search.Keyword.Infrastructure;
 using Microsoft.Data.SqlClient;
 
@@ -70,6 +71,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 }
                 */
                 componentVersion.Add("target", "ComponentVersion");
+                componentVersion.Add("Id", "ComponentVersion-" + componentVersion.GetValue("ComponentVersionID"));
                 output.Add(componentVersion);
             }
             return output;

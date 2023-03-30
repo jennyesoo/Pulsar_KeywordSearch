@@ -1,4 +1,5 @@
-﻿using HP.Pulsar.Search.Keyword.CommonDataStructure;
+﻿using System.Globalization;
+using HP.Pulsar.Search.Keyword.CommonDataStructure;
 using HP.Pulsar.Search.Keyword.DataReader;
 using HP.Pulsar.Search.Keyword.DataTransformation;
 using HP.Pulsar.Search.Keyword.DataWriter;
@@ -15,7 +16,7 @@ internal class ComponentRootOrchestrator : IInitializationOrchestrator
 
     public KeywordSearchInfo KeywordSearchInfo { get; }
 
-    public async Task<int> InitializeAsync(int startId)
+    public async Task InitializeAsync()
     {
         // read products from database
         ComponentRootReader reader = new(KeywordSearchInfo);
@@ -24,13 +25,6 @@ internal class ComponentRootOrchestrator : IInitializationOrchestrator
         // data processing
         ComponentRootTranformer tranformer = new();
         roots = tranformer.Transform(roots);
-
-        // add meilisearch id
-        foreach (CommonDataModel product in roots)
-        {
-            product.Add("Id", startId.ToString());
-            startId++;
-        }
 
         // write to meiliesearch
         MeiliSearchWriter writer = new(KeywordSearchInfo.SearchEngineUrl, KeywordSearchInfo.SearchEngineIndexName);
@@ -43,6 +37,5 @@ internal class ComponentRootOrchestrator : IInitializationOrchestrator
 
         await writer.AddElementsAsync(roots);
 
-        return startId;
     }
 }

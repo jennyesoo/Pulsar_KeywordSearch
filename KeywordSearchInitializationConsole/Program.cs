@@ -2,6 +2,7 @@
 
 using HP.Pulsar.Search.Keyword.Infrastructure;
 using HP.Pulsar.Search.Keyword.Orchestrator;
+using HP.Pulsar.Search.Keyword.DataWriter;
 
 internal class Program
 {
@@ -9,7 +10,6 @@ internal class Program
     {
         Console.WriteLine("Hello, World!");
 
-        // init
         KeywordSearchInfo info = new()
         {
             DatabaseConnectionString = "xxxxx",
@@ -18,8 +18,13 @@ internal class Program
             SearchEngineIndexName = "Pulsar4"
         };
 
+        // init
         Initialization init = new(info);
         await init.InitAsync();
+
+        //delete meilisearch index
+        //MeiliSearchWriter writer3 = new(info.SearchEngineUrl, info.SearchEngineIndexName); //for test
+        //await writer3.DeleteIndexAsync(); //for test
 
         /*
         // search

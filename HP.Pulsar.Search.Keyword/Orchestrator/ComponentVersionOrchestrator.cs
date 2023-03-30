@@ -15,7 +15,7 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator
 
         public KeywordSearchInfo KeywordSearchInfo { get; }
 
-        public async Task<int> InitializeAsync(int startId)
+        public async Task InitializeAsync()
         {
             // read componentversion from database
             ComponentVersionReader reader = new(KeywordSearchInfo);
@@ -24,13 +24,6 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator
             // data processing
             ComponentVersionDataTranformer tranformer = new();
             versions = tranformer.Transform(versions);
-
-            // add meilisearch id
-            foreach (CommonDataModel product in versions)
-            {
-                product.Add("Id", startId.ToString());
-                startId++;
-            }
 
             // write to meiliesearch
             MeiliSearchWriter writer = new(KeywordSearchInfo.SearchEngineUrl, KeywordSearchInfo.SearchEngineIndexName);
@@ -42,8 +35,6 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator
             }
 
             await writer.AddElementsAsync(versions);
-
-            return startId;
         }
     }
 }

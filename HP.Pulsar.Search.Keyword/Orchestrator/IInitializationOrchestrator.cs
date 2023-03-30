@@ -6,5 +6,5 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator;
 internal interface IInitializationOrchestrator
 {
     KeywordSearchInfo KeywordSearchInfo { get; }
-    public Task<int> InitializeAsync(int MeilisearchCount);
+    public Task InitializeAsync();
 }
