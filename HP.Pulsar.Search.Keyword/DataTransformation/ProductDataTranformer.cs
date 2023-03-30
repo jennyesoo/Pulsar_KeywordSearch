@@ -1,6 +1,8 @@
 ﻿using System.Globalization;
 using System;
 using HP.Pulsar.Search.Keyword.CommonDataStructure;
+using Meilisearch;
+
 namespace HP.Pulsar.Search.Keyword.DataTransformation;
 
 public class ProductDataTranformer : IDataTranformer
@@ -24,7 +26,7 @@ public class ProductDataTranformer : IDataTranformer
             foreach (string key in product.GetKeys())
             {
                 string propertyValue = product.GetValue(key);
-                if ( key.Equals("CreatorName") & propertyValue.Equals("dbo"))
+                if (string.Equals(key, "CreatorName") & string.Equals(propertyValue, "dbo"))
                 {
                     product.Delete(key);
                 }
@@ -100,11 +102,8 @@ public class ProductDataTranformer : IDataTranformer
 
     private string ChangeDateFormat(string propertyValue)
     {
-        CultureInfo enUS = new CultureInfo("en-US");
         DateTime dateValue;
-
-        if (DateTime.TryParseExact(propertyValue, "G", enUS,
-                                 DateTimeStyles.None, out dateValue))
+        if (DateTime.TryParse(propertyValue, out dateValue))
         {
             return dateValue.ToString("yyyy/MM/dd");
         }

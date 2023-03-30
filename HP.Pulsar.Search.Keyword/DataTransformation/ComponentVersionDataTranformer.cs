@@ -91,11 +91,8 @@ namespace HP.Pulsar.Search.Keyword.DataTransformation
 
         private string ChangeDateFormat(string propertyValue)
         {
-            CultureInfo enUS = new CultureInfo("en-US");
             DateTime dateValue;
-
-            if (DateTime.TryParseExact(propertyValue, "G", enUS,
-                                     DateTimeStyles.None, out dateValue))
+            if (DateTime.TryParse(propertyValue, out dateValue))
             {
                 return dateValue.ToString("yyyy/MM/dd");
             }

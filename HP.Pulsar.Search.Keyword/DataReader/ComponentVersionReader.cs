@@ -54,7 +54,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                     {
                         continue;
                     }
-                    if (!string.IsNullOrEmpty(reader[i].ToString()))
+                    if (!string.IsNullOrWhiteSpace(reader[i].ToString()))
                     {
                         string columnName = reader.GetName(i);
                         string value = reader[i].ToString();

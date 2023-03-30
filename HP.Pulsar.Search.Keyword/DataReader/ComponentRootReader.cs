@@ -56,14 +56,6 @@ namespace HP.Pulsar.Search.Keyword.DataReader
             THEN 'Firmware'
         WHEN root.TypeID = 4
             THEN 'Documentation'
-        WHEN root.TypeID = 5
-            THEN 'Image'
-        WHEN root.TypeID = 6
-            THEN 'Certification'
-        WHEN root.TypeID = 7
-            THEN 'Softpaq'
-        WHEN root.TypeID = 8
-            THEN 'Factory'
         END AS ComponentType,
     root.Preinstall,
     root.active AS Visibility,
@@ -136,6 +128,12 @@ LEFT JOIN SoftpaqCategory Sc ON Sc.id = root.SoftpaqCategoryID
 WHERE (
         @ComponentRootId = - 1
         OR root.id = @ComponentRootId
+        )
+    AND root.TypeID IN (
+        1,
+        2,
+        3,
+        4
         );
 ";
         }
@@ -221,7 +219,7 @@ GROUP BY DR.Id
                     {
                         continue;
                     }
-                    if (!string.IsNullOrEmpty(reader[i].ToString()))
+                    if (!string.IsNullOrWhiteSpace(reader[i].ToString()))
                     {
                         string columnName = reader.GetName(i);
                         string value = reader[i].ToString();
