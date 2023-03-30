@@ -22,9 +22,13 @@ namespace HP.Pulsar.Search.Keyword.DataReader
         public async Task<IEnumerable<CommonDataModel>> GetDataAsync()
         {
             IEnumerable<CommonDataModel> componentVersions = await GetComponentVersionAsync();
-            componentVersions = await GetPackagingAsync(componentVersions);
-            componentVersions = await GetTouchPointAsync(componentVersions);
-            componentVersions = await GetOtherSettingAsync(componentVersions);
+            List<Task> tasks = new()
+            {
+                GetPackagingAsync(componentVersions),
+                GetTouchPointAsync(componentVersions),
+                GetOtherSettingAsync(componentVersions)
+            };
+            await Task.WhenAll(tasks);
             return componentVersions;
         }
 
@@ -58,18 +62,6 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                     }
                 }
 
-                /*
-                if (!string.IsNullOrWhiteSpace(businessSegmentId)
-                    || !string.IsNullOrWhiteSpace(productId))
-                {
-                    continue;
-                }
-
-                if (!int.TryParse(productId, out int productIdValue))
-                {
-                    continue;
-                }
-                */
                 componentVersion.Add("target", "ComponentVersion");
                 componentVersion.Add("Id", "ComponentVersion-" + componentVersion.GetValue("ComponentVersionID"));
                 output.Add(componentVersion);
@@ -79,61 +71,64 @@ namespace HP.Pulsar.Search.Keyword.DataReader
 
         private string GetTSQLComponentVersionCommandText()
         {
-            return @"
-                    select  Dv.ID As ComponentVersionID,
-                            Dv.DeliverableRootID As ComponentRootID,
-                            Dv.DeliverableName As ComponentName,
-                            Dv.Version,
-                            Dv.Revision,
-                            CPSW.Description As PrismSWType,
-                            Dv.Pass,
-                            user1.FirstName + ' ' + user1.LastName AS Developer,
-                            user1.Email AS DeveloperEmail,
-                            user2.FirstName + ' ' + user2.LastName AS TestLead,
-                            user2.Email AS TestLeadEmail,
-                            v.Name As Vendor,
-                            Dv.IRSPartNumber As SWPartNumber,
-                            cbl.Name As BuildLevel,
-                            sws.DisplayName As RecoveryOption,
-                            Dv.MD5,
-                            Dv.SHA256,
-                            Dv.PropertyTabs,
-                            Dv.Preinstall,
-                            Dv.DrDvd,
-                            Dv.Scriptpaq,
-                            Dv.MsStore,
-                            Dv.FloppyDisk,
-                            Dv.CDImage,
-                            Dv.ISOImage,
-                            Dv.AR,
-                            Dv.IconDesktop,
-                            Dv.IconMenu,
-                            Dv.IconTray,
-                            Dv.IconPanel,
-                            Dv.IconInfoCenter,
-                            Dv.IconTile,
-                            Dv.IconTaskBarIcon,
-                            Dv.SettingFWML,
-                            Dv.SettingUWPCompliant,
-                            Dv.Active,
-                            cts.Name As TransferServer,
-                            Dv.SubmissionPath,
-                            Dv.VendorVersion,
-                            Dv.Comments,
-                            Dv.IntroDate,
-                            Dv.EndOfLifeDate,
-                            Dv.Rompaq,
-                            Dv.PreinstallROM,
-                            Dv.CAB
-                    From DeliverableVersion Dv
-                    left JOIN ComponentPrismSWType CPSW on CPSW.PRISMTypeID = Dv.PrismSWType 
-                    JOIN userinfo user1 ON user1.userid = Dv.DeveloperID
-                    JOIN userinfo user2 ON user2.userid = Dv.TestLeadId
-                    Join Vendor v ON v.ID = Dv.VendorID 
-                    left JOIN ComponentBuildLevel cbl ON cbl.ComponentBuildLevelId = Dv.LevelID
-                    left Join SWSetupCategory sws on sws.ID = Dv.SWSetupCategoryID
-                    left Join ComponentTransferServer cts on cts.Id = Dv.TransferServerId
-                    where (@ComponentVersionId = -1 OR Dv.ID = @ComponentVersionId)";
+            return @"SELECT Dv.ID AS ComponentVersionID,
+    Dv.DeliverableRootID AS ComponentRootID,
+    Dv.DeliverableName AS ComponentName,
+    Dv.Version,
+    Dv.Revision,
+    CPSW.Description AS PrismSWType,
+    Dv.Pass,
+    user1.FirstName + ' ' + user1.LastName AS Developer,
+    user1.Email AS DeveloperEmail,
+    user2.FirstName + ' ' + user2.LastName AS TestLead,
+    user2.Email AS TestLeadEmail,
+    v.Name AS Vendor,
+    Dv.IRSPartNumber AS SWPartNumber,
+    cbl.Name AS BuildLevel,
+    sws.DisplayName AS RecoveryOption,
+    Dv.MD5,
+    Dv.SHA256,
+    Dv.PropertyTabs,
+    Dv.Preinstall,
+    Dv.DrDvd,
+    Dv.Scriptpaq,
+    Dv.MsStore,
+    Dv.FloppyDisk,
+    Dv.CDImage,
+    Dv.ISOImage,
+    Dv.AR,
+    Dv.IconDesktop,
+    Dv.IconMenu,
+    Dv.IconTray,
+    Dv.IconPanel,
+    Dv.IconInfoCenter,
+    Dv.IconTile,
+    Dv.IconTaskBarIcon,
+    Dv.SettingFWML,
+    Dv.SettingUWPCompliant,
+    Dv.Active,
+    cts.Name AS TransferServer,
+    Dv.SubmissionPath,
+    Dv.VendorVersion,
+    Dv.Comments,
+    Dv.IntroDate,
+    Dv.EndOfLifeDate,
+    Dv.Rompaq,
+    Dv.PreinstallROM,
+    Dv.CAB
+FROM DeliverableVersion Dv
+LEFT JOIN ComponentPrismSWType CPSW ON CPSW.PRISMTypeID = Dv.PrismSWType
+JOIN userinfo user1 ON user1.userid = Dv.DeveloperID
+JOIN userinfo user2 ON user2.userid = Dv.TestLeadId
+JOIN Vendor v ON v.ID = Dv.VendorID
+LEFT JOIN ComponentBuildLevel cbl ON cbl.ComponentBuildLevelId = Dv.LevelID
+LEFT JOIN SWSetupCategory sws ON sws.ID = Dv.SWSetupCategoryID
+LEFT JOIN ComponentTransferServer cts ON cts.Id = Dv.TransferServerId
+WHERE (
+        @ComponentVersionId = - 1
+        OR Dv.ID = @ComponentVersionId
+        )
+";
         }
 
         private async Task<IEnumerable<CommonDataModel>> GetPackagingAsync(IEnumerable<CommonDataModel> componentVersions)

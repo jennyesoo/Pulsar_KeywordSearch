@@ -22,120 +22,142 @@ namespace HP.Pulsar.Search.Keyword.DataReader
         public async Task<IEnumerable<CommonDataModel>> GetDataAsync()
         {
             IEnumerable<CommonDataModel> componentRoot = await GetComponentRootAsync();
-            componentRoot = await GetPropertyValueAsync(componentRoot);
-            componentRoot = await GetComponentRootListAsync(componentRoot);
+
+            List<Task> tasks = new()
+            {
+                GetPropertyValueAsync(componentRoot),
+                GetComponentRootListAsync(componentRoot)
+            };
+
+            await Task.WhenAll(tasks);
             return componentRoot;
         }
 
         private string GetAllComponentRootSqlCommandText()
         {
-            return @"
-                    SELECT root.id AS ComponentRootId,
-                        root.name AS ComponentRootName,
-                        root.description,
-                        vendor.Name AS VendorName,
-                        cate.name As SIFunctionTestGroupCategory,
-                        user1.FirstName + ' ' + user1.LastName AS ComponentPM,
-                        user1.Email AS ComponentPMEmail,
-                        user2.FirstName + ' ' + user2.LastName AS Developer,
-                        user2.Email AS DeveloperEmail,
-                        user3.FirstName + ' ' + user3.LastName AS TestLead,
-                        user3.Email AS TestLeadEmail,
-                        coreteam.Name AS SICoreTeam,
-                        CASE WHEN root.TypeID = 1 THEN 'Hardware'
-                                WHEN root.TypeID = 2 THEN 'Software'
-                                WHEN root.TypeID = 3 THEN 'Firmware'
-                                WHEN root.TypeID = 4 THEN 'Documentation'
-                                WHEN root.TypeID = 5 THEN 'Image'
-                                WHEN root.TypeID = 6 THEN 'Certification'
-                                WHEN root.TypeID = 7 THEN 'Softpaq'
-                                WHEN root.TypeID = 8 THEN 'Factory'
-                                END AS ComponentType,                        
-                        root.Preinstall,
-                        root.active as Visibility,
-                        root.TargetPartition,
-                        root.Reboot,
-                        root.CDImage,
-                        root.ISOImage,
-                        root.CAB,
-                        root.Binary,
-                        root.FloppyDisk,
-                        root.PreinstallROM,
-                        root.CertRequired as WHQLCertificationRequire,
-                        root.ScriptPaq,
-                        root.Softpaq,
-                        root.MultiLanguage,
-                        Sc.name As SoftpaqCategory,
-                        root.Created,
-                        root.IconDesktop,
-                        root.IconMenu,
-                        root.IconTray,
-                        root.IconPanel,
-                        root.PropertyTabs,
-                        root.AR,
-                        root.RoyaltyBearing,
-                        sws.DisplayName As RecoveryOption,
-                        root.KitNumber,
-                        root.KitDescription,
-                        root.DeliverableSpec as FunctionalSpec,
-                        root.IconInfoCenter,
-                        cts.Name As TransferServer,
-                        root.Patch,
-                        root.SystemBoardID,
-                        root.IRSTransfers,
-                        root.DevicesInfPath,
-                        root.TestNotes,
-                        root.CreatedBy,
-                        root.Updated,
-                        root.UpdatedBy,
-                        root.Deleted,
-                        root.DeletedBy,
-                        root.SupplierID,
-                        user4.FirstName + ' ' + user4.LastName As SIOApprover,
-                        root.KoreanCertificationRequired,
-                        root.BaseFilePath,
-                        root.SubmissionPath,
-                        root.IRSPartNumberLastSpin,
-                        root.IRSBasePartNumber,
-                        CPSW.Description As PrismSWType,
-                        root.LimitFuncTestGroupVisability,
-                        root.IconTile,
-                        root.IconTaskBarIcon,
-                        root.SettingFWML,
-                        root.SettingUWPCompliant,
-                        root.FtpSitePath,
-                        root.DrDvd,
-                        root.MsStore,
-                        root.ErdComments
-
-                    FROM DeliverableRoot root
-                    left JOIN vendor ON root.vendorid = vendor.id
-                    left JOIN componentCategory cate ON cate.CategoryId = root.categoryid
-                    left JOIN UserInfo user1 ON user1.userid = root.devmanagerid
-                    left JOIN userinfo user2 ON user2.userid = root.DeveloperID
-                    left JOIN userinfo user3 ON user3.userid = root.TesterID
-                    left JOIN userinfo user4 ON user4.userid = root.SioApproverId
-                    left JOIN componentcoreteam coreteam ON coreteam.ComponentCoreTeamId = root.CoreTeamID 
-                    left JOIN ComponentPrismSWType CPSW on CPSW.PRISMTypeID = root.PrismSWType 
-                    left Join SWSetupCategory sws on sws.ID = root.SWSetupCategoryID
-                    left Join ComponentTransferServer cts on cts.Id = root.TransferServerId
-                    left Join SoftpaqCategory Sc on Sc.id = root.SoftpaqCategoryID
-                    WHERE (@ComponentRootId = - 1 OR root.id = @ComponentRootId);";
+            return @"SELECT root.id AS ComponentRootId,
+    root.name AS ComponentRootName,
+    root.description,
+    vendor.Name AS VendorName,
+    cate.name AS SIFunctionTestGroupCategory,
+    user1.FirstName + ' ' + user1.LastName AS ComponentPM,
+    user1.Email AS ComponentPMEmail,
+    user2.FirstName + ' ' + user2.LastName AS Developer,
+    user2.Email AS DeveloperEmail,
+    user3.FirstName + ' ' + user3.LastName AS TestLead,
+    user3.Email AS TestLeadEmail,
+    coreteam.Name AS SICoreTeam,
+    CASE 
+        WHEN root.TypeID = 1
+            THEN 'Hardware'
+        WHEN root.TypeID = 2
+            THEN 'Software'
+        WHEN root.TypeID = 3
+            THEN 'Firmware'
+        WHEN root.TypeID = 4
+            THEN 'Documentation'
+        WHEN root.TypeID = 5
+            THEN 'Image'
+        WHEN root.TypeID = 6
+            THEN 'Certification'
+        WHEN root.TypeID = 7
+            THEN 'Softpaq'
+        WHEN root.TypeID = 8
+            THEN 'Factory'
+        END AS ComponentType,
+    root.Preinstall,
+    root.active AS Visibility,
+    root.TargetPartition,
+    root.Reboot,
+    root.CDImage,
+    root.ISOImage,
+    root.CAB,
+    root.BINARY,
+    root.FloppyDisk,
+    root.PreinstallROM,
+    root.CertRequired AS WHQLCertificationRequire,
+    root.ScriptPaq,
+    root.Softpaq,
+    root.MultiLanguage,
+    Sc.name AS SoftpaqCategory,
+    root.Created,
+    root.IconDesktop,
+    root.IconMenu,
+    root.IconTray,
+    root.IconPanel,
+    root.PropertyTabs,
+    root.AR,
+    root.RoyaltyBearing,
+    sws.DisplayName AS RecoveryOption,
+    root.KitNumber,
+    root.KitDescription,
+    root.DeliverableSpec AS FunctionalSpec,
+    root.IconInfoCenter,
+    cts.Name AS TransferServer,
+    root.Patch,
+    root.SystemBoardID,
+    root.IRSTransfers,
+    root.DevicesInfPath,
+    root.TestNotes,
+    root.CreatedBy,
+    root.Updated,
+    root.UpdatedBy,
+    root.Deleted,
+    root.DeletedBy,
+    root.SupplierID,
+    user4.FirstName + ' ' + user4.LastName AS SIOApprover,
+    root.KoreanCertificationRequired,
+    root.BaseFilePath,
+    root.SubmissionPath,
+    root.IRSPartNumberLastSpin,
+    root.IRSBasePartNumber,
+    CPSW.Description AS PrismSWType,
+    root.LimitFuncTestGroupVisability,
+    root.IconTile,
+    root.IconTaskBarIcon,
+    root.SettingFWML,
+    root.SettingUWPCompliant,
+    root.FtpSitePath,
+    root.DrDvd,
+    root.MsStore,
+    root.ErdComments
+FROM DeliverableRoot root
+LEFT JOIN vendor ON root.vendorid = vendor.id
+LEFT JOIN componentCategory cate ON cate.CategoryId = root.categoryid
+LEFT JOIN UserInfo user1 ON user1.userid = root.devmanagerid
+LEFT JOIN userinfo user2 ON user2.userid = root.DeveloperID
+LEFT JOIN userinfo user3 ON user3.userid = root.TesterID
+LEFT JOIN userinfo user4 ON user4.userid = root.SioApproverId
+LEFT JOIN componentcoreteam coreteam ON coreteam.ComponentCoreTeamId = root.CoreTeamID
+LEFT JOIN ComponentPrismSWType CPSW ON CPSW.PRISMTypeID = root.PrismSWType
+LEFT JOIN SWSetupCategory sws ON sws.ID = root.SWSetupCategoryID
+LEFT JOIN ComponentTransferServer cts ON cts.Id = root.TransferServerId
+LEFT JOIN SoftpaqCategory Sc ON Sc.id = root.SoftpaqCategoryID
+WHERE (
+        @ComponentRootId = - 1
+        OR root.id = @ComponentRootId
+        );
+";
         }
 
         private string GetTSQLProductListCommandText()
         {
-            return @"select  DR.Id as ComponentRoot,
-                            stuff((SELECT ' , ' + (CONVERT(Varchar, p.Id) + ' ' +  p.DOTSName)
-                                    FROM ProductVersion p
-                                    JOIN ProductStatus ps ON ps.id = p.ProductStatusID
-                                    JOIN Product_DelRoot pr on pr.ProductVersionId = p.id
-                                    JOIN DeliverableRoot root ON root.Id = pr.DeliverableRootId
-                                    WHERE root.Id = DR.Id  and ps.Name <> 'Inactive' and p.FusionRequirements = 1 order by root.Id
-                                    for xml path('')),1,3,'') As Product
-                    FROM DeliverableRoot DR
-                    where DR.Id = @ComponentRootId
-                    group by DR.Id";
+            return @"SELECT DR.Id AS ComponentRootId,
+    stuff((
+            SELECT ' , ' + (CONVERT(VARCHAR, p.Id) + ' ' + p.DOTSName)
+            FROM ProductVersion p
+            JOIN ProductStatus ps ON ps.id = p.ProductStatusID
+            JOIN Product_DelRoot pr ON pr.ProductVersionId = p.id
+            JOIN DeliverableRoot root ON root.Id = pr.DeliverableRootId
+            WHERE root.Id = DR.Id
+                AND ps.Name <> 'Inactive'
+                AND p.FusionRequirements = 1
+            ORDER BY root.Id
+            FOR XML path('')
+            ), 1, 3, '') AS ProductList
+FROM DeliverableRoot DR
+GROUP BY DR.Id
+";
 
             //SELECT p.dotsname, r.Name
             //FROM DeliverableRoot root
@@ -152,20 +174,24 @@ namespace HP.Pulsar.Search.Keyword.DataReader
         {
             using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
             await connection.OpenAsync();
+            SqlCommand command = new(GetTSQLProductListCommandText(), connection);
+            using SqlDataReader reader = command.ExecuteReader();
+            Dictionary<int, string> productList = new();
+
+            while (reader.Read())
+            {
+                if (int.TryParse(reader["ComponentRootId"].ToString(), out int componentRootId))
+                {
+                    productList[componentRootId] = reader["ProductList"].ToString();
+                }
+            }
 
             foreach (CommonDataModel root in componentRoots)
             {
-                SqlCommand command = new(GetTSQLProductListCommandText(), connection);
-                SqlParameter parameter = new SqlParameter("ComponentRootId", root.GetValue("ComponentRootId"));
-                command.Parameters.Add(parameter);
-                using SqlDataReader reader = command.ExecuteReader();
-
-                while (reader.Read())
+                if (int.TryParse(root.GetValue("ComponentRootId"), out int componentRootId)
+                && productList.ContainsKey(componentRootId))
                 {
-                    if (reader["Product"].ToString().IsNullOrEmpty() == false)
-                    {
-                        root.Add("ProductList", reader["Product"].ToString());
-                    }
+                    root.Add("ProductList", productList[componentRootId]);
                 }
             }
             return componentRoots;
@@ -174,13 +200,11 @@ namespace HP.Pulsar.Search.Keyword.DataReader
         private async Task<IEnumerable<CommonDataModel>> GetComponentRootAsync()
         {
             using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
-            SqlCommand command = new(GetAllComponentRootSqlCommandText(), connection);
-
-            SqlParameter parameter = new("ComponentRootId", -1);
-            command.Parameters.Add(parameter);
-
             await connection.OpenAsync();
 
+            SqlCommand command = new(GetAllComponentRootSqlCommandText(), connection);
+            SqlParameter parameter = new("ComponentRootId", -1);
+            command.Parameters.Add(parameter);
             using SqlDataReader reader = command.ExecuteReader();
 
             List<CommonDataModel> output = new();
@@ -315,7 +339,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 {
                     root.Delete("IconDesktop");
                 }
-              
+
                 if (root.GetValue("IconMenu").Equals("True"))
                 {
                     root.Add("IconMenu", "Start Menu");
@@ -445,22 +469,21 @@ namespace HP.Pulsar.Search.Keyword.DataReader
             return output;
         }
 
-        private Task<int> GetCDAsync(CommonDataModel root)
+        private async Task<int> GetCDAsync(CommonDataModel root)
         {
             if (root.GetValue("CDImage").Equals("1"))
             {
-                return Task.FromResult(1);
+                return 1;
             }
             if (root.GetValue("ISOImage").Equals("1"))
             {
-                return Task.FromResult(1);
+                return 1;
             }
             if (root.GetValue("AR").Equals("1"))
             {
-                return Task.FromResult(1);
+                return 1;
             }
-            return Task.FromResult(0);
+            return 0;
         }
-
     }
 }
