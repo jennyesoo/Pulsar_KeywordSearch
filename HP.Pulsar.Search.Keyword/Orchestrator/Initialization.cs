@@ -12,7 +12,8 @@ public class Initialization
         {
             new ProductOrchestrator(info),
             new ComponentRootOrchestrator(info),
-            new ComponentVersionOrchestrator(info) 
+            new ComponentVersionOrchestrator(info),
+            new FeatureOrchestrator(info)
         };
     }
 
