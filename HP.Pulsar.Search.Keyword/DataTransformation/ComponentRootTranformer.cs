@@ -5,7 +5,7 @@ namespace HP.Pulsar.Search.Keyword.DataTransformation
 {
     internal class ComponentRootTranformer : IDataTranformer
     {
-        public static List<string> _dataPropertyList = new List<string> { "created" , "muiawareDate" , "updated" };
+        private static List<string> _dataPropertyList = new() { "created" , "muiawareDate" , "updated" };
 
         public IEnumerable<CommonDataModel> Transform(IEnumerable<CommonDataModel> componentRoots)
         {
