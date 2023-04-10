@@ -41,25 +41,25 @@ namespace HP.Pulsar.Search.Keyword.DataReader
         private string GetFeaturesCommandText()
         {
             return @"
-select F.FeatureId,
-        F.FeatureName,
-        Fc.Name As FeatureCategory,
-        Dt.Name AS DeliveryType,
-        F.CodeName,
-        F.RuleID,
-        F.ChinaGPIdentifier,
-        F.PromoteCode,
-        F.RequiresRoot,
-        F.Notes,
-        Fs.Name As Status,
-        F.CreatedBy,
-        F.Created,
-        F.UpdatedBy,
-        F.Updated
-from Feature F
-JOIN FeatureCategory Fc on Fc.FeatureCategoryID = F.FeatureCategoryID
-Join DeliveryType  Dt on Dt.DeliveryTypeID = F.DeliveryTypeID
-Join FeatureStatus Fs on Fs.StatusID = F.StatusID
+SELECT F.FeatureId,
+    F.FeatureName,
+    Fc.Name AS FeatureCategory,
+    Dt.Name AS DeliveryType,
+    F.CodeName,
+    F.RuleID,
+    F.ChinaGPIdentifier,
+    F.PromoteCode,
+    F.RequiresRoot,
+    F.Notes,
+    Fs.Name AS STATUS,
+    F.CreatedBy,
+    F.Created,
+    F.UpdatedBy,
+    F.Updated
+FROM Feature F
+JOIN FeatureCategory Fc ON Fc.FeatureCategoryID = F.FeatureCategoryID
+JOIN DeliveryType Dt ON Dt.DeliveryTypeID = F.DeliveryTypeID
+JOIN FeatureStatus Fs ON Fs.StatusID = F.StatusID
 WHERE (
         @FeatureId = - 1
         OR F.FeatureId = @FeatureId
@@ -108,10 +108,10 @@ WHERE (
         private string GetComponentInitiatedLinkageCommandText()
         {
             return @"
-SELECT fril.FeatureId As FeatureId,
-    dr.ID AS ComponentId, 
-    dr.Name AS ComponentName 
-FROM Feature_Root_InitiatedLinkage fril WITH (NOLOCK) 
+SELECT fril.FeatureId AS FeatureId,
+    dr.ID AS ComponentId,
+    dr.Name AS ComponentName
+FROM Feature_Root_InitiatedLinkage fril WITH (NOLOCK)
 JOIN DeliverableRoot dr WITH (NOLOCK) ON dr.Id = fril.ComponentRootId
 ";
         }
