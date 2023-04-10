@@ -168,7 +168,7 @@ GROUP BY DR.Id
         }
 
         // TODO - performance improvement needed
-        private async Task<IEnumerable<CommonDataModel>> GetComponentRootListAsync(IEnumerable<CommonDataModel> componentRoots)
+        private async Task GetComponentRootListAsync(IEnumerable<CommonDataModel> componentRoots)
         {
             using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
             await connection.OpenAsync();
@@ -192,7 +192,6 @@ GROUP BY DR.Id
                     root.Add("ProductList", productList[componentRootId]);
                 }
             }
-            return componentRoots;
         }
 
         private async Task<IEnumerable<CommonDataModel>> GetComponentRootAsync()
@@ -233,10 +232,8 @@ GROUP BY DR.Id
             return output;
         }
 
-        private async Task<IEnumerable<CommonDataModel>> GetPropertyValueAsync(IEnumerable<CommonDataModel> componentRoots)
+        private async Task GetPropertyValueAsync(IEnumerable<CommonDataModel> componentRoots)
         {
-            List<CommonDataModel> output = new List<CommonDataModel>();
-
             foreach (CommonDataModel root in componentRoots)
             {
                 if (root.GetValue("Preinstall").Equals("1"))
@@ -462,9 +459,7 @@ GROUP BY DR.Id
                 root.Delete("CDImage");
                 root.Delete("ISOImage");
                 root.Delete("AR");
-                output.Add(root);
             }
-            return output;
         }
 
         private async Task<int> GetCDAsync(CommonDataModel root)

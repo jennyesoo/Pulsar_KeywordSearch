@@ -131,10 +131,8 @@ WHERE (
 ";
         }
 
-        private async Task<IEnumerable<CommonDataModel>> GetPackagingAsync(IEnumerable<CommonDataModel> componentVersions)
+        private async Task GetPackagingAsync(IEnumerable<CommonDataModel> componentVersions)
         {
-            List<CommonDataModel> output = new List<CommonDataModel>();
-
             foreach (CommonDataModel rootversion in componentVersions)
             {
                 if (rootversion.GetValue("Preinstall").Equals("1"))
@@ -217,9 +215,7 @@ WHERE (
                 rootversion.Delete("CDImage");
                 rootversion.Delete("ISOImage");
                 rootversion.Delete("AR");
-                output.Add(rootversion);
             }
-            return output;
         }
 
         private async Task<int> GetCDAsync(CommonDataModel rootversion)
@@ -239,10 +235,8 @@ WHERE (
             return 0;
         }
 
-        private async Task<IEnumerable<CommonDataModel>> GetTouchPointAsync(IEnumerable<CommonDataModel> componentVersions)
+        private async Task GetTouchPointAsync(IEnumerable<CommonDataModel> componentVersions)
         {
-            List<CommonDataModel> output = new List<CommonDataModel>();
-
             foreach (CommonDataModel rootversion in componentVersions)
             {                
                 if (rootversion.GetValue("IconDesktop").Equals("True"))
@@ -307,16 +301,11 @@ WHERE (
                 {
                     rootversion.Delete("IconTaskBarIcon");
                 }
-
-                output.Add(rootversion);
             }
-            return output;
         }
 
-        private async Task<IEnumerable<CommonDataModel>> GetOtherSettingAsync(IEnumerable<CommonDataModel> componentVersions)
+        private async Task GetOtherSettingAsync(IEnumerable<CommonDataModel> componentVersions)
         {
-            List<CommonDataModel> output = new List<CommonDataModel>();
-
             foreach (CommonDataModel rootversion in componentVersions)
             {
                 if (rootversion.GetValue("SettingFWML").Equals("True"))
@@ -336,9 +325,7 @@ WHERE (
                 {
                     rootversion.Delete("SettingUWPCompliant");
                 }
-                output.Add(rootversion);
             }
-            return output;
         }
     }
 }
