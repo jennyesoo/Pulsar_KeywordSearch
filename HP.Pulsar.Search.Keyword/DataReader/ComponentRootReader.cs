@@ -226,7 +226,7 @@ GROUP BY DR.Id
                     }
                 }
                 root.Add("target", "Component Root");
-                root.Add("Id", "ComponentRoot-" + root.GetValue("ComponentRootId"));
+                root.Add("Id", SearchIdName.GetIdName(SearchType.Root) + root.GetValue("ComponentRootId"));
                 output.Add(root);
             }
             return output;
