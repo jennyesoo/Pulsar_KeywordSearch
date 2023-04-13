@@ -63,7 +63,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
                 }
 
                 componentVersion.Add("target", "ComponentVersion");
-                componentVersion.Add("Id", SearchIdName.GetIdName(SearchType.Version) + componentVersion.GetValue("ComponentVersionID"));
+                componentVersion.Add("Id", SearchIdName.Version + componentVersion.GetValue("ComponentVersionID"));
                 output.Add(componentVersion);
             }
             return output;
