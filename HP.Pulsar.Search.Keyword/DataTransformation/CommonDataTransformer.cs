@@ -4,14 +4,14 @@ using LemmaSharp.Classes;
 
 namespace HP.Pulsar.Search.Keyword.DataTransformation;
 
-public class CommonDataTranformer
+public class CommonDataTransformer
 {
     public string _filePath;
     private readonly Lemmatizer lemmatizer;
     public static List<string> _noLemmatization = new List<string> { "bios", "fxs", "os", "obs", "ots" };
-    public static List<string> DataPropertyList = new List<string> { "servicelifedate", "createddate", "latestupdatedate", "endofproduction" };
+    public static List<string> DatePropertyList = new List<string> { "servicelifedate", "createddate", "latestupdatedate", "endofproduction" };
 
-    public CommonDataTranformer()
+    public CommonDataTransformer()
     {
         _filePath = ".\full7z-mlteast-en-modified.lem";
         var stream = File.OpenRead(_filePath);
@@ -32,7 +32,7 @@ public class CommonDataTranformer
 
     private string DataProcessingInitializationCombination(string propertyValue, string propertyName)
     {
-        if (DataPropertyList.Contains(propertyName.ToLower()))
+        if (DatePropertyList.Contains(propertyName.ToLower()))
         {
             propertyValue = ChangeDateFormat(propertyValue);
         }

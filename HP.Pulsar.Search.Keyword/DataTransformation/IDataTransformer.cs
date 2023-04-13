@@ -2,7 +2,7 @@
 
 namespace HP.Pulsar.Search.Keyword.DataTransformation;
 
-internal interface IDataTranformer
+internal interface IDataTransformer
 {
     IEnumerable<CommonDataModel> Transform(IEnumerable<CommonDataModel> models);
 }

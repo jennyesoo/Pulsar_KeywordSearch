@@ -1,4 +1,9 @@
-﻿using HP.Pulsar.Search.Keyword.CommonDataStructure;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using HP.Pulsar.Search.Keyword.CommonDataStructure;
 using HP.Pulsar.Search.Keyword.DataReader;
 using HP.Pulsar.Search.Keyword.DataTransformation;
 using HP.Pulsar.Search.Keyword.DataWriter;
@@ -6,9 +11,9 @@ using HP.Pulsar.Search.Keyword.Infrastructure;
 
 namespace HP.Pulsar.Search.Keyword.Orchestrator
 {
-    internal class ComponentVersionOrchestrator : IInitializationOrchestrator
+    internal class FeatureOrchestrator : IInitializationOrchestrator
     {
-        public ComponentVersionOrchestrator(KeywordSearchInfo keywordSearchInfo)
+        public FeatureOrchestrator(KeywordSearchInfo keywordSearchInfo)
         {
             KeywordSearchInfo = keywordSearchInfo;
         }
@@ -17,13 +22,13 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator
 
         public async Task InitializeAsync()
         {
-            // read componentversion from database
-            ComponentVersionReader reader = new(KeywordSearchInfo);
-            IEnumerable<CommonDataModel> versions = await reader.GetDataAsync();
+            // read products from database
+            FeatureReader reader = new(KeywordSearchInfo);
+            IEnumerable<CommonDataModel> features = await reader.GetDataAsync();
 
             // data processing
-            ComponentVersionDataTransformer tranformer = new();
-            versions = tranformer.Transform(versions);
+            FeatureDataTransformer tranformer = new();
+            features = tranformer.Transform(features);
 
             // write to meiliesearch
             MeiliSearchWriter writer = new(KeywordSearchInfo.SearchEngineUrl, KeywordSearchInfo.SearchEngineIndexName);
@@ -34,7 +39,7 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator
                 await writer.UpdateSettingAsync();
             }
 
-            await writer.AddElementsAsync(versions);
+            await writer.AddElementsAsync(features);
         }
     }
 }

@@ -18,13 +18,13 @@ internal class Program
             SearchEngineIndexName = "Pulsar4"
         };
 
-        // init
-        Initialization init = new(info);
-        await init.InitAsync();
-
         //delete meilisearch index
         //MeiliSearchWriter writer3 = new(info.SearchEngineUrl, info.SearchEngineIndexName); //for test
         //await writer3.DeleteIndexAsync(); //for test
+
+        // init
+        Initialization init = new(info);
+        await init.InitAsync();
 
         /*
         // search

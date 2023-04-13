@@ -5,14 +5,14 @@ using Meilisearch;
 
 namespace HP.Pulsar.Search.Keyword.DataTransformation;
 
-public class ProductDataTranformer : IDataTranformer
+public class ProductDataTransformer : IDataTransformer
 {
     //private string _filePath;
     //private readonly Lemmatizer lemmatizer;
     //private static List<string> _noLemmatization = new() { "bios", "fxs", "os", "obs", "ots" };
-    private static List<string> _dataPropertyList = new() { "servicelifedate", "createddate", "latestupdatedate", "endofproductiondate" };
+    private static readonly List<string> _datePropertyList = new() { "servicelifedate", "createddate", "latestupdatedate", "endofproductiondate" };
 
-    public ProductDataTranformer()
+    public ProductDataTransformer()
     {
         //_filePath = "References\\full7z-mlteast-en-modified.lem";
         //FileStream stream = File.OpenRead(_filePath);
@@ -30,6 +30,10 @@ public class ProductDataTranformer : IDataTranformer
                 {
                     product.Delete(key);
                 }
+                else if(string.Equals(key, "LastUpdaterName") & string.Equals(propertyValue, "dbo"))
+                {
+                    product.Delete(key);
+                }
                 else
                 {
                     product.Add(key, DataProcessingInitializationCombination(propertyValue, key));
@@ -41,7 +45,7 @@ public class ProductDataTranformer : IDataTranformer
 
     private string DataProcessingInitializationCombination(string propertyValue, string propertyName)
     {
-        if (_dataPropertyList.Contains(propertyName.ToLower()))
+        if (_datePropertyList.Contains(propertyName.ToLower()))
         {
             propertyValue = ChangeDateFormat(propertyValue);
         }
