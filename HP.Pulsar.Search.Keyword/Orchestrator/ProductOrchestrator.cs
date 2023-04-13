@@ -23,7 +23,7 @@ internal class ProductOrchestrator : IInitializationOrchestrator
         IEnumerable<CommonDataModel> products = await reader.GetDataAsync();
 
         // data processing
-        ProductDataTranformer tranformer = new();
+        ProductDataTransformer tranformer = new();
         products = tranformer.Transform(products);
 
         // write to meiliesearch

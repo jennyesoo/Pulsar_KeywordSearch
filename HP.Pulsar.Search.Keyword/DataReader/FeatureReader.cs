@@ -18,7 +18,8 @@ namespace HP.Pulsar.Search.Keyword.DataReader
         {
             _csProvider = new(info.Environment);
         }
-        public async Task<CommonDataModel> GetDataAsync(int productId)
+
+        public async Task<CommonDataModel> GetDataAsync(int featureId)
         {
             throw new NotImplementedException();
         }
@@ -80,7 +81,6 @@ WHERE (
             List<CommonDataModel> output = new();
             while (reader.Read())
             {
-                //string businessSegmentId;
                 CommonDataModel feature = new();
                 int fieldCount = reader.FieldCount;
 

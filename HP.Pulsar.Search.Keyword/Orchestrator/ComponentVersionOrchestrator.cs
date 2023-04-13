@@ -22,7 +22,7 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator
             IEnumerable<CommonDataModel> versions = await reader.GetDataAsync();
 
             // data processing
-            ComponentVersionDataTranformer tranformer = new();
+            ComponentVersionDataTransformer tranformer = new();
             versions = tranformer.Transform(versions);
 
             // write to meiliesearch

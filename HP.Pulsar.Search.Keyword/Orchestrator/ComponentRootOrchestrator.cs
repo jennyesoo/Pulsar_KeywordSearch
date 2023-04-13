@@ -23,7 +23,7 @@ internal class ComponentRootOrchestrator : IInitializationOrchestrator
         IEnumerable<CommonDataModel> roots = await reader.GetDataAsync();
 
         // data processing
-        ComponentRootTranformer tranformer = new();
+        ComponentRootTransformer tranformer = new();
         roots = tranformer.Transform(roots);
 
         // write to meiliesearch

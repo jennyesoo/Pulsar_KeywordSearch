@@ -7,18 +7,12 @@ using HP.Pulsar.Search.Keyword.CommonDataStructure;
 
 namespace HP.Pulsar.Search.Keyword.DataTransformation
 {
-    public class FeatureDataTranformer
+    public class FeatureDataTransformer
     {
-        //private string _filePath;
-        //private readonly Lemmatizer lemmatizer;
-        //private static List<string> _noLemmatization = new() { "bios", "fxs", "os", "obs", "ots" };
-        private static List<string> _dataPropertyList = new() { "created", "updated" };
+        private static readonly List<string> _datePropertyList = new() { "created", "updated" };
 
-        public FeatureDataTranformer()
+        public FeatureDataTransformer()
         {
-            //_filePath = "References\\full7z-mlteast-en-modified.lem";
-            //FileStream stream = File.OpenRead(_filePath);
-            //lemmatizer = new Lemmatizer(stream);
         }
         
         public IEnumerable<CommonDataModel> Transform(IEnumerable<CommonDataModel> features)
@@ -27,7 +21,15 @@ namespace HP.Pulsar.Search.Keyword.DataTransformation
             {
                 foreach (string key in feature.GetKeys())
                 {
-                    feature.Add(key, DataProcessingInitializationCombination(feature.GetValue(key), key));
+                    string propertyValue = feature.GetValue(key);
+                    if (string.Equals(key, "UpdatedBy") & string.Equals(propertyValue, "dbo"))
+                    {
+                        feature.Delete(key);
+                    }
+                    else
+                    {
+                        feature.Add(key, DataProcessingInitializationCombination(feature.GetValue(key), key));
+                    }
                 }
             }
             return features;
@@ -35,7 +37,7 @@ namespace HP.Pulsar.Search.Keyword.DataTransformation
 
         private string DataProcessingInitializationCombination(string propertyValue, string propertyName)
         {
-            if (_dataPropertyList.Contains(propertyName.ToLower()))
+            if (_datePropertyList.Contains(propertyName.ToLower()))
             {
                 propertyValue = ChangeDateFormat(propertyValue);
             }

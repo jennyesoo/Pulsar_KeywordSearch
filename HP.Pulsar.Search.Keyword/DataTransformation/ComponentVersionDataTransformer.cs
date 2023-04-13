@@ -3,14 +3,14 @@ using HP.Pulsar.Search.Keyword.CommonDataStructure;
 
 namespace HP.Pulsar.Search.Keyword.DataTransformation
 {
-    public class ComponentVersionDataTranformer : IDataTranformer
+    public class ComponentVersionDataTransformer : IDataTransformer
     {
         //public string _filePath;
         //private readonly Lemmatizer lemmatizer;
         //public static List<string> _noLemmatization = new List<string> { "bios", "fxs", "os", "obs", "ots" };
-        private static List<string> _dataPropertyList = new() { "introdate" };
+        private static readonly List<string> _datePropertyList = new() { "introdate" };
 
-        public ComponentVersionDataTranformer()
+        public ComponentVersionDataTransformer()
         {
             //_filePath = "References\\full7z-mlteast-en-modified.lem";
             //var stream = File.OpenRead(_filePath);
@@ -31,7 +31,7 @@ namespace HP.Pulsar.Search.Keyword.DataTransformation
 
         private string DataProcessingInitializationCombination(string propertyValue, string propertyName)
         {
-            if (_dataPropertyList.Contains(propertyName.ToLower()))
+            if (_datePropertyList.Contains(propertyName.ToLower()))
             {
                 propertyValue = ChangeDateFormat(propertyValue);
             }

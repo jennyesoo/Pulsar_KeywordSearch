@@ -27,7 +27,7 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator
             IEnumerable<CommonDataModel> features = await reader.GetDataAsync();
 
             // data processing
-            FeatureDataTranformer tranformer = new();
+            FeatureDataTransformer tranformer = new();
             features = tranformer.Transform(features);
 
             // write to meiliesearch
