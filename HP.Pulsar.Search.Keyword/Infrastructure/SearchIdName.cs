@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace HP.Pulsar.Search.Keyword.Infrastructure
+﻿namespace HP.Pulsar.Search.Keyword.Infrastructure
 {
-    public class SearchIdName
+    public static class SearchIdName
     {
         public static readonly string Product = "product-";
         public static readonly string Root = "root-";

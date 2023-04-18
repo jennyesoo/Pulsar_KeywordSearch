@@ -4,30 +4,30 @@ using LemmaSharp.Classes;
 
 namespace HP.Pulsar.Search.Keyword.DataTransformation;
 
-public class CommonDataTransformer
+public static class CommonDataTransformer
 {
-
     public static string DataProcessingInitializationCombination(List<string> datePropertyList, string propertyValue, string propertyName)
     {
-        if (datePropertyList.Contains(propertyName.ToLower()))
+        if (string.IsNullOrWhiteSpace(propertyValue)
+            || string.IsNullOrWhiteSpace(propertyName)
+            || datePropertyList == null)
+        {
+            return propertyValue;
+        }
+
+        if (datePropertyList.Contains(propertyName , StringComparer.OrdinalIgnoreCase))
         {
             propertyValue = ChangeDateFormat(propertyValue);
         }
         return propertyValue;
     }
 
-
     private static string ChangeDateFormat(string propertyValue)
     {
-        DateTime dateValue;
-        if (DateTime.TryParse(propertyValue, out dateValue))
+        if (DateTime.TryParse(propertyValue, out DateTime dateValue))
         {
             return dateValue.ToString("yyyy/MM/dd");
         }
-        else
-        {
-            return propertyValue;
-        }
+        return propertyValue;
     }
-
 }

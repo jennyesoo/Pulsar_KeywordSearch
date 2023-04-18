@@ -9,5 +9,5 @@ public enum SearchType
     PRL,
     DCR,
     SuddenImpact,
-    HPAMOPartNumber
+    HpAmoPartNumber
 }
