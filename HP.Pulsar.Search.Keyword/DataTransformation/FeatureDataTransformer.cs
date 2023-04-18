@@ -28,34 +28,11 @@ namespace HP.Pulsar.Search.Keyword.DataTransformation
                     }
                     else
                     {
-                        feature.Add(key, DataProcessingInitializationCombination(feature.GetValue(key), key));
+                        feature.Add(key, CommonDataTransformer.DataProcessingInitializationCombination(_datePropertyList, feature.GetValue(key), key));
                     }
                 }
             }
             return features;
         }
-
-        private string DataProcessingInitializationCombination(string propertyValue, string propertyName)
-        {
-            if (_datePropertyList.Contains(propertyName.ToLower()))
-            {
-                propertyValue = ChangeDateFormat(propertyValue);
-            }
-            return propertyValue;
-        }
-
-        private string ChangeDateFormat(string propertyValue)
-        {
-            DateTime dateValue;
-            if (DateTime.TryParse(propertyValue, out dateValue))
-            {
-                return dateValue.ToString("yyyy/MM/dd");
-            }
-            else
-            {
-                return propertyValue;
-            }
-        }
-
     }
 }

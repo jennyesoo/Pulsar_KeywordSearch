@@ -8,5 +8,6 @@ public enum SearchType
     Feature,
     PRL,
     DCR,
-    SuddenImpact
+    SuddenImpact,
+    HpAmoPartNumber
 }
