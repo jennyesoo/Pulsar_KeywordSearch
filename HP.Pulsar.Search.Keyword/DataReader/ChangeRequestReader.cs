@@ -92,9 +92,9 @@ WHERE (
         private string GetApproversCommandText()
         {
             return @"
-SELECT dcr.id,
+SELECT dcr.id as ChangeRequestId,
     stuff((
-            SELECT ' < ' + e.Name + ' > '
+            SELECT ' { ' + e.Name + ' } '
             FROM ActionApproval AS a WITH (NOLOCK)
             INNER JOIN Employee AS e WITH (NOLOCK) ON a.ApproverId = e.Id
             INNER JOIN DeliverableIssues d WITH (NOLOCK) ON a.ActionId = d.Id
@@ -148,19 +148,7 @@ GROUP BY dcr.id
         {
             foreach (CommonDataModel dcr in changeRequests)
             {
-                Console.WriteLine("ZsrpRequired : " + dcr.GetValue("ZsrpRequired"));
-                Console.WriteLine("AVRequired : " + dcr.GetValue("AVRequired"));
-                Console.WriteLine("QualificationRequired : " + dcr.GetValue("QualificationRequired"));
-                Console.WriteLine("GlobalSeriesRequired : " + dcr.GetValue("GlobalSeriesRequired"));
-                Console.WriteLine("CustomerImpact : " + dcr.GetValue("CustomerImpact"));
-                Console.WriteLine("OnStatusReport : " + dcr.GetValue("OnStatusReport"));
-                Console.WriteLine("Important : " + dcr.GetValue("Important"));
-                Console.WriteLine("NA : " + dcr.GetValue("NA"));
-                Console.WriteLine("LA : " + dcr.GetValue("LA"));
-                Console.WriteLine("EMEA : " + dcr.GetValue("EMEA"));
-                Console.WriteLine("APJ : " + dcr.GetValue("APJ"));
-
-                if (dcr.GetValue("ZsrpRequired").Equals("1"))
+                if (dcr.GetValue("ZsrpRequired").Equals("True"))
                 {
                     dcr.Add("ZsrpRequired", "ZSRP Ready Date Required");
                 }
@@ -214,7 +202,7 @@ GROUP BY dcr.id
                     dcr.Delete("OnStatusReport");
                 }
 
-                if (dcr.GetValue("Important").Equals("1"))
+                if (dcr.GetValue("Important").Equals("True"))
                 {
                     dcr.Add("Important", "Important");
                 }
@@ -223,7 +211,7 @@ GROUP BY dcr.id
                     dcr.Delete("Important");
                 }
 
-                if (dcr.GetValue("NA").Equals("1"))
+                if (dcr.GetValue("NA").Equals("True"))
                 {
                     dcr.Add("NA", "NA");
                 }
@@ -232,7 +220,7 @@ GROUP BY dcr.id
                     dcr.Delete("NA");
                 }
 
-                if (dcr.GetValue("LA").Equals("1"))
+                if (dcr.GetValue("LA").Equals("True"))
                 {
                     dcr.Add("LA", "LA");
                 }
@@ -241,7 +229,7 @@ GROUP BY dcr.id
                     dcr.Delete("LA");
                 }
 
-                if (dcr.GetValue("EMEA").Equals("1"))
+                if (dcr.GetValue("EMEA").Equals("True"))
                 {
                     dcr.Add("EMEA", "EMEA");
                 }
@@ -272,9 +260,12 @@ GROUP BY dcr.id
             
             while (await reader.ReadAsync())
             {
-                if (int.TryParse(reader["ChangeRequestId"].ToString(), out int changeRequestId))
+                if (!string.IsNullOrWhiteSpace(reader["Approvers"].ToString()))
                 {
-                    approvers[changeRequestId] = reader["Approvers"].ToString();
+                    if (int.TryParse(reader["ChangeRequestId"].ToString(), out int changeRequestId))
+                    {
+                        approvers[changeRequestId] = reader["Approvers"].ToString();
+                    }
                 }
             }
 

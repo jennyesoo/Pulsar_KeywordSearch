@@ -24,11 +24,11 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator
         {
             // read products from database
             ChangeRequestReader reader = new(KeywordSearchInfo);
-            IEnumerable<CommonDataModel> ChangeRequests = await reader.GetDataAsync();
+            IEnumerable<CommonDataModel> changeRequests = await reader.GetDataAsync();
 
             // data processing
             ChangeRequestDataTransformer tranformer = new();
-            ChangeRequests = tranformer.Transform(ChangeRequests);
+            changeRequests = tranformer.Transform(changeRequests);
 
             // write to meiliesearch
             MeiliSearchWriter writer = new(KeywordSearchInfo.SearchEngineUrl, KeywordSearchInfo.SearchEngineIndexName);
@@ -39,7 +39,7 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator
                 await writer.UpdateSettingAsync();
             }
 
-            await writer.AddElementsAsync(ChangeRequests);
+            await writer.AddElementsAsync(changeRequests);
         }
     }
 }

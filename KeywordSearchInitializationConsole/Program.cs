@@ -18,7 +18,7 @@ internal class Program
             SearchEngineIndexName = "Pulsar4"
         };
 
-        //delete meilisearch index
+        ////delete meilisearch index
         //MeiliSearchWriter writer3 = new(info.SearchEngineUrl, info.SearchEngineIndexName); //for test
         //await writer3.DeleteIndexAsync(); //for test
 
