@@ -13,7 +13,8 @@ public class Initialization
             new ProductOrchestrator(info),
             new ComponentRootOrchestrator(info),
             new ComponentVersionOrchestrator(info),
-            new FeatureOrchestrator(info)
+            new FeatureOrchestrator(info),
+            new ChangeRequestOrchestrator(info)
         };
     }
 
