@@ -45,6 +45,12 @@ namespace HP.Pulsar.Search.Keyword.DataReader
 SELECT F.FeatureId,
     F.FeatureName,
     Fc.Name AS FeatureCategory,
+    CASE WHEN Fc.FeatureClassID = 1 THEN 'Documentation'
+    WHEN Fc.FeatureClassID = 2 THEN 'Firmware'
+    WHEN Fc.FeatureClassID = 3 THEN 'Hardware'
+    WHEN Fc.FeatureClassID = 4 THEN 'Software'
+    WHEN Fc.FeatureClassID = 5 THEN 'Base Unit'
+    END AS FeatureClass,
     Dt.Name AS DeliveryType,
     F.CodeName,
     F.RuleID,
