@@ -19,8 +19,8 @@ internal class Program
         };
 
         ////delete meilisearch index
-        //MeiliSearchWriter writer3 = new(info.SearchEngineUrl, info.SearchEngineIndexName); //for test
-        //await writer3.DeleteIndexAsync(); //for test
+        //MeiliSearchWriter writer = new(info.SearchEngineUrl, info.SearchEngineIndexName); //for test
+        //await writer.DeleteIndexAsync(); //for test
 
         // init
         Initialization init = new(info);
