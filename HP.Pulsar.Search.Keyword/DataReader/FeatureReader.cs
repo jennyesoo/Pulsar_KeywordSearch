@@ -152,7 +152,11 @@ JOIN DeliverableRoot dr WITH (NOLOCK) ON dr.Id = fril.ComponentRootId
                 if (int.TryParse(feature.GetValue("FeatureId"), out int featureId)
                     && componentInitiatedLinkage.ContainsKey(featureId))
                 {
-                    feature.Add("ComponentInitiatedLinkage", componentInitiatedLinkage[featureId]);
+                    string[] componentInitiatedLinkageList = componentInitiatedLinkage[featureId].Split(',');
+                    for (int i = 0; i < componentInitiatedLinkageList.Length; i++)
+                    {
+                        feature.Add("ComponentInitiatedLinkage " + i , componentInitiatedLinkageList[i]);
+                    }
                 }
             }
         }

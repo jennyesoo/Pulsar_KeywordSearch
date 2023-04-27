@@ -94,7 +94,7 @@ WHERE (
             return @"
 SELECT dcr.id as ChangeRequestId,
     stuff((
-            SELECT ' { ' + e.Name + ' } '
+            SELECT ' { ' + e.Name 
             FROM ActionApproval AS a WITH (NOLOCK)
             INNER JOIN Employee AS e WITH (NOLOCK) ON a.ApproverId = e.Id
             INNER JOIN DeliverableIssues d WITH (NOLOCK) ON a.ActionId = d.Id
@@ -260,12 +260,10 @@ GROUP BY dcr.id
             
             while (await reader.ReadAsync())
             {
-                if (!string.IsNullOrWhiteSpace(reader["Approvers"].ToString()))
+                if (!string.IsNullOrWhiteSpace(reader["Approvers"].ToString())
+                    && int.TryParse(reader["ChangeRequestId"].ToString(), out int changeRequestId))
                 {
-                    if (int.TryParse(reader["ChangeRequestId"].ToString(), out int changeRequestId))
-                    {
-                        approvers[changeRequestId] = reader["Approvers"].ToString();
-                    }
+                    approvers[changeRequestId] = reader["Approvers"].ToString();
                 }
             }
 
@@ -274,7 +272,11 @@ GROUP BY dcr.id
                 if (int.TryParse(dcr.GetValue("ChangeRequestId"), out int changeRequestId)
                 && approvers.ContainsKey(changeRequestId))
                 {
-                    dcr.Add("Approvals", approvers[changeRequestId]);
+                    string[] approverList = approvers[changeRequestId].Split('\u002C');
+                    for (int i = 0; i < approverList.Length; i++)
+                    {
+                        dcr.Add("Approvals " + i , approverList[i]);
+                    }
                 }
             }
         }
