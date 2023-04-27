@@ -120,7 +120,6 @@ GROUP BY dcr.id
             List<CommonDataModel> output = new();
             while (reader.Read())
             {
-                //string businessSegmentId;
                 CommonDataModel changeRequest = new();
                 int fieldCount = reader.FieldCount;
 

@@ -174,7 +174,6 @@ WHERE ps.Name <> 'Inactive'
         List<CommonDataModel> output = new();
         while (reader.Read())
         {
-            //string businessSegmentId;
             CommonDataModel product = new();
             int fieldCount = reader.FieldCount;
 
