@@ -208,7 +208,6 @@ GROUP BY DR.Id
 
             while (reader.Read())
             {
-                //string businessSegmentId;
                 CommonDataModel root = new();
                 int fieldCount = reader.FieldCount;
 
