@@ -89,6 +89,12 @@ public class MeiliSearchWriter
             }
         };
 
+        var pagination = new Pagination
+        {
+            MaxTotalHits = 1000000
+        };
+
         await _client.Index(_uid).UpdateSettingsAsync(newSettings);
+        await _client.Index(_uid).UpdatePaginationAsync(pagination);
     }
 }
