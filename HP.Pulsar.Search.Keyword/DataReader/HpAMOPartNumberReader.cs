@@ -31,16 +31,16 @@ namespace HP.Pulsar.Search.Keyword.DataReader
         private string GetHpAMOPartNumberCommandText()
         {
             return @"
-SELECT  hppn.AmoHpPartNumberID as HpAMOPartNumberId,
-    hppn.HpPartNo as HpPartNumber,
-    CASE  
-        WHEN ISNULL(f.PMG100_AMO, '') <> ''  
-            THEN hppn.HPPartNo + ' - ' + trim(f.PMG100_AMO + ' ' + ISNULL(r.CountryCode, ''))  
-        ELSE hppn.HPPartNo + ' - ' + f.PMG100_AMO  
+SELECT hppn.AmoHpPartNumberID AS HpAMOPartNumberId,
+    hppn.HpPartNo AS HpPartNumber,
+    CASE 
+        WHEN ISNULL(f.PMG100_AMO, '') <> ''
+            THEN hppn.HPPartNo + ' - ' + trim(f.PMG100_AMO + ' ' + ISNULL(r.CountryCode, ''))
+        ELSE hppn.HPPartNo + ' - ' + f.PMG100_AMO
         END AS Description,
-    bs.Name as BusinessSegment,
-    scm.Name as ASCMCategory,
-    pl.Name as productLine,
+    bs.Name AS BusinessSegment,
+    scm.Name AS ASCMCategory,
+    pl.Name AS productLine,
     hppn.RTPDate,
     hppn.SADate,
     hppn.GADate,
@@ -49,20 +49,20 @@ SELECT  hppn.AmoHpPartNumberID as HpAMOPartNumberId,
     hppn.ESDate,
     amof.PreviousProduct,
     hppn.Comments,
-    amos.Name as SKUType,
+    amos.Name AS SKUType,
     f.CodeName,
-    u1.firstname + ' ' + u1.lastname as CreatedBy,
-    u2.firstname + ' ' + u2.lastname as LastUpdatedBy
-FROM Feature f   
-INNER JOIN AmoHpPartNo hppn ON f.FeatureID = hppn.FeatureID  
-LEFT JOIN Regions r ON hppn.LocalizationId = r.ID  
-Left JOIN SCMCategory scm on scm.SCMCategoryID = hppn.ASCMCategoryId
-left join AMOFeatureV2 amof on f.featureID = amof.FeatureId
-left join BusinessSegment bs on bs.BusinessSegmentid = amof.BusinessSegmentid
-left join ProductLine pl on pl.id = hppn.productLineId
-left join AMOSkuType amos on amos.SkuTypeId  = hppn.SkuTypeId
-left join userinfo u1 on u1.userid = hppn.Creator
-left join userinfo u2 on u2.userid = hppn.Updater
+    u1.firstname + ' ' + u1.lastname AS CreatedBy,
+    u2.firstname + ' ' + u2.lastname AS LastUpdatedBy
+FROM Feature f
+INNER JOIN AmoHpPartNo hppn ON f.FeatureID = hppn.FeatureID
+LEFT JOIN Regions r ON hppn.LocalizationId = r.ID
+LEFT JOIN SCMCategory scm ON scm.SCMCategoryID = hppn.ASCMCategoryId
+LEFT JOIN AMOFeatureV2 amof ON f.featureID = amof.FeatureId
+LEFT JOIN BusinessSegment bs ON bs.BusinessSegmentid = amof.BusinessSegmentid
+LEFT JOIN ProductLine pl ON pl.id = hppn.productLineId
+LEFT JOIN AMOSkuType amos ON amos.SkuTypeId = hppn.SkuTypeId
+LEFT JOIN userinfo u1 ON u1.userid = hppn.Creator
+LEFT JOIN userinfo u2 ON u2.userid = hppn.Updater
 WHERE (
         @HpAMOPartNumberId = - 1
         OR hppn.AmoHpPartNumberID = @HpAMOPartNumberId
