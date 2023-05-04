@@ -15,6 +15,7 @@ public class Initialization
             new ComponentVersionOrchestrator(info),
             new FeatureOrchestrator(info),
             new ChangeRequestOrchestrator(info),
+            new ProductDropOrchestrator(info),
             new HpAMOPartNumberOrchestrator(info)
         };
     }

@@ -9,5 +9,6 @@ public enum SearchType
     PRL,
     DCR,
     SuddenImpact,
-    HpAmoPartNumber
+    HpAmoPartNumber,
+    ProductDrop
 }

@@ -9,6 +9,7 @@
         public static readonly string Feature = "feature-";
         public static readonly string HpAMOPartNumber = "partnumber-";
         public static readonly string SuddenImpact = "suddenimpact-";
+        public static readonly string ProductDrop = "productdrop-";
     }
 }
 
