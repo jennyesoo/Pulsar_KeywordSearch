@@ -14,7 +14,8 @@ public class Initialization
             new ComponentRootOrchestrator(info),
             new ComponentVersionOrchestrator(info),
             new FeatureOrchestrator(info),
-            new ChangeRequestOrchestrator(info)
+            new ChangeRequestOrchestrator(info),
+            new HpAMOPartNumberOrchestrator(info)
         };
     }
 
