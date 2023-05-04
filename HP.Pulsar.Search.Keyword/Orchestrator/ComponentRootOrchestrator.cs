@@ -33,6 +33,7 @@ internal class ComponentRootOrchestrator : IInitializationOrchestrator
         {
             await writer.CreateIndexAsync();
             await writer.UpdateSettingAsync();
+            await writer.UpdatePaginationAsync();
         }
 
         await writer.AddElementsAsync(roots);

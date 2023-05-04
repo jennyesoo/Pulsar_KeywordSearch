@@ -18,7 +18,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
             _csProvider = new(info.Environment);
         }
 
-        public async Task<CommonDataModel> GetDataAsync(int changeRequestId)
+        public async Task<CommonDataModel> GetDataAsync(int featureId)
         {
             throw new NotImplementedException();
         }
@@ -95,7 +95,7 @@ WHERE (
                     if (!string.IsNullOrWhiteSpace(reader[i].ToString()))
                     {
                         string columnName = reader.GetName(i);
-                        string value = reader[i].ToString();
+                        string value = reader[i].ToString().Trim();
                         hpAMOPartNumber.Add(columnName, value);
                     }
                 }

@@ -132,7 +132,7 @@ GROUP BY dcr.id
                     if (!string.IsNullOrWhiteSpace(reader[i].ToString()))
                     {
                         string columnName = reader.GetName(i);
-                        string value = reader[i].ToString();
+                        string value = reader[i].ToString().Trim();
                         changeRequest.Add(columnName, value);
                     }
                 }

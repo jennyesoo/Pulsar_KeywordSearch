@@ -33,6 +33,7 @@ internal class ProductOrchestrator : IInitializationOrchestrator
         {
             await writer.CreateIndexAsync();
             await writer.UpdateSettingAsync();
+            await writer.UpdatePaginationAsync();
         }
 
         await writer.AddElementsAsync(products);

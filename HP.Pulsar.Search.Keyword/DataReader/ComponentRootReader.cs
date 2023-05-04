@@ -220,7 +220,7 @@ GROUP BY DR.Id
                     if (!string.IsNullOrWhiteSpace(reader[i].ToString()))
                     {
                         string columnName = reader.GetName(i);
-                        string value = reader[i].ToString();
+                        string value = reader[i].ToString().Trim();
                         root.Add(columnName, value);
                     }
                 }

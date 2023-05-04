@@ -184,7 +184,7 @@ WHERE   (
                 if (!string.IsNullOrWhiteSpace(reader[i].ToString()))
                 {
                     string columnName = reader.GetName(i);
-                    string value = reader[i].ToString();
+                    string value = reader[i].ToString().Trim();
                     product.Add(columnName, value);
                 }
             }

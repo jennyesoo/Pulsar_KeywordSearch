@@ -18,7 +18,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
             _csProvider = new(info.Environment);
         }
 
-        public async Task<CommonDataModel> GetDataAsync(int changeRequestId)
+        public async Task<CommonDataModel> GetDataAsync(int productDropId)
         {
             throw new NotImplementedException();
         }
@@ -150,7 +150,7 @@ GROUP BY ml2.ProductDropId
                     if (!string.IsNullOrWhiteSpace(reader[i].ToString()))
                     {
                         string columnName = reader.GetName(i);
-                        string value = reader[i].ToString();
+                        string value = reader[i].ToString().Trim();
                         productDrop.Add(columnName, value.Trim());
                     }
                 }
