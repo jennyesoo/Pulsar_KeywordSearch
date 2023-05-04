@@ -54,7 +54,7 @@ SELECT hppn.AmoHpPartNumberID AS HpAMOPartNumberId,
     u1.firstname + ' ' + u1.lastname AS CreatedBy,
     u2.firstname + ' ' + u2.lastname AS LastUpdatedBy
 FROM Feature f
-LEFT JOIN AmoHpPartNo hppn ON f.FeatureID = hppn.FeatureID
+right JOIN AmoHpPartNo hppn ON f.FeatureID = hppn.FeatureID
 LEFT JOIN Regions r ON hppn.LocalizationId = r.ID
 LEFT JOIN SCMCategory scm ON scm.SCMCategoryID = hppn.ASCMCategoryId
 LEFT JOIN AMOFeatureV2 amof ON f.featureID = amof.FeatureId
