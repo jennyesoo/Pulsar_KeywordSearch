@@ -144,9 +144,9 @@ WHERE (
     stuff((
             SELECT ' , ' + (CONVERT(VARCHAR, p.Id) + ' ' + p.DOTSName)
             FROM ProductVersion p
-            JOIN ProductStatus ps ON ps.id = p.ProductStatusID
-            JOIN Product_DelRoot pr ON pr.ProductVersionId = p.id
-            JOIN DeliverableRoot root ON root.Id = pr.DeliverableRootId
+            left JOIN ProductStatus ps ON ps.id = p.ProductStatusID
+            left JOIN Product_DelRoot pr ON pr.ProductVersionId = p.id
+            left JOIN DeliverableRoot root ON root.Id = pr.DeliverableRootId
             WHERE root.Id = DR.Id
                 AND ps.Name <> 'Inactive'
                 AND p.FusionRequirements = 1

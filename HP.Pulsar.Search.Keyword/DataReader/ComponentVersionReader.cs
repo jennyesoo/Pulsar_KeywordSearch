@@ -118,9 +118,9 @@ namespace HP.Pulsar.Search.Keyword.DataReader
     Dv.CAB
 FROM DeliverableVersion Dv
 LEFT JOIN ComponentPrismSWType CPSW ON CPSW.PRISMTypeID = Dv.PrismSWType
-JOIN userinfo user1 ON user1.userid = Dv.DeveloperID
-JOIN userinfo user2 ON user2.userid = Dv.TestLeadId
-JOIN Vendor v ON v.ID = Dv.VendorID
+left JOIN userinfo user1 ON user1.userid = Dv.DeveloperID
+left JOIN userinfo user2 ON user2.userid = Dv.TestLeadId
+left JOIN Vendor v ON v.ID = Dv.VendorID
 LEFT JOIN ComponentBuildLevel cbl ON cbl.ComponentBuildLevelId = Dv.LevelID
 LEFT JOIN SWSetupCategory sws ON sws.ID = Dv.SWSetupCategoryID
 LEFT JOIN ComponentTransferServer cts ON cts.Id = Dv.TransferServerId

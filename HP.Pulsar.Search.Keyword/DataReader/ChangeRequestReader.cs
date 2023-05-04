@@ -79,9 +79,9 @@ SELECT di.id AS ChangeRequestId,
     di.RASDiscoDate,
     di.OnStatusReport
 FROM Deliverableissues di
-JOIN ProductVersion pv ON pv.id = di.ProductVersionID
-JOIN ActionStatus AStatus ON AStatus.id = di.STATUS
-JOIN UserInfo ui ON ui.userid = di.OwnerID
+left JOIN ProductVersion pv ON pv.id = di.ProductVersionID
+left JOIN ActionStatus AStatus ON AStatus.id = di.STATUS
+left JOIN UserInfo ui ON ui.userid = di.OwnerID
 WHERE (
         @ChangeRequestId = - 1
         OR di.Id = @ChangeRequestId
@@ -96,8 +96,8 @@ SELECT dcr.id as ChangeRequestId,
     stuff((
             SELECT ' { ' + e.Name 
             FROM ActionApproval AS a WITH (NOLOCK)
-            INNER JOIN Employee AS e WITH (NOLOCK) ON a.ApproverId = e.Id
-            INNER JOIN DeliverableIssues d WITH (NOLOCK) ON a.ActionId = d.Id
+            left JOIN Employee AS e WITH (NOLOCK) ON a.ApproverId = e.Id
+            left JOIN DeliverableIssues d WITH (NOLOCK) ON a.ActionId = d.Id
             WHERE d.id = dcr.id
             ORDER BY d.id
             FOR XML path('')

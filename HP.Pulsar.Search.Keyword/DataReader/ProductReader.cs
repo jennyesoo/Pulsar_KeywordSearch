@@ -129,31 +129,30 @@ SELECT p.id AS ProductId,
     p.MachinePNPID AS MachinePNPID,
     p.TypeId
 FROM ProductVersion p
-FULL JOIN ProductFamily pf ON p.ProductFamilyId = pf.id
-FULL JOIN Partner partner ON partner.id = p.PartnerId
-FULL JOIN ProductDevCenter pdc ON pdc.ProductDevCenterId = DevCenter
-FULL JOIN ProductStatus ps ON ps.id = p.ProductStatusID
-FULL JOIN BusinessSegment sg ON sg.BusinessSegmentID = p.BusinessSegmentID
-FULL JOIN PreinstallTeam pis ON pis.ID = p.ReleaseTeam
-FULL JOIN UserInfo user_SMID ON user_SMID.userid = p.SMID
-FULL JOIN UserInfo user_PDPM ON user_PDPM.userid = p.PlatformDevelopmentID
-FULL JOIN UserInfo user_SCID ON user_SCID.userid = p.SupplyChainID
-FULL JOIN UserInfo user_ODMSEPM ON user_ODMSEPM.userid = p.ODMSEPMID
-FULL JOIN UserInfo user_CM ON user_CM.userid = p.PMID
-FULL JOIN UserInfo user_CPM ON user_CPM.userid = p.PDEID
-FULL JOIN UserInfo user_Service ON user_Service.userid = p.ServiceID
-FULL JOIN UserInfo user_ODMHWPM ON user_ODMHWPM.userid = p.ODMHWPMID
-FULL JOIN UserInfo user_POPM ON user_POPM.userid = p.TDCCMID
-FULL JOIN UserInfo user_Quality ON user_Quality.userid = p.QualityID
-FULL JOIN UserInfo user_PPM ON user_PPM.userid = p.PlanningPMID
-FULL JOIN UserInfo user_BIOSPM ON user_BIOSPM.userid = p.BIOSLeadID
-FULL JOIN UserInfo user_SEPM ON user_SEPM.userid = p.SEPMID
-FULL JOIN UserInfo user_MPM ON user_MPM.userid = p.ConsMarketingID
-FULL JOIN UserInfo user_ProPM ON user_ProPM.userid = p.ProcurementPMID
-FULL JOIN UserInfo user_SWM ON user_SWM.userid = p.SwMarketingId
-FULL JOIN ProductLine pl ON pl.Id = p.ProductLineId
-WHERE ps.Name <> 'Inactive'
-    AND (
+left JOIN ProductFamily pf ON p.ProductFamilyId = pf.id
+left JOIN Partner partner ON partner.id = p.PartnerId
+left JOIN ProductDevCenter pdc ON pdc.ProductDevCenterId = DevCenter
+left JOIN ProductStatus ps ON ps.id = p.ProductStatusID
+left JOIN BusinessSegment sg ON sg.BusinessSegmentID = p.BusinessSegmentID
+left JOIN PreinstallTeam pis ON pis.ID = p.ReleaseTeam
+left JOIN UserInfo user_SMID ON user_SMID.userid = p.SMID
+left JOIN UserInfo user_PDPM ON user_PDPM.userid = p.PlatformDevelopmentID
+left JOIN UserInfo user_SCID ON user_SCID.userid = p.SupplyChainID
+left JOIN UserInfo user_ODMSEPM ON user_ODMSEPM.userid = p.ODMSEPMID
+left JOIN UserInfo user_CM ON user_CM.userid = p.PMID
+left JOIN UserInfo user_CPM ON user_CPM.userid = p.PDEID
+left JOIN UserInfo user_Service ON user_Service.userid = p.ServiceID
+left JOIN UserInfo user_ODMHWPM ON user_ODMHWPM.userid = p.ODMHWPMID
+left JOIN UserInfo user_POPM ON user_POPM.userid = p.TDCCMID
+left JOIN UserInfo user_Quality ON user_Quality.userid = p.QualityID
+left JOIN UserInfo user_PPM ON user_PPM.userid = p.PlanningPMID
+left JOIN UserInfo user_BIOSPM ON user_BIOSPM.userid = p.BIOSLeadID
+left JOIN UserInfo user_SEPM ON user_SEPM.userid = p.SEPMID
+left JOIN UserInfo user_MPM ON user_MPM.userid = p.ConsMarketingID
+left JOIN UserInfo user_ProPM ON user_ProPM.userid = p.ProcurementPMID
+left JOIN UserInfo user_SWM ON user_SWM.userid = p.SwMarketingId
+left JOIN ProductLine pl ON pl.Id = p.ProductLineId
+WHERE   (
         @ProductId = - 1
         OR p.Id = @ProductId
         )
@@ -205,10 +204,10 @@ WHERE ps.Name <> 'Inactive'
 SELECT pv.Id AS ProductId,
     MAX(amo.EmDate) AS EndOfProductionDate
 FROM ProductVersion pv WITH (NOLOCK)
-JOIN PRL_Products pp WITH (NOLOCK) ON pv.Id = pp.ProductVersionId
-JOIN PRL_Delivery_Feature pdf WITH (NOLOCK) ON pp.prlRevisionId = pdf.prlRevisionId
-JOIN PRL_Chassis_Delivery pcd WITH (NOLOCK) ON pdf.DeliveryId = pcd.DeliveryId
-JOIN AmoHpPartNo amo WITH (NOLOCK) ON pdf.FeatureId = amo.FeatureId
+LEFT JOIN PRL_Products pp WITH (NOLOCK) ON pv.Id = pp.ProductVersionId
+LEFT JOIN PRL_Delivery_Feature pdf WITH (NOLOCK) ON pp.prlRevisionId = pdf.prlRevisionId
+LEFT JOIN PRL_Chassis_Delivery pcd WITH (NOLOCK) ON pdf.DeliveryId = pcd.DeliveryId
+LEFT JOIN AmoHpPartNo amo WITH (NOLOCK) ON pdf.FeatureId = amo.FeatureId
 WHERE (
         pdf.StatusId = 53 --New  
         OR pdf.StatusId = 54 -- Prev  
@@ -226,8 +225,8 @@ GROUP BY pv.Id
 SELECT pb.ProductVersionId AS ProductId,
     MAX(av.RASDiscontinueDt) AS EndOfProductionDate
 FROM Product_Brand pb WITH (NOLOCK)
-JOIN AvDetail_ProductBrand avb WITH (NOLOCK) ON pb.Id = avb.ProductBrandId
-JOIN AvDetail av WITH (NOLOCK) ON av.AvDetailId = avb.AvDetailId
+LEFT JOIN AvDetail_ProductBrand avb WITH (NOLOCK) ON pb.Id = avb.ProductBrandId
+LEFT JOIN AvDetail av WITH (NOLOCK) ON av.AvDetailId = avb.AvDetailId
 WHERE (
         (
             av.FeatureCategoryId IN (
@@ -251,10 +250,10 @@ GROUP BY pb.ProductVersionId
 SELECT DISTINCT lp.ID AS ProductId,
     lp.DotsName + ' (' + lpr.Name + ')' AS LeadProduct
 FROM ProductVersionRelease pr WITH (NOLOCK)
-JOIN ProductVersion_Release pv WITH (NOLOCK) ON pr.id = pv.ReleaseID
-JOIN ProductVersion_Release lpv WITH (NOLOCK) ON lpv.id = pv.LeadProductreleaseID
-JOIN ProductVersion lp WITH (NOLOCK) ON lp.id = lpv.ProductVersionID
-JOIN ProductVersionRelease lpr WITH (NOLOCK) ON lpr.id = lpv.ReleaseID
+LEFT JOIN ProductVersion_Release pv WITH (NOLOCK) ON pr.id = pv.ReleaseID
+LEFT JOIN ProductVersion_Release lpv WITH (NOLOCK) ON lpv.id = pv.LeadProductreleaseID
+LEFT JOIN ProductVersion lp WITH (NOLOCK) ON lp.id = lpv.ProductVersionID
+LEFT JOIN ProductVersionRelease lpr WITH (NOLOCK) ON lpr.id = lpv.ReleaseID
 ";
     }
 
@@ -264,7 +263,7 @@ JOIN ProductVersionRelease lpr WITH (NOLOCK) ON lpr.id = lpv.ReleaseID
 SELECT p_c.ProductVersionID AS ProductId,
     c.CodeName
 FROM Chipset c WITH (NOLOCK)
-JOIN Product_Chipset p_c WITH (NOLOCK) ON c.[ID] = p_c.[ChipsetId]
+LEFT JOIN Product_Chipset p_c WITH (NOLOCK) ON c.[ID] = p_c.[ChipsetId]
 WHERE p_c.ChipsetId IS NOT NULL
 ";
     }
@@ -280,8 +279,8 @@ FROM (
     FROM product_deliverable pd WITH (NOLOCK)
     WHERE targeted = 1
     ) pd
-INNER JOIN deliverableversion v WITH (NOLOCK) ON v.id = pd.deliverableversionid
-INNER JOIN deliverableroot r WITH (NOLOCK) ON r.id = v.deliverablerootid
+LEFT JOIN deliverableversion v WITH (NOLOCK) ON v.id = pd.deliverableversionid
+LEFT JOIN deliverableroot r WITH (NOLOCK) ON r.id = v.deliverablerootid
 WHERE r.categoryid = 161
     AND (
         isnumeric(left(v.version, 1)) = 0

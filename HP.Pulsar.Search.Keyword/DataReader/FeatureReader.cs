@@ -64,9 +64,9 @@ SELECT F.FeatureId,
     F.UpdatedBy,
     F.Updated
 FROM Feature F
-JOIN FeatureCategory Fc ON Fc.FeatureCategoryID = F.FeatureCategoryID
-JOIN DeliveryType Dt ON Dt.DeliveryTypeID = F.DeliveryTypeID
-JOIN FeatureStatus Fs ON Fs.StatusID = F.StatusID
+left JOIN FeatureCategory Fc ON Fc.FeatureCategoryID = F.FeatureCategoryID
+left JOIN DeliveryType Dt ON Dt.DeliveryTypeID = F.DeliveryTypeID
+left JOIN FeatureStatus Fs ON Fs.StatusID = F.StatusID
 WHERE (
         @FeatureId = - 1
         OR F.FeatureId = @FeatureId
@@ -118,7 +118,7 @@ SELECT fril.FeatureId AS FeatureId,
     dr.ID AS ComponentId,
     dr.Name AS ComponentName
 FROM Feature_Root_InitiatedLinkage fril WITH (NOLOCK)
-JOIN DeliverableRoot dr WITH (NOLOCK) ON dr.Id = fril.ComponentRootId
+left JOIN DeliverableRoot dr WITH (NOLOCK) ON dr.Id = fril.ComponentRootId
 ";
         }
 
