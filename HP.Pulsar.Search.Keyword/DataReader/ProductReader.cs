@@ -297,6 +297,20 @@ GROUP BY pd.productversionid
         return "Select id,currentROM,currentWebROM From ProductVersion";
     }
 
+    private string GetAvDetailText()
+    {
+        return @"
+SELECT DISTINCT p.ID AS ProductVersionId,
+    A.AvNo
+FROM productversion p
+LEFT JOIN Product_Brand PB ON PB.productVersionID = p.ID
+LEFT JOIN Series s WITH (NOLOCK) ON s.ProductBrandId = PB.Id
+LEFT JOIN AvDetail_ProductBrand APB ON APB.productBrandID = PB.Id
+LEFT JOIN AvDetail A ON A.AvDetailID = APB.AvDetailID
+WHERE APB.STATUS = 'A'
+";
+    }
+
     private async Task GetEndOfProductionDateAsync(IEnumerable<CommonDataModel> products)
     {
         using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
@@ -552,5 +566,43 @@ GROUP BY pd.productversionid
         }
         return currentROM;
     }
+
+    private async Task GetAvDetailAsync(IEnumerable<CommonDataModel> products)
+    {
+        using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
+        await connection.OpenAsync();
+
+        SqlCommand command = new(GetAvDetailText(), connection);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, List<string>> avDetail = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (int.TryParse(reader["ProductVersionId"].ToString(), out int productId))
+            {
+                if (avDetail.ContainsKey(productId))
+                {
+                    avDetail[productId].Add(reader["AvNo"].ToString());
+                }
+                else
+                {
+                    avDetail[productId] = new List<string> { reader["AvNo"].ToString() };
+                }
+            }
+        }
+
+        foreach (CommonDataModel product in products)
+        {
+            if (int.TryParse(product.GetValue("ProductId"), out int productId)
+                && avDetail.ContainsKey(productId))
+            {
+                for ( int i = 0 ; i < avDetail[productId].Count();  i++)
+                {
+                    product.Add("AvDetail " + i, avDetail[productId][i]);
+                }
+            }
+        }
+    }
+
 
 }
