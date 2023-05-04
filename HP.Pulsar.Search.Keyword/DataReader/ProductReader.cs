@@ -28,7 +28,8 @@ public class ProductReader : IKeywordSearchDataReader
             GetProductGroupsAsync(products),
             GetLeadProductAsync(products),
             GetChipsetsAsync(products),
-            GetCurrentBIOSVersionsAsync(products)
+            GetCurrentBIOSVersionsAsync(products),
+            GetAvDetailAsync(products)
 //            GetComponentRootListAsync(products)
         };
 
