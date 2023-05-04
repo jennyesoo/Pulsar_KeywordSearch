@@ -27,8 +27,8 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator
             IEnumerable<CommonDataModel> hpAMOPartNumber = await reader.GetDataAsync();
 
             // data processing
-            HpAMOPartNumberDataTransformer tranformer = new();
-            hpAMOPartNumber = tranformer.Transform(hpAMOPartNumber);
+            HpAMOPartNumberDataTransformer transformer = new();
+            hpAMOPartNumber = transformer.Transform(hpAMOPartNumber);
 
             // write to meiliesearch
             MeiliSearchWriter writer = new(KeywordSearchInfo.SearchEngineUrl, KeywordSearchInfo.SearchEngineIndexName);
