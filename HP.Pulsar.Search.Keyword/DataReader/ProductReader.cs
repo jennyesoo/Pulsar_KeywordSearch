@@ -242,7 +242,7 @@ GROUP BY pb.ProductVersionId
 ";
     }
 
-    private string GetProductGroupsCommandText() => "select t1.ProductVersionId, t2.FullName from ProductVersion_ProductGroup t1 join PROGRAM t2 on t1.ProductGroupId = t2.id";
+    private string GetProductGroupsCommandText() => "select t1.ProductVersionId as ProductId, t2.FullName from ProductVersion_ProductGroup t1 join PROGRAM t2 on t1.ProductGroupId = t2.id";
 
     private string GetTSQLLeadproductCommandText()
     {
@@ -272,7 +272,7 @@ WHERE p_c.ChipsetId IS NOT NULL
     {
         return @"
 SELECT dbo.Concatenate(v.version) AS TargetedVersions,
-    pd.ProductVersionId
+    pd.ProductVersionId as ProductId
 FROM (
     SELECT deliverableversionid,
         pd.productversionid
@@ -301,11 +301,10 @@ GROUP BY pd.productversionid
     private string GetAvDetailText()
     {
         return @"
-SELECT DISTINCT p.ID AS ProductVersionId,
+SELECT DISTINCT p.ID AS ProductId,
     A.AvNo
 FROM productversion p
 LEFT JOIN Product_Brand PB ON PB.productVersionID = p.ID
-LEFT JOIN Series s WITH (NOLOCK) ON s.ProductBrandId = PB.Id
 LEFT JOIN AvDetail_ProductBrand APB ON APB.productBrandID = PB.Id
 LEFT JOIN AvDetail A ON A.AvDetailID = APB.AvDetailID
 WHERE APB.STATUS = 'A'
@@ -382,7 +381,7 @@ WHERE APB.STATUS = 'A'
 
         while (await reader.ReadAsync())
         {
-            if (int.TryParse(reader["ProductVersionId"].ToString(), out int productId))
+            if (int.TryParse(reader["ProductId"].ToString(), out int productId))
             {
                 if (productGroups.ContainsKey(productId))
                 {
@@ -538,7 +537,7 @@ WHERE APB.STATUS = 'A'
 
         while (await reader.ReadAsync())
         {
-            if (!int.TryParse(reader["ProductVersionId"].ToString(), out int productId))
+            if (!int.TryParse(reader["ProductId"].ToString(), out int productId))
             {
                 continue;
             }
@@ -579,7 +578,7 @@ WHERE APB.STATUS = 'A'
 
         while (await reader.ReadAsync())
         {
-            if (int.TryParse(reader["ProductVersionId"].ToString(), out int productId))
+            if (int.TryParse(reader["ProductId"].ToString(), out int productId))
             {
                 if (avDetail.ContainsKey(productId))
                 {
