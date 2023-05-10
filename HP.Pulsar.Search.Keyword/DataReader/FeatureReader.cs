@@ -62,11 +62,14 @@ SELECT F.FeatureId,
     F.CreatedBy,
     F.Created,
     F.UpdatedBy,
-    F.Updated
+    F.Updated,
+    F.overrideReason,
+    pcc.PRLBaseUnitGroupName As PlatformName
 FROM Feature F
 left JOIN FeatureCategory Fc ON Fc.FeatureCategoryID = F.FeatureCategoryID
 left JOIN DeliveryType Dt ON Dt.DeliveryTypeID = F.DeliveryTypeID
 left JOIN FeatureStatus Fs ON Fs.StatusID = F.StatusID
+left JOIN PlatformChassisCategory pcc on pcc.PlatformID = f.PlatformID
 WHERE (
         @FeatureId = - 1
         OR F.FeatureId = @FeatureId

@@ -55,6 +55,7 @@ SELECT di.id AS ChangeRequestId,
     di.Created AS DateSubmitter,
     di.actualDate AS DateClosed,
     pv.Dotsname AS Product,
+    DR.Name as ComponentRoot,
     di.summary AS Summary,
     AStatus.Name AS STATUS,
     ui.FirstName + ', ' + ui.LastName AS OWNER,
@@ -79,6 +80,7 @@ SELECT di.id AS ChangeRequestId,
     di.RASDiscoDate,
     di.OnStatusReport
 FROM Deliverableissues di
+left join DeliverableRoot DR on DR.id = di.DeliverableRootID
 left JOIN ProductVersion pv ON pv.id = di.ProductVersionID
 left JOIN ActionStatus AStatus ON AStatus.id = di.STATUS
 left JOIN UserInfo ui ON ui.userid = di.OwnerID
