@@ -64,12 +64,14 @@ SELECT F.FeatureId,
     F.UpdatedBy,
     F.Updated,
     F.overrideReason,
-    pcc.PRLBaseUnitGroupName As PlatformName
+    pcc.PRLBaseUnitGroupName As PlatformName,
+    o.Name as LinkedOperatingSystem
 FROM Feature F
 left JOIN FeatureCategory Fc ON Fc.FeatureCategoryID = F.FeatureCategoryID
 left JOIN DeliveryType Dt ON Dt.DeliveryTypeID = F.DeliveryTypeID
 left JOIN FeatureStatus Fs ON Fs.StatusID = F.StatusID
 left JOIN PlatformChassisCategory pcc on pcc.PlatformID = f.PlatformID
+left join OSLookup o on o.id = F.osid
 WHERE (
         @FeatureId = - 1
         OR F.FeatureId = @FeatureId
