@@ -128,7 +128,8 @@ SELECT p.id AS ProductId,
             THEN ''
         END AS PreinstallTeam,
     p.MachinePNPID AS MachinePNPID,
-    p.RCTOSites
+    p.RCTOSites,
+    p.IsNdaProduct
 FROM ProductVersion p
 left JOIN ProductFamily pf ON p.ProductFamilyId = pf.id
 left JOIN Partner partner ON partner.id = p.PartnerId
