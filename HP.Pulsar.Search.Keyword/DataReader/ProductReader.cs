@@ -29,6 +29,7 @@ public class ProductReader : IKeywordSearchDataReader
             GetLeadProductAsync(products),
             GetChipsetsAsync(products),
             GetCurrentBIOSVersionsAsync(products),
+            GetAvDetailAsync(products)
             GetFactoryNameAsync(products)
 //            GetComponentRootListAsync(products)
         };
@@ -244,7 +245,7 @@ GROUP BY pb.ProductVersionId
 ";
     }
 
-    private string GetProductGroupsCommandText() => "select t1.ProductVersionId, t2.FullName from ProductVersion_ProductGroup t1 join PROGRAM t2 on t1.ProductGroupId = t2.id";
+    private string GetProductGroupsCommandText() => "select t1.ProductVersionId as ProductId, t2.FullName from ProductVersion_ProductGroup t1 join PROGRAM t2 on t1.ProductGroupId = t2.id";
 
     private string GetTSQLLeadproductCommandText()
     {
@@ -274,7 +275,7 @@ WHERE p_c.ChipsetId IS NOT NULL
     {
         return @"
 SELECT dbo.Concatenate(v.version) AS TargetedVersions,
-    pd.ProductVersionId
+    pd.ProductVersionId as ProductId
 FROM (
     SELECT deliverableversionid,
         pd.productversionid
@@ -308,6 +309,19 @@ INNER JOIN product_Factory WITH (NOLOCK) ON ManufacturingSite.ManufacturingSiteI
     private string GetCurrentROMText()
     {
         return "Select id,currentROM,currentWebROM From ProductVersion";
+    }
+
+    private string GetAvDetailText()
+    {
+        return @"
+SELECT DISTINCT p.ID AS ProductId,
+    A.AvNo
+FROM productversion p
+LEFT JOIN Product_Brand PB ON PB.productVersionID = p.ID
+LEFT JOIN AvDetail_ProductBrand APB ON APB.productBrandID = PB.Id
+LEFT JOIN AvDetail A ON A.AvDetailID = APB.AvDetailID
+WHERE APB.STATUS = 'A'
+";
     }
 
     private async Task GetEndOfProductionDateAsync(IEnumerable<CommonDataModel> products)
@@ -380,7 +394,7 @@ INNER JOIN product_Factory WITH (NOLOCK) ON ManufacturingSite.ManufacturingSiteI
 
         while (await reader.ReadAsync())
         {
-            if (int.TryParse(reader["ProductVersionId"].ToString(), out int productId))
+            if (int.TryParse(reader["ProductId"].ToString(), out int productId))
             {
                 if (productGroups.ContainsKey(productId))
                 {
@@ -536,7 +550,7 @@ INNER JOIN product_Factory WITH (NOLOCK) ON ManufacturingSite.ManufacturingSiteI
 
         while (await reader.ReadAsync())
         {
-            if (!int.TryParse(reader["ProductVersionId"].ToString(), out int productId))
+            if (!int.TryParse(reader["ProductId"].ToString(), out int productId))
             {
                 continue;
             }
@@ -564,6 +578,43 @@ INNER JOIN product_Factory WITH (NOLOCK) ON ManufacturingSite.ManufacturingSiteI
             currentROM[productId] = (reader["currentROM"].ToString() , reader["currentWebROM"].ToString());
         }
         return currentROM;
+    }
+
+    private async Task GetAvDetailAsync(IEnumerable<CommonDataModel> products)
+    {
+        using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
+        await connection.OpenAsync();
+
+        SqlCommand command = new(GetAvDetailText(), connection);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, List<string>> avDetail = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (int.TryParse(reader["ProductId"].ToString(), out int productId))
+            {
+                if (avDetail.ContainsKey(productId))
+                {
+                    avDetail[productId].Add(reader["AvNo"].ToString());
+                }
+                else
+                {
+                    avDetail[productId] = new List<string> { reader["AvNo"].ToString() };
+                }
+            }
+        }
+
+        foreach (CommonDataModel product in products)
+        {
+            if (int.TryParse(product.GetValue("ProductId"), out int productId)
+                && avDetail.ContainsKey(productId))
+            {
+                for ( int i = 0 ; i < avDetail[productId].Count();  i++)
+                {
+                    product.Add("AvDetail " + i, avDetail[productId][i]);
+                }
+            }
+        }
     }
 
     private async Task GetFactoryNameAsync(IEnumerable<CommonDataModel> products)
@@ -604,5 +655,4 @@ INNER JOIN product_Factory WITH (NOLOCK) ON ManufacturingSite.ManufacturingSiteI
             }
         }
     }
-
 }
