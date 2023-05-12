@@ -96,14 +96,14 @@ WHERE (
             return @"
 SELECT dcr.id as ChangeRequestId,
     stuff((
-            SELECT ' { ' + e.Name 
+            SELECT '{' + e.Name 
             FROM ActionApproval AS a WITH (NOLOCK)
             left JOIN Employee AS e WITH (NOLOCK) ON a.ApproverId = e.Id
             left JOIN DeliverableIssues d WITH (NOLOCK) ON a.ActionId = d.Id
             WHERE d.id = dcr.id
             ORDER BY d.id
             FOR XML path('')
-            ), 1, 0, '') AS Approvers
+            ), 1, 1, '') AS Approvers
 FROM DeliverableIssues dcr
 GROUP BY dcr.id
 ";
@@ -273,7 +273,7 @@ GROUP BY dcr.id
                 if (int.TryParse(dcr.GetValue("ChangeRequestId"), out int changeRequestId)
                 && approvers.ContainsKey(changeRequestId))
                 {
-                    string[] approverList = approvers[changeRequestId].Split('\u002C');
+                    string[] approverList = approvers[changeRequestId].Split('{');
                     for (int i = 0; i < approverList.Length; i++)
                     {
                         dcr.Add("Approvals " + i , approverList[i]);

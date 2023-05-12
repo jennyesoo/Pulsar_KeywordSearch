@@ -104,12 +104,11 @@ namespace HP.Pulsar.Search.Keyword.DataReader
     Dv.IconTaskBarIcon,
     Dv.SettingFWML,
     Dv.SettingUWPCompliant,
-    Dv.Active,
+    Dv.Active as Visibility,
     cts.Name AS TransferServer,
     Dv.SubmissionPath,
     Dv.VendorVersion,
     Dv.Comments,
-    Dv.IntroDate,
     Dv.EndOfLifeDate,
     Dv.Rompaq,
     Dv.PreinstallROM,
@@ -294,7 +293,25 @@ WHERE (
                 {
                     rootversion.Delete("IconTaskBarIcon");
                 }
-
+                
+                if (rootversion.GetValue("IsSoftPaqInPreinstall").Equals("True"))
+                {
+                    rootversion.Add("IsSoftPaqInPreinstall", "SoftPaq In Preinstall");
+                }
+                else
+                {
+                    rootversion.Delete("IsSoftPaqInPreinstall");
+                }
+                
+                if (rootversion.GetValue("Visibility").Equals("True"))
+                {
+                    rootversion.Add("Visibility", "Active");
+                }
+                else
+                {
+                    rootversion.Delete("Visibility");
+                }
+                
                 if (GetCDAsync(rootversion).Equals(1))
                 {
                     rootversion.Add("CD", "CD");

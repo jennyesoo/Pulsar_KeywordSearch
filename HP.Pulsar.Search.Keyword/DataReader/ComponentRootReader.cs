@@ -156,12 +156,24 @@ WHERE (
 
         private string GetTSQLTrulyLinkedFeaturesCommandText()
         {
-            return "select ComponentRootId,FeatureId from Feature_Root where ComponentRootId >= 1 and AutoLinkage = 1 ";
+            return @"
+select fr.ComponentRootId,
+        fr.FeatureId,
+        f.FeatureName
+from Feature_Root fr
+JOIN Feature f WITH (NOLOCK) ON fr.FeatureID = f.FeatureID 
+where ComponentRootId >= 1 and AutoLinkage = 1";
         }
 
         private string GetTSQLLinkedFeaturesCommandText()
         {
-            return "select ComponentRootId,FeatureId from Feature_Root where ComponentRootId >= 1 and AutoLinkage = 0 ";
+            return @"
+select fr.ComponentRootId,
+        fr.FeatureId,
+        f.FeatureName
+from Feature_Root fr
+JOIN Feature f WITH (NOLOCK) ON fr.FeatureID = f.FeatureID 
+where ComponentRootId >= 1 and AutoLinkage = 0";
         }
 
         private string GetTSQLComponentInitiatedLinkageCommandText()
@@ -253,7 +265,8 @@ GROUP BY DR.Id
                     {
                         continue;
                     }
-                    if (!string.IsNullOrWhiteSpace(reader[i].ToString()))
+                    if (!string.IsNullOrWhiteSpace(reader[i].ToString()) &&
+                        !string.Equals(reader[i].ToString(),"None"))
                     {
                         string columnName = reader.GetName(i);
                         string value = reader[i].ToString().Trim();
@@ -289,13 +302,13 @@ GROUP BY DR.Id
                     root.Delete("DrDvd");
                 }
 
-                if (root.GetValue("PackagingSoftpaq").Equals("True"))
+                if (root.GetValue("PackagingSoftpaq").Equals("1"))
                 {
                     root.Add("PackagingSoftpaq", "Packaging Softpaq");
                 }
                 else
                 {
-                    root.Delete("ScriptPaq");
+                    root.Delete("PackagingSoftpaq");
                 }
 
                 if (root.GetValue("MsStore").Equals("True"))
@@ -486,8 +499,8 @@ GROUP BY DR.Id
                 {
                     root.Delete("Visibility");
                 }
-                Console.WriteLine("root.GetValue(\"IsSoftPaqInPreinstall\") : ", root.GetValue("IsSoftPaqInPreinstall"));
-                if (root.GetValue("IsSoftPaqInPreinstall").Equals("True"))
+
+                if (root.GetValue("IsSoftPaqInPreinstall").Equals("1"))
                 {
                     root.Add("IsSoftPaqInPreinstall", "SoftPaq In Preinstall");
                 }
@@ -495,8 +508,8 @@ GROUP BY DR.Id
                 {
                     root.Delete("IsSoftPaqInPreinstall");
                 }
-                Console.WriteLine("root.GetValue(\"Rompaq\") : ", root.GetValue("Rompaq"));
-                if (root.GetValue("Rompaq").Equals("True"))
+
+                if (root.GetValue("Rompaq").Equals("1"))
                 {
                     root.Add("Rompaq", "Rompaq Binary");
                 }
@@ -539,7 +552,7 @@ GROUP BY DR.Id
             SqlCommand command = new(GetTSQLTrulyLinkedFeaturesCommandText(), connection);
 
             using SqlDataReader reader = command.ExecuteReader();
-            Dictionary<int, List<string>> trulyLinkedFeatures = new();
+            Dictionary<int, List<(string,string)>> trulyLinkedFeatures = new();
 
             while (await reader.ReadAsync())
             {
@@ -550,11 +563,11 @@ GROUP BY DR.Id
 
                 if (trulyLinkedFeatures.ContainsKey(componentRootId))
                 {
-                    trulyLinkedFeatures[componentRootId].Add(reader["TrulyLinkedFeatures"].ToString());
+                    trulyLinkedFeatures[componentRootId].Add((reader["FeatureId"].ToString(), reader["FeatureName"].ToString()));
                 }
-                else
+                else 
                 {
-                    trulyLinkedFeatures[componentRootId] = new List<string>() { reader["TrulyLinkedFeatures"].ToString() };
+                    trulyLinkedFeatures[componentRootId] = new List<(string, string)>() { (reader["FeatureId"].ToString(), reader["FeatureName"].ToString()) };
                 }
             }
 
@@ -565,7 +578,9 @@ GROUP BY DR.Id
                 {
                     for (int i = 0; i < trulyLinkedFeatures[componentRootId].Count; i++)
                     {
-                        root.Add("TrulyLinkedFeatures" + i, trulyLinkedFeatures[componentRootId][i]);
+                        root.Add("TrulyLinkedFeatures Id" + i, trulyLinkedFeatures[componentRootId][i].Item1);
+                        root.Add("TrulyLinkedFeatures Name" + i, trulyLinkedFeatures[componentRootId][i].Item2);
+
                     }
                 }
             }
@@ -578,7 +593,7 @@ GROUP BY DR.Id
             SqlCommand command = new(GetTSQLLinkedFeaturesCommandText(), connection);
 
             using SqlDataReader reader = command.ExecuteReader();
-            Dictionary<int, List<string>> linkedFeatures = new();
+            Dictionary<int, List<(string,string)>> linkedFeatures = new();
 
             while (await reader.ReadAsync())
             {
@@ -589,11 +604,11 @@ GROUP BY DR.Id
 
                 if (linkedFeatures.ContainsKey(componentRootId))
                 {
-                    linkedFeatures[componentRootId].Add(reader["LinkedFeatures"].ToString());
+                    linkedFeatures[componentRootId].Add((reader["FeatureId"].ToString(), reader["FeatureName"].ToString()));
                 }
                 else
                 {
-                    linkedFeatures[componentRootId] = new List<string>() { reader["LinkedFeatures"].ToString() };
+                    linkedFeatures[componentRootId] = new List<(string, string)>() { (reader["FeatureId"].ToString(), reader["FeatureName"].ToString()) };
                 }
             }
 
@@ -604,7 +619,8 @@ GROUP BY DR.Id
                 {
                     for (int i = 0; i < linkedFeatures[componentRootId].Count; i++)
                     {
-                        root.Add("LinkedFeatures" + i, linkedFeatures[componentRootId][i]);
+                        root.Add("LinkedFeatures Id" + i, linkedFeatures[componentRootId][i].Item1);
+                        root.Add("LinkedFeatures Name" + i, linkedFeatures[componentRootId][i].Item2);
                     }
                 }
             }
@@ -617,7 +633,7 @@ GROUP BY DR.Id
             SqlCommand command = new(GetTSQLComponentInitiatedLinkageCommandText(), connection);
 
             using SqlDataReader reader = command.ExecuteReader();
-            Dictionary<int, List<string>> componentInitiatedLinkage = new();
+            Dictionary<int, List<(string,string)>> componentInitiatedLinkage = new();
 
             while (await reader.ReadAsync())
             {
@@ -628,11 +644,11 @@ GROUP BY DR.Id
 
                 if (componentInitiatedLinkage.ContainsKey(componentRootId))
                 {
-                    componentInitiatedLinkage[componentRootId].Add(reader["ComponentInitiatedLinkage"].ToString());
+                    componentInitiatedLinkage[componentRootId].Add((reader["FeatureId"].ToString(), reader["FeatureName"].ToString()));
                 }
                 else
                 {
-                    componentInitiatedLinkage[componentRootId] = new List<string>() { reader["ComponentInitiatedLinkage"].ToString() };
+                    componentInitiatedLinkage[componentRootId] = new List<(string, string)>() { (reader["FeatureId"].ToString(), reader["FeatureName"].ToString()) };
                 }
             }
 
@@ -643,7 +659,8 @@ GROUP BY DR.Id
                 {
                     for (int i = 0; i < componentInitiatedLinkage[componentRootId].Count; i++)
                     {
-                        root.Add("ComponentInitiatedLinkage" + i, componentInitiatedLinkage[componentRootId][i]);
+                        root.Add("ComponentInitiatedLinkage Id" + i, componentInitiatedLinkage[componentRootId][i].Item1);
+                        root.Add("ComponentInitiatedLinkage Name" + i, componentInitiatedLinkage[componentRootId][i].Item2);
                     }
                 }
             }
