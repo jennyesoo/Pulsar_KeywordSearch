@@ -30,6 +30,7 @@ public class ProductReader : IKeywordSearchDataReader
             GetChipsetsAsync(products),
             GetCurrentBIOSVersionsAsync(products),
             GetAvDetailAsync(products)
+            GetFactoryNameAsync(products)
 //            GetComponentRootListAsync(products)
         };
 
@@ -127,7 +128,9 @@ SELECT p.id AS ProductId,
         WHEN p.PreinstallTeam = 8
             THEN ''
         END AS PreinstallTeam,
-    p.MachinePNPID AS MachinePNPID
+    p.MachinePNPID AS MachinePNPID,
+    p.RCTOSites,
+    p.IsNdaProduct
 FROM ProductVersion p
 left JOIN ProductFamily pf ON p.ProductFamilyId = pf.id
 left JOIN Partner partner ON partner.id = p.PartnerId
@@ -185,7 +188,7 @@ WHERE   (
                 if (!string.IsNullOrWhiteSpace(reader[i].ToString()))
                 {
                     string columnName = reader.GetName(i);
-                    string value = reader[i].ToString();
+                    string value = reader[i].ToString().Trim();
                     product.Add(columnName, value);
                 }
             }
@@ -290,6 +293,16 @@ WHERE r.categoryid = 161
             )
         )
 GROUP BY pd.productversionid
+";
+    }
+
+    private string GetFactoryNameCommandText()
+    {
+        return @"
+select Name + ' (' + Code + ')' as FactoryName,
+        productversionID as ProductId
+from ManufacturingSite
+INNER JOIN product_Factory WITH (NOLOCK) ON ManufacturingSite.ManufacturingSiteId = product_Factory.FactoryID 
 ";
     }
 
@@ -604,5 +617,42 @@ WHERE APB.STATUS = 'A'
         }
     }
 
+    private async Task GetFactoryNameAsync(IEnumerable<CommonDataModel> products)
+    {
+        using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
+        await connection.OpenAsync();
+        SqlCommand command = new(GetFactoryNameCommandText(), connection);
 
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, List<string>> factoryName = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["ProductId"].ToString(), out int productId))
+            {
+                continue;
+            }
+
+            if (factoryName.ContainsKey(productId))
+            {
+                factoryName[productId].Add(reader["FactoryName"].ToString());
+            }
+            else
+            {
+                factoryName[productId] = new List<string>() { reader["FactoryName"].ToString() };
+            }
+        }
+
+        foreach (CommonDataModel product in products)
+        {
+            if (int.TryParse(product.GetValue("ProductId"), out int productId)
+              && factoryName.ContainsKey(productId))
+            {
+                for (int i = 0; i < factoryName[productId].Count; i++)
+                {
+                    product.Add("FactoryName" + i, factoryName[productId][i]);
+                }
+            }
+        }
+    }
 }

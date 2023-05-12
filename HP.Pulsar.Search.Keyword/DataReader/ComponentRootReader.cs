@@ -26,7 +26,10 @@ namespace HP.Pulsar.Search.Keyword.DataReader
             List<Task> tasks = new()
             {
                 GetPropertyValueAsync(componentRoot),
-                GetComponentRootListAsync(componentRoot)
+                GetComponentRootListAsync(componentRoot),
+                GetTrulyLinkedFeaturesAsync(componentRoot),
+                GetLinkedFeaturesAsync(componentRoot),
+                GetComponentInitiatedLinkageAsync(componentRoot)
             };
 
             await Task.WhenAll(tasks);
@@ -64,12 +67,10 @@ namespace HP.Pulsar.Search.Keyword.DataReader
     root.CDImage,
     root.ISOImage,
     root.CAB,
-    root.BINARY,
+    root.Binary,
     root.FloppyDisk,
-    root.PreinstallROM,
     root.CertRequired AS WHQLCertificationRequire,
-    root.ScriptPaq,
-    root.Softpaq,
+    root.ScriptPaq as PackagingSoftpaq,
     root.MultiLanguage,
     Sc.name AS SoftpaqCategory,
     root.Created,
@@ -112,7 +113,21 @@ namespace HP.Pulsar.Search.Keyword.DataReader
     root.FtpSitePath,
     root.DrDvd,
     root.MsStore,
-    root.ErdComments
+    root.ErdComments,
+    og.Name as SiFunctionTestGroup, 
+    root.Active as Visibility,
+    root.Notes as InternalNotes,
+    root.CDImage,
+    root.ISOImage,
+    root.AR,
+    root.FloppyDisk,
+    root.IsSoftPaqInPreinstall,
+    root.IconMenu,
+    root.RootFilename as ROMFamily,
+    root.Rompaq,
+    root.PreinstallROM,
+    root.CAB,
+    root.Softpaq as ROMSoftpaq
 FROM DeliverableRoot root
 LEFT JOIN vendor ON root.vendorid = vendor.id
 LEFT JOIN componentCategory cate ON cate.CategoryId = root.categoryid
@@ -125,6 +140,7 @@ LEFT JOIN ComponentPrismSWType CPSW ON CPSW.PRISMTypeID = root.PrismSWType
 LEFT JOIN SWSetupCategory sws ON sws.ID = root.SWSetupCategoryID
 LEFT JOIN ComponentTransferServer cts ON cts.Id = root.TransferServerId
 LEFT JOIN SoftpaqCategory Sc ON Sc.id = root.SoftpaqCategoryID
+LEFT JOIN OTSFVTOrganizations og on root.OTSFVTOrganizationID  = og.id 
 WHERE (
         @ComponentRootId = - 1
         OR root.id = @ComponentRootId
@@ -136,6 +152,38 @@ WHERE (
         4
         );
 ";
+        }
+
+        private string GetTSQLTrulyLinkedFeaturesCommandText()
+        {
+            return @"
+select fr.ComponentRootId,
+        fr.FeatureId,
+        f.FeatureName
+from Feature_Root fr
+JOIN Feature f WITH (NOLOCK) ON fr.FeatureID = f.FeatureID 
+where ComponentRootId >= 1 and AutoLinkage = 1";
+        }
+
+        private string GetTSQLLinkedFeaturesCommandText()
+        {
+            return @"
+select fr.ComponentRootId,
+        fr.FeatureId,
+        f.FeatureName
+from Feature_Root fr
+JOIN Feature f WITH (NOLOCK) ON fr.FeatureID = f.FeatureID 
+where ComponentRootId >= 1 and AutoLinkage = 0";
+        }
+
+        private string GetTSQLComponentInitiatedLinkageCommandText()
+        {
+            return @"
+SELECT fril.FeatureId AS FeatureId,
+    fril.ComponentRootId,
+    f.FeatureName AS FeatureName
+FROM Feature_Root_InitiatedLinkage fril WITH (NOLOCK)
+LEFT JOIN feature f WITH (NOLOCK) ON f.featureID = fril.FeatureId";
         }
 
         private string GetTSQLProductListCommandText()
@@ -217,10 +265,11 @@ GROUP BY DR.Id
                     {
                         continue;
                     }
-                    if (!string.IsNullOrWhiteSpace(reader[i].ToString()))
+                    if (!string.IsNullOrWhiteSpace(reader[i].ToString()) &&
+                        !string.Equals(reader[i].ToString(),"None"))
                     {
                         string columnName = reader.GetName(i);
-                        string value = reader[i].ToString();
+                        string value = reader[i].ToString().Trim();
                         root.Add(columnName, value);
                     }
                 }
@@ -253,13 +302,13 @@ GROUP BY DR.Id
                     root.Delete("DrDvd");
                 }
 
-                if (root.GetValue("ScriptPaq").Equals("True"))
+                if (root.GetValue("PackagingSoftpaq").Equals("1"))
                 {
-                    root.Add("ScriptPaq", "SoftPaq");
+                    root.Add("PackagingSoftpaq", "Packaging Softpaq");
                 }
                 else
                 {
-                    root.Delete("ScriptPaq");
+                    root.Delete("PackagingSoftpaq");
                 }
 
                 if (root.GetValue("MsStore").Equals("True"))
@@ -300,7 +349,7 @@ GROUP BY DR.Id
 
                 if (root.GetValue("PreinstallROM").Equals("1"))
                 {
-                    root.Add("PreinstallROM", "Preinstall");
+                    root.Add("PreinstallROM", "ROM Component Preinstall");
                 }
                 else
                 {
@@ -316,13 +365,13 @@ GROUP BY DR.Id
                     root.Delete("CAB");
                 }
 
-                if (root.GetValue("Softpaq").Equals("1"))
+                if (root.GetValue("ROMSoftpaq").Equals("1"))
                 {
-                    root.Add("Softpaq", "Softpaq");
+                    root.Add("ROMSoftpaq", "ROM component Softpaq");
                 }
                 else
                 {
-                    root.Delete("Softpaq");
+                    root.Delete("ROMSoftpaq");
                 }
 
                 if (root.GetValue("IconDesktop").Equals("True"))
@@ -451,6 +500,24 @@ GROUP BY DR.Id
                     root.Delete("Visibility");
                 }
 
+                if (root.GetValue("IsSoftPaqInPreinstall").Equals("1"))
+                {
+                    root.Add("IsSoftPaqInPreinstall", "SoftPaq In Preinstall");
+                }
+                else
+                {
+                    root.Delete("IsSoftPaqInPreinstall");
+                }
+
+                if (root.GetValue("Rompaq").Equals("1"))
+                {
+                    root.Add("Rompaq", "Rompaq Binary");
+                }
+                else
+                {
+                    root.Delete("Rompaq");
+                }
+
                 if (GetCDAsync(root).Equals(1))
                 {
                     root.Add("CD", "CD");
@@ -476,6 +543,127 @@ GROUP BY DR.Id
                 return 1;
             }
             return 0;
+        }
+
+        private async Task GetTrulyLinkedFeaturesAsync(IEnumerable<CommonDataModel> roots)
+        {
+            using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
+            await connection.OpenAsync();
+            SqlCommand command = new(GetTSQLTrulyLinkedFeaturesCommandText(), connection);
+
+            using SqlDataReader reader = command.ExecuteReader();
+            Dictionary<int, List<(string,string)>> trulyLinkedFeatures = new();
+
+            while (await reader.ReadAsync())
+            {
+                if (!int.TryParse(reader["ComponentRootId"].ToString(), out int componentRootId))
+                {
+                    continue;
+                }
+
+                if (trulyLinkedFeatures.ContainsKey(componentRootId))
+                {
+                    trulyLinkedFeatures[componentRootId].Add((reader["FeatureId"].ToString(), reader["FeatureName"].ToString()));
+                }
+                else 
+                {
+                    trulyLinkedFeatures[componentRootId] = new List<(string, string)>() { (reader["FeatureId"].ToString(), reader["FeatureName"].ToString()) };
+                }
+            }
+
+            foreach (CommonDataModel root in roots)
+            {
+                if (int.TryParse(root.GetValue("ComponentRootId"), out int componentRootId)
+                  && trulyLinkedFeatures.ContainsKey(componentRootId))
+                {
+                    for (int i = 0; i < trulyLinkedFeatures[componentRootId].Count; i++)
+                    {
+                        root.Add("TrulyLinkedFeatures Id" + i, trulyLinkedFeatures[componentRootId][i].Item1);
+                        root.Add("TrulyLinkedFeatures Name" + i, trulyLinkedFeatures[componentRootId][i].Item2);
+
+                    }
+                }
+            }
+        }
+
+        private async Task GetLinkedFeaturesAsync(IEnumerable<CommonDataModel> roots)
+        {
+            using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
+            await connection.OpenAsync();
+            SqlCommand command = new(GetTSQLLinkedFeaturesCommandText(), connection);
+
+            using SqlDataReader reader = command.ExecuteReader();
+            Dictionary<int, List<(string,string)>> linkedFeatures = new();
+
+            while (await reader.ReadAsync())
+            {
+                if (!int.TryParse(reader["ComponentRootId"].ToString(), out int componentRootId))
+                {
+                    continue;
+                }
+
+                if (linkedFeatures.ContainsKey(componentRootId))
+                {
+                    linkedFeatures[componentRootId].Add((reader["FeatureId"].ToString(), reader["FeatureName"].ToString()));
+                }
+                else
+                {
+                    linkedFeatures[componentRootId] = new List<(string, string)>() { (reader["FeatureId"].ToString(), reader["FeatureName"].ToString()) };
+                }
+            }
+
+            foreach (CommonDataModel root in roots)
+            {
+                if (int.TryParse(root.GetValue("ComponentRootId"), out int componentRootId)
+                  && linkedFeatures.ContainsKey(componentRootId))
+                {
+                    for (int i = 0; i < linkedFeatures[componentRootId].Count; i++)
+                    {
+                        root.Add("LinkedFeatures Id" + i, linkedFeatures[componentRootId][i].Item1);
+                        root.Add("LinkedFeatures Name" + i, linkedFeatures[componentRootId][i].Item2);
+                    }
+                }
+            }
+        }
+
+        private async Task GetComponentInitiatedLinkageAsync(IEnumerable<CommonDataModel> roots)
+        {
+            using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
+            await connection.OpenAsync();
+            SqlCommand command = new(GetTSQLComponentInitiatedLinkageCommandText(), connection);
+
+            using SqlDataReader reader = command.ExecuteReader();
+            Dictionary<int, List<(string,string)>> componentInitiatedLinkage = new();
+
+            while (await reader.ReadAsync())
+            {
+                if (!int.TryParse(reader["ComponentRootId"].ToString(), out int componentRootId))
+                {
+                    continue;
+                }
+
+                if (componentInitiatedLinkage.ContainsKey(componentRootId))
+                {
+                    componentInitiatedLinkage[componentRootId].Add((reader["FeatureId"].ToString(), reader["FeatureName"].ToString()));
+                }
+                else
+                {
+                    componentInitiatedLinkage[componentRootId] = new List<(string, string)>() { (reader["FeatureId"].ToString(), reader["FeatureName"].ToString()) };
+                }
+            }
+
+            foreach (CommonDataModel root in roots)
+            {
+                if (int.TryParse(root.GetValue("ComponentRootId"), out int componentRootId)
+                  && componentInitiatedLinkage.ContainsKey(componentRootId))
+                {
+                    for (int i = 0; i < componentInitiatedLinkage[componentRootId].Count; i++)
+                    {
+                        root.Add("ComponentInitiatedLinkage Id" + i, componentInitiatedLinkage[componentRootId][i].Item1);
+                        root.Add("ComponentInitiatedLinkage Name" + i, componentInitiatedLinkage[componentRootId][i].Item2);
+                    }
+                }
+            }
         }
     }
 }

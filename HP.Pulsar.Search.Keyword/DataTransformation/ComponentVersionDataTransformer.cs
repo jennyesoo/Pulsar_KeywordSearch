@@ -5,7 +5,7 @@ namespace HP.Pulsar.Search.Keyword.DataTransformation
 {
     public class ComponentVersionDataTransformer : IDataTransformer
     {
-        private static readonly List<string> _datePropertyList = new() { "introdate" };
+        private static readonly List<string> _datePropertyList = new() { "MassProduction", "SampleDate" };
 
 
         public IEnumerable<CommonDataModel> Transform(IEnumerable<CommonDataModel> componentVersions)

@@ -89,12 +89,21 @@ public class MeiliSearchWriter
             }
         };
 
+        await _client.Index(_uid).UpdateSettingsAsync(newSettings);
+    }
+
+    public async Task UpdatePaginationAsync()
+    {
+        if (!await UidExistsAsync(_uid))
+        {
+            throw new ArgumentException("UID not found");
+        }
+
         var pagination = new Pagination
         {
             MaxTotalHits = 1000000
         };
 
-        await _client.Index(_uid).UpdateSettingsAsync(newSettings);
         await _client.Index(_uid).UpdatePaginationAsync(pagination);
     }
 }

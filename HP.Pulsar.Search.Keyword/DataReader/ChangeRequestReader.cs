@@ -55,6 +55,7 @@ SELECT di.id AS ChangeRequestId,
     di.Created AS DateSubmitter,
     di.actualDate AS DateClosed,
     pv.Dotsname AS Product,
+    DR.Name as ComponentRoot,
     di.summary AS Summary,
     AStatus.Name AS STATUS,
     ui.FirstName + ', ' + ui.LastName AS OWNER,
@@ -79,6 +80,7 @@ SELECT di.id AS ChangeRequestId,
     di.RASDiscoDate,
     di.OnStatusReport
 FROM Deliverableissues di
+left join DeliverableRoot DR on DR.id = di.DeliverableRootID
 left JOIN ProductVersion pv ON pv.id = di.ProductVersionID
 left JOIN ActionStatus AStatus ON AStatus.id = di.STATUS
 left JOIN UserInfo ui ON ui.userid = di.OwnerID
@@ -94,14 +96,14 @@ WHERE (
             return @"
 SELECT dcr.id as ChangeRequestId,
     stuff((
-            SELECT ' { ' + e.Name 
+            SELECT '{' + e.Name 
             FROM ActionApproval AS a WITH (NOLOCK)
             left JOIN Employee AS e WITH (NOLOCK) ON a.ApproverId = e.Id
             left JOIN DeliverableIssues d WITH (NOLOCK) ON a.ActionId = d.Id
             WHERE d.id = dcr.id
             ORDER BY d.id
             FOR XML path('')
-            ), 1, 0, '') AS Approvers
+            ), 1, 1, '') AS Approvers
 FROM DeliverableIssues dcr
 GROUP BY dcr.id
 ";
@@ -132,7 +134,7 @@ GROUP BY dcr.id
                     if (!string.IsNullOrWhiteSpace(reader[i].ToString()))
                     {
                         string columnName = reader.GetName(i);
-                        string value = reader[i].ToString();
+                        string value = reader[i].ToString().Trim();
                         changeRequest.Add(columnName, value);
                     }
                 }
@@ -271,7 +273,7 @@ GROUP BY dcr.id
                 if (int.TryParse(dcr.GetValue("ChangeRequestId"), out int changeRequestId)
                 && approvers.ContainsKey(changeRequestId))
                 {
-                    string[] approverList = approvers[changeRequestId].Split('\u002C');
+                    string[] approverList = approvers[changeRequestId].Split('{');
                     for (int i = 0; i < approverList.Length; i++)
                     {
                         dcr.Add("Approvals " + i , approverList[i]);
