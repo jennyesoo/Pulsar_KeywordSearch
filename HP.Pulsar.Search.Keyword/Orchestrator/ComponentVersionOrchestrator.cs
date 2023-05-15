@@ -25,6 +25,9 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator
             ComponentVersionDataTransformer tranformer = new();
             versions = tranformer.Transform(versions);
 
+            // summary property
+            ElementKeyContainer.Add(versions.SelectMany(p => p.GetKeys()).Distinct<string>());
+
             // write to meiliesearch
             MeiliSearchWriter writer = new(KeywordSearchInfo.SearchEngineUrl, KeywordSearchInfo.SearchEngineIndexName);
 

@@ -26,6 +26,9 @@ internal class ProductOrchestrator : IInitializationOrchestrator
         ProductDataTransformer tranformer = new();
         products = tranformer.Transform(products);
 
+        // summary property
+        ElementKeyContainer.Add(products.SelectMany(p => p.GetKeys()).Distinct<string>());
+
         // write to meiliesearch
         MeiliSearchWriter writer = new(KeywordSearchInfo.SearchEngineUrl, KeywordSearchInfo.SearchEngineIndexName);
 

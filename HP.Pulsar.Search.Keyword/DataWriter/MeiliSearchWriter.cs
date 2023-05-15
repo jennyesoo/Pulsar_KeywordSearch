@@ -1,4 +1,5 @@
-﻿using HP.Pulsar.Search.Keyword.CommonDataStructure;
+﻿using System.Xml.Linq;
+using HP.Pulsar.Search.Keyword.CommonDataStructure;
 using Meilisearch;
 
 namespace HP.Pulsar.Search.Keyword.DataWriter;
@@ -105,5 +106,25 @@ public class MeiliSearchWriter
         };
 
         await _client.Index(_uid).UpdatePaginationAsync(pagination);
+    }
+
+    public async Task UpdateSearchableAttributesAsync(IEnumerable<string> searchableAttributes)
+    {
+        if (!await UidExistsAsync(_uid))
+        {
+            throw new ArgumentException("UID not found");
+        }
+
+        if (searchableAttributes == null)
+        {
+            throw new ArgumentException("searchableAttributes not found");
+        }
+
+        if (searchableAttributes?.Any() != true)
+        {
+            return;
+        }
+
+        await _client.Index(_uid).UpdateSearchableAttributesAsync(searchableAttributes);
     }
 }

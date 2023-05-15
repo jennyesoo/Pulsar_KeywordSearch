@@ -1,5 +1,4 @@
-﻿using System.Globalization;
-using HP.Pulsar.Search.Keyword.CommonDataStructure;
+﻿using HP.Pulsar.Search.Keyword.CommonDataStructure;
 using HP.Pulsar.Search.Keyword.DataReader;
 using HP.Pulsar.Search.Keyword.DataTransformation;
 using HP.Pulsar.Search.Keyword.DataWriter;
@@ -25,6 +24,9 @@ internal class ComponentRootOrchestrator : IInitializationOrchestrator
         // data processing
         ComponentRootTransformer tranformer = new();
         roots = tranformer.Transform(roots);
+
+        // summary property
+        ElementKeyContainer.Add(roots.SelectMany(p => p.GetKeys()).Distinct<string>());
 
         // write to meiliesearch
         MeiliSearchWriter writer = new(KeywordSearchInfo.SearchEngineUrl, KeywordSearchInfo.SearchEngineIndexName);

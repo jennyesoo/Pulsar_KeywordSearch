@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using HP.Pulsar.Search.Keyword.CommonDataStructure;
+﻿using HP.Pulsar.Search.Keyword.CommonDataStructure;
 using HP.Pulsar.Search.Keyword.DataReader;
 using HP.Pulsar.Search.Keyword.DataTransformation;
 using HP.Pulsar.Search.Keyword.DataWriter;
@@ -29,6 +24,9 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator
             // data processing
             FeatureDataTransformer tranformer = new();
             features = tranformer.Transform(features);
+
+            // summary property
+            ElementKeyContainer.Add(features.SelectMany(p => p.GetKeys()).Distinct<string>());
 
             // write to meiliesearch
             MeiliSearchWriter writer = new(KeywordSearchInfo.SearchEngineUrl, KeywordSearchInfo.SearchEngineIndexName);

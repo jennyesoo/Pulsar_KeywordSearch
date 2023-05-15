@@ -1,4 +1,5 @@
-﻿using HP.Pulsar.Search.Keyword.Infrastructure;
+﻿using HP.Pulsar.Search.Keyword.DataWriter;
+using HP.Pulsar.Search.Keyword.Infrastructure;
 
 namespace HP.Pulsar.Search.Keyword.Orchestrator;
 
@@ -6,8 +7,11 @@ public class Initialization
 {
     private readonly List<IInitializationOrchestrator> _orchestrators;
 
+    private readonly KeywordSearchInfo _keywordSearchInfo;
+
     public Initialization(KeywordSearchInfo info)
     {
+        _keywordSearchInfo = info;
         _orchestrators = new()
         {
             new ProductOrchestrator(info),
@@ -26,6 +30,12 @@ public class Initialization
         {
             Console.WriteLine("Read Data : " + item);
             await item.InitializeAsync();
+        }
+
+        MeiliSearchWriter writer = new(_keywordSearchInfo.SearchEngineUrl, _keywordSearchInfo.SearchEngineIndexName);
+        if (await writer.UidExistsAsync(_keywordSearchInfo.SearchEngineIndexName))
+        {
+            await writer.UpdateSearchableAttributesAsync(ElementKeyContainer.Get());
         }
     }
 }
