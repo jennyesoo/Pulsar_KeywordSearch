@@ -99,7 +99,7 @@ WHERE (
                         hpAMOPartNumber.Add(columnName, value);
                     }
                 }
-                hpAMOPartNumber.Add("target", "HpAMOPartNumber");
+                hpAMOPartNumber.Add("target", "HpAmoPartNumber");
                 hpAMOPartNumber.Add("Id", SearchIdName.HpAMOPartNumber + hpAMOPartNumber.GetValue("HpAMOPartNumberId"));
                 output.Add(hpAMOPartNumber);
             }

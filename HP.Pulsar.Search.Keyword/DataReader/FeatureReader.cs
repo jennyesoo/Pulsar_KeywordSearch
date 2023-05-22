@@ -108,7 +108,7 @@ WHERE (
                         feature.Add(columnName, value);
                     }
                 }
-                feature.Add("target", "feature");
+                feature.Add("target", "Feature");
                 feature.Add("Id", SearchIdName.Feature + feature.GetValue("FeatureId"));
                 output.Add(feature);
             }

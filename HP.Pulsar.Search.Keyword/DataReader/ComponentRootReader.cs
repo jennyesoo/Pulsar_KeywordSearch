@@ -273,7 +273,7 @@ GROUP BY DR.Id
                         root.Add(columnName, value);
                     }
                 }
-                root.Add("target", "Component Root");
+                root.Add("target", "ComponentRoot");
                 root.Add("Id", SearchIdName.Root + root.GetValue("ComponentRootId"));
                 output.Add(root);
             }

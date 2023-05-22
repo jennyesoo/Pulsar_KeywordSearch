@@ -192,7 +192,7 @@ WHERE   (
                     product.Add(columnName, value);
                 }
             }
-            product.Add("target", "product");
+            product.Add("target", "Product");
             product.Add("Id", SearchIdName.Product + product.GetValue("ProductId"));
             output.Add(product);
         }
