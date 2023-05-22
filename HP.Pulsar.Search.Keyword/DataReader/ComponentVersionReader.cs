@@ -71,7 +71,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
         {
             return @"SELECT Dv.ID AS ComponentVersionID,
     Dv.DeliverableRootID AS ComponentRootID,
-    Dv.DeliverableName AS ComponentName,
+    Dv.DeliverableName AS ComponentVersionName,
     Dv.Version,
     Dv.Revision,
     CPSW.Description AS PrismSWType,
