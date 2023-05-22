@@ -24,7 +24,7 @@ namespace HP.Pulsar.Search.Keyword.DataReader
             IEnumerable<CommonDataModel> componentVersions = await GetComponentVersionAsync();
             List<Task> tasks = new()
             {
-                GetPackagingAsync(componentVersions)
+                GetPropertyValueAsync(componentVersions)
             };
             await Task.WhenAll(tasks);
             return componentVersions;
@@ -119,7 +119,16 @@ namespace HP.Pulsar.Search.Keyword.DataReader
     Dv.PartNumber,
     Dv.CodeName,
     gs.Name as GreenSpecLevel,
-    Dv.IntroDate as MassProduction
+    Dv.IntroDate as MassProduction,
+    CASE WHEN root.TypeID = 1 THEN 'Hardware'
+    WHEN root.TypeID = 2 THEN 'Software'
+    WHEN root.TypeID = 3 THEN 'Firmware'
+    WHEN root.TypeID = 4 THEN 'Documentation'
+    WHEN root.TypeID = 5 THEN 'Image'
+    WHEN root.TypeID = 6 THEN 'Certification'
+    WHEN root.TypeID = 7 THEN 'Softpaq'
+    WHEN root.TypeID = 8 THEN 'Factory'
+    END AS ComponentType
 FROM DeliverableVersion Dv
 LEFT JOIN ComponentPrismSWType CPSW ON CPSW.PRISMTypeID = Dv.PrismSWType
 left JOIN userinfo user1 ON user1.userid = Dv.DeveloperID
@@ -129,6 +138,7 @@ LEFT JOIN ComponentBuildLevel cbl ON cbl.ComponentBuildLevelId = Dv.LevelID
 LEFT JOIN SWSetupCategory sws ON sws.ID = Dv.SWSetupCategoryID
 LEFT JOIN ComponentTransferServer cts ON cts.Id = Dv.TransferServerId
 LEFT JOIN GreenSpec gs on gs.id = Dv.GreenSpecID
+LEFT JOIN DeliverableRoot root on root.id = Dv.DeliverableRootID
 WHERE (
         @ComponentVersionId = - 1
         OR Dv.ID = @ComponentVersionId
@@ -136,7 +146,7 @@ WHERE (
 ";
         }
 
-        private async Task GetPackagingAsync(IEnumerable<CommonDataModel> componentVersions)
+        private async Task GetPropertyValueAsync(IEnumerable<CommonDataModel> componentVersions)
         {
             foreach (CommonDataModel rootversion in componentVersions)
             {
@@ -339,95 +349,30 @@ WHERE (
             return 0;
         }
 
-        private async Task GetTouchPointAsync(IEnumerable<CommonDataModel> componentVersions)
-        {
-            foreach (CommonDataModel rootversion in componentVersions)
-            {                
-                if (rootversion.GetValue("IconDesktop").Equals("True"))
-                {
-                    rootversion.Add("IconDesktop" , "Desktop");
-                }
-                else
-                {
-                    rootversion.Delete("IconDesktop");
-                }
-
-                if (rootversion.GetValue("IconMenu").Equals("True"))
-                {
-                    rootversion.Add("IconMenu","Start Menu");
-                }
-                else
-                {
-                    rootversion.Delete("IconMenu");
-                }
-
-                if (rootversion.GetValue("IconTray").Equals("True"))
-                {
-                    rootversion.Add("IconTray","System Tray");
-                }
-                else
-                {
-                    rootversion.Delete("IconTray");
-                }
-
-                if (rootversion.GetValue("IconPanel").Equals("True"))
-                {
-                    rootversion.Add("IconPanel" , "Control Panel");
-                }
-                else
-                {
-                    rootversion.Delete("IconPanel");
-                }
-
-                if (rootversion.GetValue("IconInfoCenter").Equals("True"))
-                {
-                    rootversion.Add("IconInfoCenter" , "Info Center");
-                }
-                else
-                {
-                    rootversion.Delete("IconInfoCenter");
-                }
-
-                if (rootversion.GetValue("IconTile").Equals("True"))
-                {
-                    rootversion.Add("IconTile" , "Start Menu Tile");
-                }
-                else
-                {
-                    rootversion.Delete("IconTile");
-                }
-
-                if (rootversion.GetValue("IconTaskBarIcon").Equals("True"))
-                {
-                    rootversion.Add("IconTaskBarIcon" , "Task Pinned Icon");
-                }
-                else
-                {
-                    rootversion.Delete("IconTaskBarIcon");
-                }
-            }
-        }
-
-        private async Task GetOtherSettingAsync(IEnumerable<CommonDataModel> componentVersions)
+        private async Task GetDifferentPropertyNameBasedOnCategoryAsync(IEnumerable<CommonDataModel> componentVersions)
         {
             foreach (CommonDataModel rootversion in componentVersions)
             {
-                if (rootversion.GetValue("SettingFWML").Equals("True"))
+                if (rootversion.GetValue("ComponentType").Equals("Hardware"))
                 {
-                    rootversion.Add("SettingFWML","FWML");
-                }
-                else
-                {
-                    rootversion.Delete("SettingFWML");
-                }
+                    if (!string.IsNullOrWhiteSpace(rootversion.GetValue("Version")))
+                    {
+                        rootversion.Add("HardwareVersion", rootversion.GetValue("Version"));
+                    }
 
-                if (rootversion.GetValue("SettingUWPCompliant").Equals("True"))
-                {
-                    rootversion.Add("SettingUWPCompliant","UWP Compliant");
-                }
-                else
-                {
-                    rootversion.Delete("SettingUWPCompliant");
+                    if (!string.IsNullOrWhiteSpace(rootversion.GetValue("Revision")))
+                    {
+                        rootversion.Add("FirmwareVersion", rootversion.GetValue("Revision"));
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(rootversion.GetValue("Pass")))
+                    {
+                        rootversion.Add("Rev", rootversion.GetValue("Pass"));
+                    }
+
+                    rootversion.Delete("Version");
+                    rootversion.Delete("Revision");
+                    rootversion.Delete("Pass");
                 }
             }
         }
