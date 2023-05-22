@@ -26,16 +26,23 @@ public class Initialization
 
     public async Task InitAsync()
     {
+        List<Task> tasks = new();
+
         foreach (IInitializationOrchestrator item in _orchestrators)
         {
-            Console.WriteLine("Read Data : " + item);
-            await item.InitializeAsync();
+            tasks.Add(item.InitializeAsync());
         }
 
+        await Task.WhenAll(tasks);
+
         MeiliSearchWriter writer = new(_keywordSearchInfo.SearchEngineUrl, _keywordSearchInfo.SearchEngineIndexName);
+
         if (await writer.UidExistsAsync(_keywordSearchInfo.SearchEngineIndexName))
         {
             await writer.UpdateSearchableAttributesAsync(ElementKeyContainer.Get());
         }
+
+        // TODO - Determine if meilisearch finishs the job
+
     }
 }

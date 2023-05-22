@@ -8,14 +8,16 @@ internal class Program
 {
     private static async Task Main(string[] args)
     {
-        Console.WriteLine("Hello, World!");
+        Console.WriteLine("start...");
+
+        DateTime start = DateTime.Now;
 
         KeywordSearchInfo info = new()
         {
             DatabaseConnectionString = "xxxxx",
             Environment = PulsarEnvironment.Dev,
             SearchEngineUrl = "http://15.36.147.177:7700/",
-            SearchEngineIndexName = "Pulsar4"
+            SearchEngineIndexName = "Pulsar6"
         };
 
         ////delete meilisearch index
@@ -25,6 +27,10 @@ internal class Program
         // init
         Initialization init = new(info);
         await init.InitAsync();
+
+        DateTime end = DateTime.Now;
+
+        Console.WriteLine("total seconds = " + (end - start).TotalSeconds);
 
         /*
         // search
