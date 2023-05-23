@@ -24,7 +24,8 @@ namespace HP.Pulsar.Search.Keyword.DataReader
             IEnumerable<CommonDataModel> componentVersions = await GetComponentVersionAsync();
             List<Task> tasks = new()
             {
-                GetPropertyValueAsync(componentVersions)
+                GetPropertyValueAsync(componentVersions),
+                GetDifferentPropertyNameBasedOnCategoryAsync(componentVersions)
             };
             await Task.WhenAll(tasks);
             return componentVersions;
