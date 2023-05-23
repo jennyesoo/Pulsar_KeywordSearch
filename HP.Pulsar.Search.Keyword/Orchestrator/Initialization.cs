@@ -1,4 +1,4 @@
-﻿using HP.Pulsar.Search.Keyword.DataWriter;
+﻿using HP.Pulsar.Search.Keyword.SearchEngine;
 using HP.Pulsar.Search.Keyword.Infrastructure;
 
 namespace HP.Pulsar.Search.Keyword.Orchestrator;
@@ -35,14 +35,8 @@ public class Initialization
 
         await Task.WhenAll(tasks);
 
-        MeiliSearchWriter writer = new(_keywordSearchInfo.SearchEngineUrl, _keywordSearchInfo.SearchEngineIndexName);
+        MeiliSearchClient writer = new(_keywordSearchInfo.SearchEngineUrl, _keywordSearchInfo.SearchEngineIndexName);
 
-        if (await writer.UidExistsAsync(_keywordSearchInfo.SearchEngineIndexName))
-        {
-            await writer.UpdateSearchableAttributesAsync(ElementKeyContainer.Get());
-        }
-
-        // TODO - Determine if meilisearch finishs the job
-
+        await writer.UpdateSearchableAttributesAsync(ElementKeyContainer.Get());
     }
 }

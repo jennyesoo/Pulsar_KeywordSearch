@@ -1,7 +1,7 @@
 ﻿using HP.Pulsar.Search.Keyword.CommonDataStructure;
 using HP.Pulsar.Search.Keyword.DataReader;
 using HP.Pulsar.Search.Keyword.DataTransformation;
-using HP.Pulsar.Search.Keyword.DataWriter;
+using HP.Pulsar.Search.Keyword.SearchEngine;
 using HP.Pulsar.Search.Keyword.Infrastructure;
 
 namespace HP.Pulsar.Search.Keyword.Orchestrator;
@@ -29,16 +29,12 @@ internal class ComponentRootOrchestrator : IInitializationOrchestrator
         ElementKeyContainer.Add(roots.SelectMany(p => p.GetKeys()).Distinct<string>());
 
         // write to meiliesearch
-        MeiliSearchWriter writer = new(KeywordSearchInfo.SearchEngineUrl, KeywordSearchInfo.SearchEngineIndexName);
+        MeiliSearchClient writer = new(KeywordSearchInfo.SearchEngineUrl, KeywordSearchInfo.SearchEngineIndexName);
 
-        if (!await writer.UidExistsAsync(KeywordSearchInfo.SearchEngineIndexName))
-        {
-            await writer.CreateIndexAsync();
-            await writer.UpdateSettingAsync();
-            await writer.UpdatePaginationAsync();
-        }
+        await writer.SendIndexCreationAsync();
+        await writer.SendUpdateSettingAsync();
+        await writer.SendUpdatePaginationAsync();
 
-        await writer.AddElementsAsync(roots);
-
+        await writer.SendElementsCreationAsync(roots);
     }
 }

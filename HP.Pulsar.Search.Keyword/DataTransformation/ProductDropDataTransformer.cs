@@ -1,26 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using HP.Pulsar.Search.Keyword.CommonDataStructure;
+﻿using HP.Pulsar.Search.Keyword.CommonDataStructure;
 
-namespace HP.Pulsar.Search.Keyword.DataTransformation
+namespace HP.Pulsar.Search.Keyword.DataTransformation;
+
+public class ProductDropDataTransformer : IDataTransformer
 {
-    public class ProductDropDataTransformer : IDataTransformer
-    {
-        private static readonly List<string> _datePropertyList = new() { "CreatedDate", "UpdatedDate", "UpcomingRTMDate" };
+    private static readonly List<string> _datePropertyList = new() { "CreatedDate", "UpdatedDate", "UpcomingRTMDate" };
 
-        public IEnumerable<CommonDataModel> Transform(IEnumerable<CommonDataModel> productDrop)
+    public IEnumerable<CommonDataModel> Transform(IEnumerable<CommonDataModel> productDrop)
+    {
+        foreach (CommonDataModel dcr in productDrop)
         {
-            foreach (CommonDataModel dcr in productDrop)
+            foreach (string key in dcr.GetKeys())
             {
-                foreach (string key in dcr.GetKeys())
-                {
-                    dcr.Add(key, CommonDataTransformer.DataProcessingInitializationCombination(_datePropertyList, dcr.GetValue(key), key));
-                }
+                dcr.Add(key, CommonDataTransformer.DataProcessingInitializationCombination(_datePropertyList, dcr.GetValue(key), key));
             }
-            return productDrop;
         }
+
+        return productDrop;
     }
 }

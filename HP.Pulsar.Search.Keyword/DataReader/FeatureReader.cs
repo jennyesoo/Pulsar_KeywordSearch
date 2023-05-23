@@ -1,47 +1,41 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using HP.Pulsar.Search.Keyword.CommonDataStructure;
+﻿using HP.Pulsar.Search.Keyword.CommonDataStructure;
 using HP.Pulsar.Search.Keyword.Infrastructure;
 using Microsoft.Data.SqlClient;
 
-namespace HP.Pulsar.Search.Keyword.DataReader
+namespace HP.Pulsar.Search.Keyword.DataReader;
+
+public class FeatureReader
 {
-    public class FeatureReader
+    private ConnectionStringProvider _csProvider;
+
+    public FeatureReader(KeywordSearchInfo info)
     {
-        private ConnectionStringProvider _csProvider;
+        _csProvider = new(info.Environment);
+    }
 
-        public FeatureReader(KeywordSearchInfo info)
+    public async Task<CommonDataModel> GetDataAsync(int featureId)
+    {
+        throw new NotImplementedException();
+    }
+
+    public async Task<IEnumerable<CommonDataModel>> GetDataAsync()
+    {
+        IEnumerable<CommonDataModel> features = await GetFeaturesAsync();
+
+        List<Task> tasks = new()
         {
-            _csProvider = new(info.Environment);
-        }
+            GetComponentInitiatedLinkageAsync(features),
+            GetPropertyValueAsync(features)
+        };
 
-        public async Task<CommonDataModel> GetDataAsync(int featureId)
-        {
-            throw new NotImplementedException();
-        }
+        await Task.WhenAll(tasks);
 
-        public async Task<IEnumerable<CommonDataModel>> GetDataAsync()
-        {
-            IEnumerable<CommonDataModel> features = await GetFeaturesAsync();
+        return features;
+    }
 
-            List<Task> tasks = new()
-            {
-                GetComponentInitiatedLinkageAsync(features),
-                GetPropertyValueAsync(features)
-            };
-
-            await Task.WhenAll(tasks);
-
-            return features;
-        }
-
-        private string GetFeaturesCommandText()
-        {
-            return @"
+    private string GetFeaturesCommandText()
+    {
+        return @"
 SELECT F.FeatureId,
     F.FeatureName,
     Fc.Name AS FeatureCategory,
@@ -77,23 +71,23 @@ WHERE (
         OR F.FeatureId = @FeatureId
         )
 ";
-        }
+    }
 
-        private async Task<IEnumerable<CommonDataModel>> GetFeaturesAsync()
+    private async Task<IEnumerable<CommonDataModel>> GetFeaturesAsync()
+    {
+        using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
+        await connection.OpenAsync();
+
+        SqlCommand command = new(GetFeaturesCommandText(), connection);
+        SqlParameter parameter = new("FeatureId", "-1");
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+
+        List<CommonDataModel> output = new();
+        while (reader.Read())
         {
-            using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
-            await connection.OpenAsync();
-
-            SqlCommand command = new(GetFeaturesCommandText(), connection);
-            SqlParameter parameter = new SqlParameter("FeatureId", "-1");
-            command.Parameters.Add(parameter);
-            using SqlDataReader reader = command.ExecuteReader();
-
-            List<CommonDataModel> output = new();
-            while (reader.Read())
-            {
-                CommonDataModel feature = new();
-                int fieldCount = reader.FieldCount;
+            CommonDataModel feature = new();
+            int fieldCount = reader.FieldCount;
 
                 for (int i = 0; i < fieldCount; i++)
                 {
@@ -108,78 +102,77 @@ WHERE (
                         feature.Add(columnName, value);
                     }
                 }
-                feature.Add("target", "Feature");
+                feature.Add("Target", "Feature");
                 feature.Add("Id", SearchIdName.Feature + feature.GetValue("FeatureId"));
                 output.Add(feature);
             }
 
-            return output;
-        }
+        return output;
+    }
 
-        private string GetComponentInitiatedLinkageCommandText()
-        {
-            return @"
+    private string GetComponentInitiatedLinkageCommandText()
+    {
+        return @"
 SELECT fril.FeatureId AS FeatureId,
     dr.ID AS ComponentId,
     dr.Name AS ComponentName
 FROM Feature_Root_InitiatedLinkage fril WITH (NOLOCK)
 left JOIN DeliverableRoot dr WITH (NOLOCK) ON dr.Id = fril.ComponentRootId
 ";
-        }
+    }
 
-        private async Task GetComponentInitiatedLinkageAsync(IEnumerable<CommonDataModel> features)
+    private async Task GetComponentInitiatedLinkageAsync(IEnumerable<CommonDataModel> features)
+    {
+        using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
+        await connection.OpenAsync();
+
+        SqlCommand command = new(GetComponentInitiatedLinkageCommandText(), connection);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, string> componentInitiatedLinkage = new();
+
+        while (await reader.ReadAsync())
         {
-            using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
-            await connection.OpenAsync();
-
-            SqlCommand command = new(GetComponentInitiatedLinkageCommandText(), connection);
-            using SqlDataReader reader = command.ExecuteReader();
-            Dictionary<int,string> componentInitiatedLinkage = new();
-
-            while (await reader.ReadAsync())
+            if (int.TryParse(reader["FeatureId"].ToString(), out int featureId))
             {
-                if (int.TryParse(reader["FeatureId"].ToString(), out int featureId))
+                if (componentInitiatedLinkage.ContainsKey(featureId))
                 {
-                    if (componentInitiatedLinkage.ContainsKey(featureId))
-                    {
-                        componentInitiatedLinkage[featureId] = $"{componentInitiatedLinkage[featureId]} {reader["ComponentId"]} - {reader["ComponentName"]} , ";
-                    }
-                    else
-                    {
-                        componentInitiatedLinkage[featureId] = $"{reader["ComponentId"]} - {reader["ComponentName"]} , ";
-                    }
-
-                }
-            }
-
-            foreach (CommonDataModel feature in features)
-            {
-                if (int.TryParse(feature.GetValue("FeatureId"), out int featureId)
-                    && componentInitiatedLinkage.ContainsKey(featureId))
-                {
-                    string[] componentInitiatedLinkageList = componentInitiatedLinkage[featureId].Split(',');
-                    for (int i = 0; i < componentInitiatedLinkageList.Length; i++)
-                    {
-                        feature.Add("ComponentInitiatedLinkage " + i , componentInitiatedLinkageList[i]);
-                    }
-                }
-            }
-        }
-
-        private async Task GetPropertyValueAsync(IEnumerable<CommonDataModel> features)
-        {
-            foreach (CommonDataModel feature in features)
-            {
-                if (feature.GetValue("RequiresRoot").Equals("True"))
-                {
-                    feature.Add("RequiresRoot", "Truly Linked");
+                    componentInitiatedLinkage[featureId] = $"{componentInitiatedLinkage[featureId]} {reader["ComponentId"]} - {reader["ComponentName"]} , ";
                 }
                 else
                 {
-                    feature.Delete("RequiresRoot");
+                    componentInitiatedLinkage[featureId] = $"{reader["ComponentId"]} - {reader["ComponentName"]} , ";
                 }
+
             }
         }
 
+        foreach (CommonDataModel feature in features)
+        {
+            if (int.TryParse(feature.GetValue("FeatureId"), out int featureId)
+                && componentInitiatedLinkage.ContainsKey(featureId))
+            {
+                string[] componentInitiatedLinkageList = componentInitiatedLinkage[featureId].Split(',');
+                for (int i = 0; i < componentInitiatedLinkageList.Length; i++)
+                {
+                    feature.Add("ComponentInitiatedLinkage " + i, componentInitiatedLinkageList[i]);
+                }
+            }
+        }
     }
+
+    private async Task GetPropertyValueAsync(IEnumerable<CommonDataModel> features)
+    {
+        foreach (CommonDataModel feature in features)
+        {
+            if (feature.GetValue("RequiresRoot").Equals("True"))
+            {
+                feature.Add("RequiresRoot", "Truly Linked");
+            }
+            else
+            {
+                feature.Delete("RequiresRoot");
+            }
+        }
+    }
+
 }

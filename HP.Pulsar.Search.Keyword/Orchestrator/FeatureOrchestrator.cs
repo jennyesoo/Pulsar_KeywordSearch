@@ -1,44 +1,40 @@
 ﻿using HP.Pulsar.Search.Keyword.CommonDataStructure;
 using HP.Pulsar.Search.Keyword.DataReader;
 using HP.Pulsar.Search.Keyword.DataTransformation;
-using HP.Pulsar.Search.Keyword.DataWriter;
+using HP.Pulsar.Search.Keyword.SearchEngine;
 using HP.Pulsar.Search.Keyword.Infrastructure;
 
-namespace HP.Pulsar.Search.Keyword.Orchestrator
+namespace HP.Pulsar.Search.Keyword.Orchestrator;
+
+internal class FeatureOrchestrator : IInitializationOrchestrator
 {
-    internal class FeatureOrchestrator : IInitializationOrchestrator
+    public FeatureOrchestrator(KeywordSearchInfo keywordSearchInfo)
     {
-        public FeatureOrchestrator(KeywordSearchInfo keywordSearchInfo)
-        {
-            KeywordSearchInfo = keywordSearchInfo;
-        }
+        KeywordSearchInfo = keywordSearchInfo;
+    }
 
-        public KeywordSearchInfo KeywordSearchInfo { get; }
+    public KeywordSearchInfo KeywordSearchInfo { get; }
 
-        public async Task InitializeAsync()
-        {
-            // read products from database
-            FeatureReader reader = new(KeywordSearchInfo);
-            IEnumerable<CommonDataModel> features = await reader.GetDataAsync();
+    public async Task InitializeAsync()
+    {
+        // read products from database
+        FeatureReader reader = new(KeywordSearchInfo);
+        IEnumerable<CommonDataModel> features = await reader.GetDataAsync();
 
-            // data processing
-            FeatureDataTransformer tranformer = new();
-            features = tranformer.Transform(features);
+        // data processing
+        FeatureDataTransformer tranformer = new();
+        features = tranformer.Transform(features);
 
-            // summary property
-            ElementKeyContainer.Add(features.SelectMany(p => p.GetKeys()).Distinct<string>());
+        // summary property
+        ElementKeyContainer.Add(features.SelectMany(p => p.GetKeys()).Distinct<string>());
 
-            // write to meiliesearch
-            MeiliSearchWriter writer = new(KeywordSearchInfo.SearchEngineUrl, KeywordSearchInfo.SearchEngineIndexName);
+        // write to meiliesearch
+        MeiliSearchClient writer = new(KeywordSearchInfo.SearchEngineUrl, KeywordSearchInfo.SearchEngineIndexName);
 
-            if (!await writer.UidExistsAsync(KeywordSearchInfo.SearchEngineIndexName))
-            {
-                await writer.CreateIndexAsync();
-                await writer.UpdateSettingAsync();
-                await writer.UpdatePaginationAsync();
-            }
+        await writer.SendIndexCreationAsync();
+        await writer.SendUpdateSettingAsync();
+        await writer.SendUpdatePaginationAsync();
 
-            await writer.AddElementsAsync(features);
-        }
+        await writer.SendElementsCreationAsync(features);
     }
 }

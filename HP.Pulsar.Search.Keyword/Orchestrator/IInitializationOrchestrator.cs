@@ -1,5 +1,4 @@
-﻿using HP.Pulsar.Search.Keyword.CommonDataStructure;
-using HP.Pulsar.Search.Keyword.Infrastructure;
+﻿using HP.Pulsar.Search.Keyword.Infrastructure;
 
 namespace HP.Pulsar.Search.Keyword.Orchestrator;
 

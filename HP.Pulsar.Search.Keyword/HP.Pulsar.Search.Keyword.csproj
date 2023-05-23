@@ -1,34 +1,34 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-	<PropertyGroup>
-		<TargetFramework>net7.0</TargetFramework>
-		<ImplicitUsings>enable</ImplicitUsings>
-		<Nullable>enable</Nullable>
-	</PropertyGroup>
-	<ItemGroup>
-		<Compile Remove="DataReader\PropertyProcessing.cs" />
-		<Compile Remove="DataReader\SqlServerStringCommand.cs" />
-	</ItemGroup>
-	<ItemGroup>
-		<None Remove="AppData\App.Beta" />
-		<None Remove="AppData\json-schema1.json" />
-		<None Remove="AppData\json-schema2.json" />
-	</ItemGroup>
+    <PropertyGroup>
+        <TargetFramework>net7.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+    <ItemGroup>
+        <Compile Remove="DataReader\PropertyProcessing.cs" />
+        <Compile Remove="DataReader\SqlServerStringCommand.cs" />
+    </ItemGroup>
+    <ItemGroup>
+        <None Remove="AppData\App.Beta" />
+        <None Remove="AppData\json-schema1.json" />
+        <None Remove="AppData\json-schema2.json" />
+    </ItemGroup>
 
-	<ItemGroup>
-		<PackageReference Include="HiNetCloud.System.Data.Entity.Design.PluralizationServices" Version="23.1.30.12" />
-		<PackageReference Include="LemmaGenerator" Version="1.1.0" />
-		<PackageReference Include="MeiliSearch" Version="0.13.1" />
-		<PackageReference Include="Microsoft.Data.SqlClient" Version="5.1.0" />
-		<PackageReference Include="Microsoft.Extensions.Configuration" Version="7.0.0" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="7.0.0" />
-		<PackageReference Include="System.Text.Json" Version="7.0.2" />
-		<PackageReference Include="ConcurrentHashSet" Version="1.3.0" />
-	</ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="ConcurrentHashSet" Version="1.3.0" />
+        <PackageReference Include="HiNetCloud.System.Data.Entity.Design.PluralizationServices" Version="23.1.30.12" />
+        <PackageReference Include="LemmaGenerator" Version="1.1.0" />
+        <PackageReference Include="MeiliSearch" Version="0.13.1" />
+        <PackageReference Include="Microsoft.Data.SqlClient" Version="5.1.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration" Version="7.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="7.0.0" />
+        <PackageReference Include="System.Text.Json" Version="7.0.2" />
+    </ItemGroup>
 
-	<ItemGroup>
-		<None Update="References\full7z-mlteast-en-modified.lem">
-			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</None>
-	</ItemGroup>
+    <ItemGroup>
+        <None Update="References\full7z-mlteast-en-modified.lem">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
 
 </Project>

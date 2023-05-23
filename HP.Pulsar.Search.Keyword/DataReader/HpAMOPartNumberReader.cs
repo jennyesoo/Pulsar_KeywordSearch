@@ -1,36 +1,31 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using HP.Pulsar.Search.Keyword.CommonDataStructure;
+﻿using HP.Pulsar.Search.Keyword.CommonDataStructure;
 using HP.Pulsar.Search.Keyword.Infrastructure;
 using Microsoft.Data.SqlClient;
 
-namespace HP.Pulsar.Search.Keyword.DataReader
+namespace HP.Pulsar.Search.Keyword.DataReader;
+
+internal class HpAMOPartNumberReader : IKeywordSearchDataReader
 {
-    internal class HpAMOPartNumberReader : IKeywordSearchDataReader
+    private ConnectionStringProvider _csProvider;
+
+    public HpAMOPartNumberReader(KeywordSearchInfo info)
     {
-        private ConnectionStringProvider _csProvider;
+        _csProvider = new(info.Environment);
+    }
 
-        public HpAMOPartNumberReader(KeywordSearchInfo info)
-        {
-            _csProvider = new(info.Environment);
-        }
+    public async Task<CommonDataModel> GetDataAsync(int featureId)
+    {
+        throw new NotImplementedException();
+    }
 
-        public async Task<CommonDataModel> GetDataAsync(int featureId)
-        {
-            throw new NotImplementedException();
-        }
+    public async Task<IEnumerable<CommonDataModel>> GetDataAsync()
+    {
+        return await GetHpAMOPartNumberAsync();
+    }
 
-        public async Task<IEnumerable<CommonDataModel>> GetDataAsync()
-        {
-             return await GetHpAMOPartNumberAsync();
-        }
-
-        private string GetHpAMOPartNumberCommandText()
-        {
-            return @"
+    private string GetHpAMOPartNumberCommandText()
+    {
+        return @"
 SELECT hppn.AmoHpPartNumberID AS HpAMOPartNumberId,
     hppn.HpPartNo AS HpPartNumber,
     CASE 
@@ -68,42 +63,44 @@ WHERE (
         OR hppn.AmoHpPartNumberID = @HpAMOPartNumberId
         )
 ";
-        }
+    }
 
-        private async Task<IEnumerable<CommonDataModel>> GetHpAMOPartNumberAsync()
+    private async Task<IEnumerable<CommonDataModel>> GetHpAMOPartNumberAsync()
+    {
+        using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
+        await connection.OpenAsync();
+
+        SqlCommand command = new(GetHpAMOPartNumberCommandText(), connection);
+        SqlParameter parameter = new("HpAMOPartNumberId", "-1");
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+
+        List<CommonDataModel> output = new();
+
+        while (reader.Read())
         {
-            using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
-            await connection.OpenAsync();
+            CommonDataModel hpAMOPartNumber = new();
+            int fieldCount = reader.FieldCount;
 
-            SqlCommand command = new(GetHpAMOPartNumberCommandText(), connection);
-            SqlParameter parameter = new SqlParameter("HpAMOPartNumberId", "-1");
-            command.Parameters.Add(parameter);
-            using SqlDataReader reader = command.ExecuteReader();
-
-            List<CommonDataModel> output = new();
-            while (reader.Read())
+            for (int i = 0; i < fieldCount; i++)
             {
-                CommonDataModel hpAMOPartNumber = new();
-                int fieldCount = reader.FieldCount;
-
-                for (int i = 0; i < fieldCount; i++)
+                if (await reader.IsDBNullAsync(i))
                 {
-                    if (await reader.IsDBNullAsync(i))
-                    {
-                        continue;
-                    }
-                    if (!string.IsNullOrWhiteSpace(reader[i].ToString()))
-                    {
-                        string columnName = reader.GetName(i);
-                        string value = reader[i].ToString().Trim();
-                        hpAMOPartNumber.Add(columnName, value);
-                    }
+                    continue;
                 }
-                hpAMOPartNumber.Add("target", "HpAmoPartNumber");
-                hpAMOPartNumber.Add("Id", SearchIdName.HpAMOPartNumber + hpAMOPartNumber.GetValue("HpAMOPartNumberId"));
-                output.Add(hpAMOPartNumber);
+                if (!string.IsNullOrWhiteSpace(reader[i].ToString()))
+                {
+                    string columnName = reader.GetName(i);
+                    string value = reader[i].ToString().Trim();
+                    hpAMOPartNumber.Add(columnName, value);
+                }
             }
-            return output;
+
+            hpAMOPartNumber.Add("Target", "HpAmoPartNumber");
+            hpAMOPartNumber.Add("Id", SearchIdName.AmoPartNumber + hpAMOPartNumber.GetValue("HpAMOPartNumberId"));
+            output.Add(hpAMOPartNumber);
         }
+
+        return output;
     }
 }

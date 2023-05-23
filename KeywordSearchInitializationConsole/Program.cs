@@ -2,7 +2,6 @@
 
 using HP.Pulsar.Search.Keyword.Infrastructure;
 using HP.Pulsar.Search.Keyword.Orchestrator;
-using HP.Pulsar.Search.Keyword.DataWriter;
 
 internal class Program
 {
@@ -19,10 +18,6 @@ internal class Program
             SearchEngineUrl = "http://15.36.147.177:7700/",
             SearchEngineIndexName = "Pulsar6"
         };
-
-        ////delete meilisearch index
-        //MeiliSearchWriter writer = new(info.SearchEngineUrl, info.SearchEngineIndexName); //for test
-        //await writer.DeleteIndexAsync(); //for test
 
         // init
         Initialization init = new(info);

@@ -1,8 +1,4 @@
-﻿using System.Globalization;
-using HP.Pulsar.Search.Keyword.CommonDataStructure;
-using LemmaSharp.Classes;
-
-namespace HP.Pulsar.Search.Keyword.DataTransformation;
+﻿namespace HP.Pulsar.Search.Keyword.DataTransformation;
 
 public static class CommonDataTransformer
 {
@@ -15,10 +11,11 @@ public static class CommonDataTransformer
             return propertyValue;
         }
 
-        if (datePropertyList.Contains(propertyName , StringComparer.OrdinalIgnoreCase))
+        if (datePropertyList.Contains(propertyName, StringComparer.OrdinalIgnoreCase))
         {
             propertyValue = ChangeDateFormat(propertyValue);
         }
+
         return propertyValue;
     }
 

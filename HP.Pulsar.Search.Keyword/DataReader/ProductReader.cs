@@ -169,7 +169,7 @@ WHERE   (
         await connection.OpenAsync();
 
         SqlCommand command = new(GetProductsCommandText(), connection);
-        SqlParameter parameter = new SqlParameter("ProductId", "-1");
+        SqlParameter parameter = new("ProductId", "-1");
         command.Parameters.Add(parameter);
         using SqlDataReader reader = command.ExecuteReader();
 
@@ -192,7 +192,7 @@ WHERE   (
                     product.Add(columnName, value);
                 }
             }
-            product.Add("target", "Product");
+            product.Add("Target", "Product");
             product.Add("Id", SearchIdName.Product + product.GetValue("ProductId"));
             output.Add(product);
         }
@@ -520,7 +520,7 @@ WHERE APB.STATUS = 'A'
                 value = biosVersion[productId];
             }
             currentROM = $"Targeted: {value}";
-            
+
         }
         else if (!statusName.Equals("Development", StringComparison.OrdinalIgnoreCase) && !statusName.Equals("Definition", StringComparison.OrdinalIgnoreCase))
         {
@@ -575,7 +575,7 @@ WHERE APB.STATUS = 'A'
             {
                 continue;
             }
-            currentROM[productId] = (reader["currentROM"].ToString() , reader["currentWebROM"].ToString());
+            currentROM[productId] = (reader["currentROM"].ToString(), reader["currentWebROM"].ToString());
         }
         return currentROM;
     }
@@ -609,7 +609,7 @@ WHERE APB.STATUS = 'A'
             if (int.TryParse(product.GetValue("ProductId"), out int productId)
                 && avDetail.ContainsKey(productId))
             {
-                for ( int i = 0 ; i < avDetail[productId].Count();  i++)
+                for (int i = 0; i < avDetail[productId].Count(); i++)
                 {
                     product.Add("AvDetail " + i, avDetail[productId][i]);
                 }
