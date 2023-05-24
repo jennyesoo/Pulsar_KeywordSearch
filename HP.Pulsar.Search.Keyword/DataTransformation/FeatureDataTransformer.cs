@@ -12,16 +12,16 @@ public class FeatureDataTransformer
         {
             foreach (string key in feature.GetKeys())
             {
-                string propertyValue = feature.GetValue(key);
+                string propertyValue = CommonDataTransformer.DataProcessingInitializationCombination(_datePropertyList, feature.GetValue(key), key);
 
-                if (string.Equals(key, "UpdatedBy")
-                    && string.Equals(propertyValue, "dbo"))
+                if (!string.IsNullOrWhiteSpace(propertyValue)
+                    && !string.Equals(propertyValue, feature.GetValue(key)))
+                {
+                    feature.Add(key, propertyValue);
+                }
+                else if (string.IsNullOrWhiteSpace(propertyValue))
                 {
                     feature.Delete(key);
-                }
-                else
-                {
-                    feature.Add(key, CommonDataTransformer.DataProcessingInitializationCombination(_datePropertyList, feature.GetValue(key), key));
                 }
             }
         }

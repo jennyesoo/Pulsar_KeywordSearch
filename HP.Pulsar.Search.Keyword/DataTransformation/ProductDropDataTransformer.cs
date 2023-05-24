@@ -12,7 +12,12 @@ public class ProductDropDataTransformer : IDataTransformer
         {
             foreach (string key in dcr.GetKeys())
             {
-                dcr.Add(key, CommonDataTransformer.DataProcessingInitializationCombination(_datePropertyList, dcr.GetValue(key), key));
+                string propertyValue = CommonDataTransformer.DataProcessingInitializationCombination(_datePropertyList, dcr.GetValue(key), key);
+
+                if (!string.IsNullOrWhiteSpace(propertyValue))
+                {
+                    dcr.Add(key, propertyValue);
+                }
             }
         }
 

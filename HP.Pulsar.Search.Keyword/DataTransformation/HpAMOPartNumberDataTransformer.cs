@@ -6,16 +6,26 @@ internal class HpAMOPartNumberDataTransformer : IDataTransformer
 {
     private static readonly List<string> _datePropertyList = new() { "RTPDate", "SADate", "GADate", "EMDate", "GSEOLDate", "ESDate" };
 
-    public IEnumerable<CommonDataModel> Transform(IEnumerable<CommonDataModel> changeRequests)
+    public IEnumerable<CommonDataModel> Transform(IEnumerable<CommonDataModel> hpPartNumber)
     {
-        foreach (CommonDataModel dcr in changeRequests)
+        foreach (CommonDataModel partNumber in hpPartNumber)
         {
-            foreach (string key in dcr.GetKeys())
+            foreach (string key in partNumber.GetKeys())
             {
-                dcr.Add(key, CommonDataTransformer.DataProcessingInitializationCombination(_datePropertyList, dcr.GetValue(key), key));
+                string propertyValue = CommonDataTransformer.DataProcessingInitializationCombination(_datePropertyList, partNumber.GetValue(key), key);
+
+                if (!string.IsNullOrWhiteSpace(propertyValue)
+                    && !string.Equals(propertyValue, partNumber.GetValue(key)))
+                {
+                    partNumber.Add(key, propertyValue);
+                }
+                else if (string.IsNullOrWhiteSpace(propertyValue))
+                {
+                    partNumber.Delete(key);
+                }
             }
         }
 
-        return changeRequests;
+        return hpPartNumber;
     }
 }

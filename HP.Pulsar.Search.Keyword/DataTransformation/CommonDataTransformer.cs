@@ -1,4 +1,6 @@
-﻿namespace HP.Pulsar.Search.Keyword.DataTransformation;
+﻿using Meilisearch;
+
+namespace HP.Pulsar.Search.Keyword.DataTransformation;
 
 public static class CommonDataTransformer
 {
@@ -15,6 +17,8 @@ public static class CommonDataTransformer
         {
             propertyValue = ChangeDateFormat(propertyValue);
         }
+        
+        propertyValue = ReviewNoiseValueAndRemove(propertyValue, propertyName);
 
         return propertyValue;
     }
@@ -25,6 +29,24 @@ public static class CommonDataTransformer
         {
             return dateValue.ToString("yyyy/MM/dd");
         }
+        return propertyValue;
+    }
+
+    private static string ReviewNoiseValueAndRemove(string propertyValue, string propertyName)
+    {
+        if (string.Equals(propertyValue, "None", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(propertyValue, "N/A", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(propertyValue, "dbo", StringComparison.OrdinalIgnoreCase))
+        {
+            propertyValue = null;
+        }
+
+        if (propertyName.Contains("email", StringComparison.OrdinalIgnoreCase)
+            && propertyValue.Contains("disabled-", StringComparison.OrdinalIgnoreCase))
+        {
+            propertyValue = null;
+        }
+
         return propertyValue;
     }
 }

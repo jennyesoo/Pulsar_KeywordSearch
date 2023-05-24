@@ -13,10 +13,15 @@ internal class ComponentRootTransformer : IDataTransformer
             foreach (string key in root.GetKeys())
             {
                 string propertyValue = CommonDataTransformer.DataProcessingInitializationCombination(_datePropertyList, root.GetValue(key), key);
-        
-                if (!string.IsNullOrWhiteSpace(propertyValue))
+
+                if (!string.IsNullOrWhiteSpace(propertyValue)
+                    && !string.Equals(propertyValue, root.GetValue(key)))
                 {
                     root.Add(key, propertyValue);
+                }
+                else if (string.IsNullOrWhiteSpace(propertyValue))
+                {
+                    root.Delete(key);
                 }
             }
         }

@@ -1,4 +1,5 @@
-﻿using HP.Pulsar.Search.Keyword.CommonDataStructure;
+﻿using System.Globalization;
+using HP.Pulsar.Search.Keyword.CommonDataStructure;
 
 namespace HP.Pulsar.Search.Keyword.DataTransformation;
 
@@ -12,7 +13,17 @@ public class ChangeRequestDataTransformer : IDataTransformer
         {
             foreach (string key in dcr.GetKeys())
             {
-                dcr.Add(key, CommonDataTransformer.DataProcessingInitializationCombination(_datePropertyList, dcr.GetValue(key), key));
+                string propertyValue = CommonDataTransformer.DataProcessingInitializationCombination(_datePropertyList, dcr.GetValue(key), key);
+
+                if (!string.IsNullOrWhiteSpace(propertyValue)
+                    && !string.Equals(propertyValue, dcr.GetValue(key)))
+                {
+                    dcr.Add(key, propertyValue);
+                }
+                else if (string.IsNullOrWhiteSpace(propertyValue))
+                {
+                    dcr.Delete(key);
+                }
             }
         }
 

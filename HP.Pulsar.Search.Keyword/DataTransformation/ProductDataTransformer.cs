@@ -12,21 +12,16 @@ public class ProductDataTransformer : IDataTransformer
         {
             foreach (string key in product.GetKeys())
             {
-                string propertyValue = product.GetValue(key);
+                string propertyValue = CommonDataTransformer.DataProcessingInitializationCombination(_datePropertyList, product.GetValue(key), key);
 
-                if (string.Equals(key, "CreatorName", StringComparison.OrdinalIgnoreCase)
-                    && string.Equals(propertyValue, "dbo", StringComparison.OrdinalIgnoreCase))
+                if (!string.IsNullOrWhiteSpace(propertyValue)
+                    && !string.Equals(propertyValue, product.GetValue(key)))
+                {
+                    product.Add(key, propertyValue);
+                }
+                else if(string.IsNullOrWhiteSpace(propertyValue))
                 {
                     product.Delete(key);
-                }
-                else if (string.Equals(key, "LastUpdaterName", StringComparison.OrdinalIgnoreCase)
-                         && string.Equals(propertyValue, "dbo", StringComparison.OrdinalIgnoreCase))
-                {
-                    product.Delete(key);
-                }
-                else
-                {
-                    product.Add(key, CommonDataTransformer.DataProcessingInitializationCombination(_datePropertyList, propertyValue, key));
                 }
             }
         }

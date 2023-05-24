@@ -12,7 +12,17 @@ public class ComponentVersionDataTransformer : IDataTransformer
         {
             foreach (string key in rootversion.GetKeys())
             {
-                rootversion.Add(key, CommonDataTransformer.DataProcessingInitializationCombination(_datePropertyList, rootversion.GetValue(key), key));
+                string propertyValue = CommonDataTransformer.DataProcessingInitializationCombination(_datePropertyList, rootversion.GetValue(key), key);
+
+                if (!string.IsNullOrWhiteSpace(propertyValue)
+                    && !string.Equals(propertyValue, rootversion.GetValue(key)))
+                {
+                    rootversion.Add(key, propertyValue);
+                }
+                else if (string.IsNullOrWhiteSpace(propertyValue))
+                {
+                    rootversion.Delete(key);
+                }
             }
         }
 
