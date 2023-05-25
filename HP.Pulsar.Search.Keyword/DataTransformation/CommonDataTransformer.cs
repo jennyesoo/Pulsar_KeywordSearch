@@ -1,6 +1,4 @@
-﻿using Meilisearch;
-
-namespace HP.Pulsar.Search.Keyword.DataTransformation;
+﻿namespace HP.Pulsar.Search.Keyword.DataTransformation;
 
 public static class CommonDataTransformer
 {
@@ -13,23 +11,27 @@ public static class CommonDataTransformer
             return propertyValue;
         }
 
-        if (datePropertyList.Contains(propertyName, StringComparer.OrdinalIgnoreCase))
+        if (datePropertyList.Contains(propertyName, StringComparer.OrdinalIgnoreCase)
+            && TryParseDate(propertyValue, out DateTime date))
         {
-            propertyValue = ChangeDateFormat(propertyValue);
+            propertyValue = date.ToString("yyyy/MM/dd");
         }
-        
+
         propertyValue = ReviewNoiseValueAndRemove(propertyValue, propertyName);
 
         return propertyValue;
     }
 
-    private static string ChangeDateFormat(string propertyValue)
+    public static bool TryParseDate(string propertyValue, out DateTime date)
     {
         if (DateTime.TryParse(propertyValue, out DateTime dateValue))
         {
-            return dateValue.ToString("yyyy/MM/dd");
+            date = dateValue;
+            return true;
         }
-        return propertyValue;
+
+        date = default;
+        return false;
     }
 
     private static string ReviewNoiseValueAndRemove(string propertyValue, string propertyName)

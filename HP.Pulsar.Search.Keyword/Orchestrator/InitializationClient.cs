@@ -3,13 +3,13 @@ using HP.Pulsar.Search.Keyword.Infrastructure;
 
 namespace HP.Pulsar.Search.Keyword.Orchestrator;
 
-public class Initialization
+public class InitializationClient
 {
     private readonly List<IInitializationOrchestrator> _orchestrators;
 
     private readonly KeywordSearchInfo _keywordSearchInfo;
 
-    public Initialization(KeywordSearchInfo info)
+    public InitializationClient(KeywordSearchInfo info)
     {
         _keywordSearchInfo = info;
         _orchestrators = new()

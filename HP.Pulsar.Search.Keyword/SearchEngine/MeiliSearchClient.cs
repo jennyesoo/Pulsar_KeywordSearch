@@ -4,7 +4,7 @@ using Meilisearch;
 
 namespace HP.Pulsar.Search.Keyword.SearchEngine;
 
-public class MeiliSearchClient
+internal class MeiliSearchClient
 {
     private readonly MeilisearchClient _client;
     private readonly string _indexName;
