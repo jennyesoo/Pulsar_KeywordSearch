@@ -46,7 +46,7 @@ public static class CommonDataTransformer
         if (propertyName.Contains("email", StringComparison.OrdinalIgnoreCase)
             && propertyValue.Contains("disabled-", StringComparison.OrdinalIgnoreCase))
         {
-            propertyValue = null;
+            propertyValue = propertyValue.Split("-").Last();
         }
 
         return propertyValue;

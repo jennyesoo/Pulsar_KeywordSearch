@@ -2,6 +2,7 @@
 
 using HP.Pulsar.Search.Keyword.CommonDataStructure;
 using HP.Pulsar.Search.Keyword.Infrastructure;
+using HP.Pulsar.Search.Keyword.Orchestrator;
 using HP.Pulsar.Search.Keyword.SearchEngine;
 
 internal class Program
@@ -17,19 +18,19 @@ internal class Program
             DatabaseConnectionString = "xxxxx",
             Environment = PulsarEnvironment.Dev,
             SearchEngineUrl = "http://15.36.147.177:7700/",
-            SearchEngineIndexName = "pulsar"
+            SearchEngineIndexName = "Pulsar3"
         };
 
         // init
-        //Initialization init = new(info);
-        //await init.InitAsync();
+        InitializationClient init = new(info);
+        await init.InitAsync();
 
-        // search
-        SearchClient searchClient = new SearchClient(info);
-        IReadOnlyDictionary<SearchType, List<SingleOutputModel>> models = await searchClient.SearchAsync("Michael anna 1.0 Foxconn");
+        //// search
+        //SearchClient searchClient = new SearchClient(info);
+        //IReadOnlyDictionary<SearchType, List<SingleOutputModel>> models = await searchClient.SearchAsync("Michael anna 1.0 Foxconn");
 
-        DateTime end = DateTime.Now;
-        Console.WriteLine("total seconds = " + (end - start).TotalSeconds);
+        //DateTime end = DateTime.Now;
+        //Console.WriteLine("total seconds = " + (end - start).TotalSeconds);
 
         // update
         //Update update = new();

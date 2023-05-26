@@ -26,6 +26,11 @@ public class InitializationClient
 
     public async Task InitAsync()
     {
+        MeiliSearchClient writer = new(_keywordSearchInfo.SearchEngineUrl, _keywordSearchInfo.SearchEngineIndexName);
+        await writer.SendIndexCreationAsync();
+        await writer.SendUpdateSettingAsync();
+        await writer.SendUpdatePaginationAsync();
+
         List<Task> tasks = new();
 
         foreach (IInitializationOrchestrator item in _orchestrators)
@@ -34,8 +39,6 @@ public class InitializationClient
         }
 
         await Task.WhenAll(tasks);
-
-        MeiliSearchClient writer = new(_keywordSearchInfo.SearchEngineUrl, _keywordSearchInfo.SearchEngineIndexName);
 
         await writer.UpdateSearchableAttributesAsync(ElementKeyContainer.Get());
     }
