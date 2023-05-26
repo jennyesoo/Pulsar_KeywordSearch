@@ -31,10 +31,6 @@ internal class ChangeRequestOrchestrator : IInitializationOrchestrator
         // write to meiliesearch
         MeiliSearchClient mClient = new(KeywordSearchInfo.SearchEngineUrl, KeywordSearchInfo.SearchEngineIndexName);
 
-        await mClient.SendIndexCreationAsync();
-        await mClient.SendUpdateSettingAsync();
-        await mClient.SendUpdatePaginationAsync();
-
         await mClient.SendElementsCreationAsync(changeRequests);
     }
 }

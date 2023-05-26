@@ -31,10 +31,6 @@ internal class ComponentRootOrchestrator : IInitializationOrchestrator
         // write to meiliesearch
         MeiliSearchClient writer = new(KeywordSearchInfo.SearchEngineUrl, KeywordSearchInfo.SearchEngineIndexName);
 
-        await writer.SendIndexCreationAsync();
-        await writer.SendUpdateSettingAsync();
-        await writer.SendUpdatePaginationAsync();
-
         await writer.SendElementsCreationAsync(roots);
     }
 }
