@@ -38,7 +38,8 @@ public class SearchClient
         SearchQuery query = new SearchQuery
         {
             MatchingStrategy = "all",
-            Limit = 700
+            Limit = 700,
+            ShowMatchesPosition = true
         };
 
         IReadOnlyDictionary<SearchType, List<SingleOutputModel>> models = await _client.SearchAsync(string.Join(' ', handledInput), query);

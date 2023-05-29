@@ -1,4 +1,5 @@
-﻿using HP.Pulsar.Search.Keyword.CommonDataStructure;
+﻿using System.Collections.Generic;
+using HP.Pulsar.Search.Keyword.CommonDataStructure;
 using HP.Pulsar.Search.Keyword.Infrastructure;
 using Meilisearch;
 
@@ -302,6 +303,16 @@ internal class MeiliSearchClient
 
     private List<KeyValuePair<string, string>> GetHitProperties(IReadOnlyDictionary<string, string> input)
     {
-        return input.ToList();
+        List<KeyValuePair<string, string>> hitResults = new();
+        if (input.ContainsKey("_matchesPosition"))
+        {
+            foreach (var key in input["_matchesPosition"].keys)
+            {
+                hitResults[key] = input[key].ToStrings();
+            }
+            Console.WriteLine(input["_matchesPosition"].keys);
+        }
+        return hitResults;
     }
+
 }
