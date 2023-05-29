@@ -1,5 +1,4 @@
 ﻿using HP.Pulsar.Search.Keyword.Orchestrator;
-using LemmaSharp.Classes;
 using Microsoft.Extensions.Configuration;
 
 namespace HP.Pulsar.Search.Keyword.Infrastructure
