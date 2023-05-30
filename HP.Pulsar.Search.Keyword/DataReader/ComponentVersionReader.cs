@@ -6,14 +6,14 @@ namespace HP.Pulsar.Search.Keyword.DataReader;
 
 public class ComponentVersionReader : IKeywordSearchDataReader
 {
-    private ConnectionStringProvider _csProvider;
+    private readonly KeywordSearchInfo _info;
 
     public ComponentVersionReader(KeywordSearchInfo info)
     {
-        _csProvider = new(info.Environment);
+        _info = info;
     }
 
-    public async Task<CommonDataModel> GetDataAsync(int componentVersionsId)
+    public Task<CommonDataModel> GetDataAsync(int componentVersionsId)
     {
         throw new NotImplementedException();
     }
@@ -24,7 +24,7 @@ public class ComponentVersionReader : IKeywordSearchDataReader
         List<Task> tasks = new()
             {
                 GetPropertyValueAsync(componentVersions),
-                GetDifferentPropertyNameBasedOnCategoryAsync(componentVersions)
+                HandleDifferentPropertyNameBasedOnCategoryAsync(componentVersions)
             };
         await Task.WhenAll(tasks);
         return componentVersions;
@@ -32,7 +32,7 @@ public class ComponentVersionReader : IKeywordSearchDataReader
 
     private async Task<IEnumerable<CommonDataModel>> GetComponentVersionAsync()
     {
-        using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
         SqlCommand command = new(GetTSQLComponentVersionCommandText(),
                                 connection);
         SqlParameter parameter = new("ComponentVersionId", -1);
@@ -146,7 +146,7 @@ WHERE (
 ";
     }
 
-    private static async Task GetPropertyValueAsync(IEnumerable<CommonDataModel> componentVersions)
+    private static Task GetPropertyValueAsync(IEnumerable<CommonDataModel> componentVersions)
     {
         foreach (CommonDataModel rootversion in componentVersions)
         {
@@ -322,7 +322,7 @@ WHERE (
                 rootversion.Delete("Visibility");
             }
 
-            if (GetCDAsync(rootversion).Equals(1))
+            if (GetCdAsync(rootversion).Equals(1))
             {
                 rootversion.Add("CD", "CD");
             }
@@ -330,26 +330,31 @@ WHERE (
             rootversion.Delete("ISOImage");
             rootversion.Delete("AR");
         }
+
+        return Task.CompletedTask;
     }
 
-    private static async Task<int> GetCDAsync(CommonDataModel rootversion)
+    private static Task<int> GetCdAsync(CommonDataModel rootversion)
     {
         if (rootversion.GetValue("CDImage").Equals("1"))
         {
-            return 1;
+            return Task.FromResult(1);
         }
+
         if (rootversion.GetValue("ISOImage").Equals("1"))
         {
-            return 1;
+            return Task.FromResult(1);
         }
+
         if (rootversion.GetValue("AR").Equals("1"))
         {
-            return 1;
+            return Task.FromResult(1);
         }
-        return 0;
+
+        return Task.FromResult(0);
     }
 
-    private async Task GetDifferentPropertyNameBasedOnCategoryAsync(IEnumerable<CommonDataModel> componentVersions)
+    private Task HandleDifferentPropertyNameBasedOnCategoryAsync(IEnumerable<CommonDataModel> componentVersions)
     {
         foreach (CommonDataModel rootversion in componentVersions)
         {
@@ -375,5 +380,7 @@ WHERE (
                 rootversion.Delete("Pass");
             }
         }
+
+        return Task.CompletedTask;
     }
 }

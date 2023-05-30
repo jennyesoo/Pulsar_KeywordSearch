@@ -6,14 +6,14 @@ namespace HP.Pulsar.Search.Keyword.DataReader;
 
 public class FeatureReader
 {
-    private ConnectionStringProvider _csProvider;
+    private readonly KeywordSearchInfo _info;
 
     public FeatureReader(KeywordSearchInfo info)
     {
-        _csProvider = new(info.Environment);
+        _info = info;
     }
 
-    public async Task<CommonDataModel> GetDataAsync(int featureId)
+    public Task<CommonDataModel> GetDataAsync(int featureId)
     {
         throw new NotImplementedException();
     }
@@ -25,7 +25,7 @@ public class FeatureReader
         List<Task> tasks = new()
         {
             GetComponentInitiatedLinkageAsync(features),
-            GetPropertyValueAsync(features)
+            HandlePropertyValueAsync(features)
         };
 
         await Task.WhenAll(tasks);
@@ -75,7 +75,7 @@ WHERE (
 
     private async Task<IEnumerable<CommonDataModel>> GetFeaturesAsync()
     {
-        using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();
 
         SqlCommand command = new(GetFeaturesCommandText(), connection);
@@ -89,23 +89,23 @@ WHERE (
             CommonDataModel feature = new();
             int fieldCount = reader.FieldCount;
 
-                for (int i = 0; i < fieldCount; i++)
+            for (int i = 0; i < fieldCount; i++)
+            {
+                if (await reader.IsDBNullAsync(i))
                 {
-                    if (await reader.IsDBNullAsync(i))
-                    {
-                        continue;
-                    }
-                    if (!string.IsNullOrWhiteSpace(reader[i].ToString()))
-                    {
-                        string columnName = reader.GetName(i);
-                        string value = reader[i].ToString().Trim();
-                        feature.Add(columnName, value);
-                    }
+                    continue;
                 }
-                feature.Add("Target", "Feature");
-                feature.Add("Id", SearchIdName.Feature + feature.GetValue("FeatureId"));
-                output.Add(feature);
+                if (!string.IsNullOrWhiteSpace(reader[i].ToString()))
+                {
+                    string columnName = reader.GetName(i);
+                    string value = reader[i].ToString().Trim();
+                    feature.Add(columnName, value);
+                }
             }
+            feature.Add("Target", "Feature");
+            feature.Add("Id", SearchIdName.Feature + feature.GetValue("FeatureId"));
+            output.Add(feature);
+        }
 
         return output;
     }
@@ -123,7 +123,7 @@ left JOIN DeliverableRoot dr WITH (NOLOCK) ON dr.Id = fril.ComponentRootId
 
     private async Task GetComponentInitiatedLinkageAsync(IEnumerable<CommonDataModel> features)
     {
-        using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();
 
         SqlCommand command = new(GetComponentInitiatedLinkageCommandText(), connection);
@@ -160,7 +160,7 @@ left JOIN DeliverableRoot dr WITH (NOLOCK) ON dr.Id = fril.ComponentRootId
         }
     }
 
-    private async Task GetPropertyValueAsync(IEnumerable<CommonDataModel> features)
+    private static Task HandlePropertyValueAsync(IEnumerable<CommonDataModel> features)
     {
         foreach (CommonDataModel feature in features)
         {
@@ -173,6 +173,7 @@ left JOIN DeliverableRoot dr WITH (NOLOCK) ON dr.Id = fril.ComponentRootId
                 feature.Delete("RequiresRoot");
             }
         }
-    }
 
+        return Task.CompletedTask;
+    }
 }

@@ -6,14 +6,14 @@ namespace HP.Pulsar.Search.Keyword.DataReader;
 
 internal class HpAMOPartNumberReader : IKeywordSearchDataReader
 {
-    private ConnectionStringProvider _csProvider;
+    private readonly KeywordSearchInfo _info;
 
     public HpAMOPartNumberReader(KeywordSearchInfo info)
     {
-        _csProvider = new(info.Environment);
+        _info = info;
     }
 
-    public async Task<CommonDataModel> GetDataAsync(int featureId)
+    public Task<CommonDataModel> GetDataAsync(int featureId)
     {
         throw new NotImplementedException();
     }
@@ -67,7 +67,7 @@ WHERE (
 
     private async Task<IEnumerable<CommonDataModel>> GetHpAMOPartNumberAsync()
     {
-        using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();
 
         SqlCommand command = new(GetHpAMOPartNumberCommandText(), connection);

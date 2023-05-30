@@ -6,14 +6,14 @@ namespace HP.Pulsar.Search.Keyword.DataReader;
 
 internal class ChangeRequestReader : IKeywordSearchDataReader
 {
-    private ConnectionStringProvider _csProvider;
+    private readonly KeywordSearchInfo _info;
 
     public ChangeRequestReader(KeywordSearchInfo info)
     {
-        _csProvider = new(info.Environment);
+        _info = info;
     }
 
-    public async Task<CommonDataModel> GetDataAsync(int changeRequestId)
+    public Task<CommonDataModel> GetDataAsync(int changeRequestId)
     {
         throw new NotImplementedException();
     }
@@ -24,7 +24,7 @@ internal class ChangeRequestReader : IKeywordSearchDataReader
 
         List<Task> tasks = new()
         {
-            GetPropertyValueAsync(changeRequest),
+            HandlePropertyValuesAsync(changeRequest),
             GetApproverAsync(changeRequest)
         };
 
@@ -106,7 +106,7 @@ GROUP BY dcr.id
 
     private async Task<IEnumerable<CommonDataModel>> GetChangeRequestAsync()
     {
-        using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();
 
         SqlCommand command = new(GetChangeRequestCommandText(), connection);
@@ -140,7 +140,7 @@ GROUP BY dcr.id
         return output;
     }
 
-    private async Task GetPropertyValueAsync(IEnumerable<CommonDataModel> changeRequests)
+    private Task HandlePropertyValuesAsync(IEnumerable<CommonDataModel> changeRequests)
     {
         foreach (CommonDataModel dcr in changeRequests)
         {
@@ -243,17 +243,19 @@ GROUP BY dcr.id
                 dcr.Delete("APJ");
             }
         }
+
+        return Task.CompletedTask;
     }
 
     private async Task GetApproverAsync(IEnumerable<CommonDataModel> changeRequests)
     {
-        using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();
 
         SqlCommand command = new(GetApproversCommandText(), connection);
         using SqlDataReader reader = command.ExecuteReader();
         Dictionary<int, string> approvers = new();
-        
+
         while (await reader.ReadAsync())
         {
             if (!string.IsNullOrWhiteSpace(reader["Approvers"].ToString())
@@ -271,7 +273,7 @@ GROUP BY dcr.id
                 string[] approverList = approvers[changeRequestId].Split('{');
                 for (int i = 0; i < approverList.Length; i++)
                 {
-                    dcr.Add("Approvals " + i , approverList[i]);
+                    dcr.Add("Approvals " + i, approverList[i]);
                 }
             }
         }

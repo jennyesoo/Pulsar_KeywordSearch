@@ -2,8 +2,7 @@
 
 public class KeywordSearchInfo
 {
-    public string DatabaseConnectionString { get; init; }
-    public string SearchEngineUrl { get; init; }
-    public PulsarEnvironment Environment { get; init; }
-    public string SearchEngineIndexName { get; init; }
+    public required string DatabaseConnectionString { get; init; }
+    public required string SearchEngineUrl { get; init; }
+    public required string SearchEngineIndexName { get; init; }
 }

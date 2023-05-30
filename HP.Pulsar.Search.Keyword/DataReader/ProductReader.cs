@@ -6,14 +6,14 @@ namespace HP.Pulsar.Search.Keyword.DataReader;
 
 public class ProductReader : IKeywordSearchDataReader
 {
-    private ConnectionStringProvider _csProvider;
+    private readonly KeywordSearchInfo _info;
 
     public ProductReader(KeywordSearchInfo info)
     {
-        _csProvider = new(info.Environment);
+        _info = info;
     }
 
-    public async Task<CommonDataModel> GetDataAsync(int productId)
+    public Task<CommonDataModel> GetDataAsync(int productId)
     {
         throw new NotImplementedException();
     }
@@ -165,7 +165,7 @@ WHERE   (
     // This function is to get all products
     private async Task<IEnumerable<CommonDataModel>> GetProductsAsync()
     {
-        using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();
 
         SqlCommand command = new(GetProductsCommandText(), connection);
@@ -326,7 +326,7 @@ WHERE APB.STATUS = 'A'
 
     private async Task GetEndOfProductionDateAsync(IEnumerable<CommonDataModel> products)
     {
-        using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();
         SqlCommand command1 = new(GetEndOfProductionCommand1Text(), connection);
         SqlCommand command2 = new(GetEndOfProductionCommand2Text(), connection);
@@ -385,7 +385,7 @@ WHERE APB.STATUS = 'A'
 
     private async Task GetProductGroupsAsync(IEnumerable<CommonDataModel> products)
     {
-        using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();
 
         SqlCommand command = new(GetProductGroupsCommandText(), connection);
@@ -419,7 +419,7 @@ WHERE APB.STATUS = 'A'
 
     private async Task GetLeadProductAsync(IEnumerable<CommonDataModel> products)
     {
-        using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();
 
         Dictionary<int, List<string>> leadProducts = new();
@@ -456,7 +456,7 @@ WHERE APB.STATUS = 'A'
 
     private async Task GetChipsetsAsync(IEnumerable<CommonDataModel> products)
     {
-        using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();
         SqlCommand command = new(GetChipsetsCommandText(), connection);
 
@@ -541,7 +541,7 @@ WHERE APB.STATUS = 'A'
 
     public async Task<Dictionary<int, string>> GetTargetBIOSVersionAsync()
     {
-        using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();
         SqlCommand command = new(GetBiosVersionText(), connection);
 
@@ -562,7 +562,7 @@ WHERE APB.STATUS = 'A'
 
     public async Task<Dictionary<int, (string, string)>> GetCurrentROMOrCurrentWebROMAsync()
     {
-        using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();
         SqlCommand command = new(GetCurrentROMText(), connection);
 
@@ -582,7 +582,7 @@ WHERE APB.STATUS = 'A'
 
     private async Task GetAvDetailAsync(IEnumerable<CommonDataModel> products)
     {
-        using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();
 
         SqlCommand command = new(GetAvDetailText(), connection);
@@ -619,7 +619,7 @@ WHERE APB.STATUS = 'A'
 
     private async Task GetFactoryNameAsync(IEnumerable<CommonDataModel> products)
     {
-        using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();
         SqlCommand command = new(GetFactoryNameCommandText(), connection);
 

@@ -6,12 +6,12 @@ namespace HP.Pulsar.Search.Keyword.DataReader;
 
 internal class ComponentRootReader : IKeywordSearchDataReader
 {
+    private readonly KeywordSearchInfo _info;
+
     public ComponentRootReader(KeywordSearchInfo info)
     {
-        _csProvider = new(info.Environment);
+        _info = info;
     }
-
-    private ConnectionStringProvider _csProvider;
 
     public Task<CommonDataModel> GetDataAsync(int componentRootId)
     {
@@ -24,7 +24,7 @@ internal class ComponentRootReader : IKeywordSearchDataReader
 
         List<Task> tasks = new()
         {
-            GetPropertyValueAsync(componentRoot),
+            HandlePropertyValueAsync(componentRoot),
             GetComponentRootListAsync(componentRoot),
             GetTrulyLinkedFeaturesAsync(componentRoot),
             GetLinkedFeaturesAsync(componentRoot),
@@ -217,7 +217,7 @@ GROUP BY DR.Id
     // TODO - performance improvement needed
     private async Task GetComponentRootListAsync(IEnumerable<CommonDataModel> componentRoots)
     {
-        using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();
         SqlCommand command = new(GetTSQLProductListCommandText(), connection);
         using SqlDataReader reader = command.ExecuteReader();
@@ -243,7 +243,7 @@ GROUP BY DR.Id
 
     private async Task<IEnumerable<CommonDataModel>> GetComponentRootAsync()
     {
-        using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();
 
         SqlCommand command = new(GetAllComponentRootSqlCommandText(), connection);
@@ -258,28 +258,28 @@ GROUP BY DR.Id
             CommonDataModel root = new();
             int fieldCount = reader.FieldCount;
 
-                for (int i = 0; i < fieldCount; i++)
+            for (int i = 0; i < fieldCount; i++)
+            {
+                if (await reader.IsDBNullAsync(i))
                 {
-                    if (await reader.IsDBNullAsync(i))
-                    {
-                        continue;
-                    }
-                    if (!string.IsNullOrWhiteSpace(reader[i].ToString()) &&
-                        !string.Equals(reader[i].ToString(),"None"))
-                    {
-                        string columnName = reader.GetName(i);
-                        string value = reader[i].ToString().Trim();
-                        root.Add(columnName, value);
-                    }
+                    continue;
                 }
-                root.Add("Target", "ComponentRoot");
-                root.Add("Id", SearchIdName.ComponentRoot + root.GetValue("ComponentRootId"));
-                output.Add(root);
+                if (!string.IsNullOrWhiteSpace(reader[i].ToString()) &&
+                    !string.Equals(reader[i].ToString(), "None"))
+                {
+                    string columnName = reader.GetName(i);
+                    string value = reader[i].ToString().Trim();
+                    root.Add(columnName, value);
+                }
             }
-            return output;
+            root.Add("Target", "ComponentRoot");
+            root.Add("Id", SearchIdName.ComponentRoot + root.GetValue("ComponentRootId"));
+            output.Add(root);
         }
+        return output;
+    }
 
-    private async Task GetPropertyValueAsync(IEnumerable<CommonDataModel> componentRoots)
+    private Task HandlePropertyValueAsync(IEnumerable<CommonDataModel> componentRoots)
     {
         foreach (CommonDataModel root in componentRoots)
         {
@@ -517,7 +517,7 @@ GROUP BY DR.Id
                 root.Delete("Rompaq");
             }
 
-            if (GetCDAsync(root).Equals(1))
+            if (GetCd(root).Equals(1))
             {
                 root.Add("CD", "CD");
             }
@@ -525,9 +525,11 @@ GROUP BY DR.Id
             root.Delete("ISOImage");
             root.Delete("AR");
         }
+
+        return Task.CompletedTask;
     }
 
-    private async Task<int> GetCDAsync(CommonDataModel root)
+    private static int GetCd(CommonDataModel root)
     {
         if (root.GetValue("CDImage").Equals("1"))
         {
@@ -546,7 +548,7 @@ GROUP BY DR.Id
 
     private async Task GetTrulyLinkedFeaturesAsync(IEnumerable<CommonDataModel> roots)
     {
-        using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();
         SqlCommand command = new(GetTSQLTrulyLinkedFeaturesCommandText(), connection);
 
@@ -587,7 +589,7 @@ GROUP BY DR.Id
 
     private async Task GetLinkedFeaturesAsync(IEnumerable<CommonDataModel> roots)
     {
-        using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();
         SqlCommand command = new(GetTSQLLinkedFeaturesCommandText(), connection);
 
@@ -627,7 +629,7 @@ GROUP BY DR.Id
 
     private async Task GetComponentInitiatedLinkageAsync(IEnumerable<CommonDataModel> roots)
     {
-        using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();
         SqlCommand command = new(GetTSQLComponentInitiatedLinkageCommandText(), connection);
 

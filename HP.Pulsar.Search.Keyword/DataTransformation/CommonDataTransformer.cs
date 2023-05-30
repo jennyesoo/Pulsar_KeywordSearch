@@ -40,7 +40,7 @@ public static class CommonDataTransformer
             || string.Equals(propertyValue, "N/A", StringComparison.OrdinalIgnoreCase)
             || string.Equals(propertyValue, "dbo", StringComparison.OrdinalIgnoreCase))
         {
-            propertyValue = null;
+            return string.Empty;
         }
 
         if (propertyName.Contains("email", StringComparison.OrdinalIgnoreCase)

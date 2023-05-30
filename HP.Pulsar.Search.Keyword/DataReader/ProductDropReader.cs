@@ -6,14 +6,14 @@ namespace HP.Pulsar.Search.Keyword.DataReader;
 
 internal class ProductDropReader : IKeywordSearchDataReader
 {
-    private ConnectionStringProvider _csProvider;
+    private readonly KeywordSearchInfo _info;
 
     public ProductDropReader(KeywordSearchInfo info)
     {
-        _csProvider = new(info.Environment);
+        _info = info;
     }
 
-    public async Task<CommonDataModel> GetDataAsync(int productDropId)
+    public Task<CommonDataModel> GetDataAsync(int productDropId)
     {
         throw new NotImplementedException();
     }
@@ -26,7 +26,7 @@ internal class ProductDropReader : IKeywordSearchDataReader
         {
             GetOwnerbyAsync(productDrop),
             GetMlNameAsync(productDrop),
-            GetPropertyValueAsync(productDrop)
+            HandlePropertyValueAsync(productDrop)
         };
 
         await Task.WhenAll(tasks);
@@ -122,7 +122,7 @@ GROUP BY ml2.ProductDropId
 
     private async Task<IEnumerable<CommonDataModel>> GetProductDropAsync()
     {
-        using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();
 
         SqlCommand command = new(GetProductDropCommandText(), connection);
@@ -158,7 +158,7 @@ GROUP BY ml2.ProductDropId
 
     private async Task GetOwnerbyAsync(IEnumerable<CommonDataModel> productDrop)
     {
-        using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();
 
         SqlCommand command = new(GetOwnedByCommandText(), connection);
@@ -190,7 +190,7 @@ GROUP BY ml2.ProductDropId
 
     private async Task GetMlNameAsync(IEnumerable<CommonDataModel> productDrop)
     {
-        using SqlConnection connection = new(_csProvider.GetSqlServerConnectionString());
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();
 
         SqlCommand command = new(GetMlNameCommandText(), connection);
@@ -220,7 +220,7 @@ GROUP BY ml2.ProductDropId
         }
     }
 
-    private async Task GetPropertyValueAsync(IEnumerable<CommonDataModel> productDrop)
+    private static Task HandlePropertyValueAsync(IEnumerable<CommonDataModel> productDrop)
     {
         foreach (CommonDataModel pd in productDrop)
         {
@@ -277,5 +277,7 @@ GROUP BY ml2.ProductDropId
                 pd.Delete("ODMViewOnly");
             }
         }
+
+        return Task.CompletedTask;
     }
 }

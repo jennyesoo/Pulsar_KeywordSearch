@@ -8,11 +8,6 @@
         <Compile Remove="DataReader\PropertyProcessing.cs" />
         <Compile Remove="DataReader\SqlServerStringCommand.cs" />
     </ItemGroup>
-    <ItemGroup>
-        <None Remove="AppData\App.Beta" />
-        <None Remove="AppData\json-schema1.json" />
-        <None Remove="AppData\json-schema2.json" />
-    </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="ConcurrentHashSet" Version="1.3.0" />

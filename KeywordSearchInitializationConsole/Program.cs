@@ -15,8 +15,7 @@ internal class Program
 
         KeywordSearchInfo info = new()
         {
-            DatabaseConnectionString = "xxxxx",
-            Environment = PulsarEnvironment.Dev,
+            DatabaseConnectionString = "server=TdcPulsarItgDb.tpc.rd.hpicorp.net;initial catalog=PRS;integrated security=SSPI",
             SearchEngineUrl = "http://15.36.147.177:7700/",
             SearchEngineIndexName = "Pulsar3"
         };
