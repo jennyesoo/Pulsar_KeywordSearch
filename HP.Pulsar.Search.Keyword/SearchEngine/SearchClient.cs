@@ -29,19 +29,23 @@ public class SearchClient
         _client = new MeiliSearchClient(info.SearchEngineUrl, info.SearchEngineIndexName);
     }
 
-    public async Task<IReadOnlyDictionary<SearchType, List<SingleOutputModel>>> SearchAsync(string input)
+    private static SearchQuery PostProcess()
     {
-        // TODO - pre-process
-        List<string> handledInput = PreProcess(input);
-
-        // search 
-        SearchQuery query = new SearchQuery
+        SearchQuery postProcess = new SearchQuery
         {
             MatchingStrategy = "all",
             Limit = 700
         };
 
-        IReadOnlyDictionary<SearchType, List<SingleOutputModel>> models = await _client.SearchAsync(string.Join(' ', handledInput), query);
+        return postProcess;
+    }
+
+    public async Task<IReadOnlyDictionary<SearchType, List<SingleOutputModel>>> SearchAsync(string input)
+    {
+        // TODO - pre-process
+        List<string> handledInput = PreProcess(input);
+
+        IReadOnlyDictionary<SearchType, List<SingleOutputModel>> models = await _client.SearchAsync(string.Join(' ', handledInput), PostProcess());
 
         // TODO - post-process 
 
