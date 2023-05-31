@@ -29,23 +29,18 @@ public class SearchClient
         _client = new MeiliSearchClient(info.SearchEngineUrl, info.SearchEngineIndexName);
     }
 
-    private static SearchQuery PostProcess()
+    public async Task<IReadOnlyDictionary<SearchType, List<SingleOutputModel>>> SearchAsync(string input)
     {
-        SearchQuery postProcess = new SearchQuery
+        //pre-process
+        List<string> handledInput = PreProcess(input);
+
+        SearchQuery searchQuery = new SearchQuery
         {
             MatchingStrategy = "all",
             Limit = 700
         };
 
-        return postProcess;
-    }
-
-    public async Task<IReadOnlyDictionary<SearchType, List<SingleOutputModel>>> SearchAsync(string input)
-    {
-        // TODO - pre-process
-        List<string> handledInput = PreProcess(input);
-
-        IReadOnlyDictionary<SearchType, List<SingleOutputModel>> models = await _client.SearchAsync(string.Join(' ', handledInput), PostProcess());
+        IReadOnlyDictionary<SearchType, List<SingleOutputModel>> models = await _client.SearchAsync(string.Join(' ', handledInput), searchQuery);
 
         // TODO - post-process 
 
@@ -54,7 +49,6 @@ public class SearchClient
 
     private static List<string> PreProcess(string input)
     {
-        // TODO - remove double quotes in input
         string[] inputs = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
         List<string> handledInput = new();
