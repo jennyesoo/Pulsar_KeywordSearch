@@ -1,7 +1,9 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
+using HP.Pulsar.Search.Keyword.CommonDataStructure;
 using HP.Pulsar.Search.Keyword.Infrastructure;
 using HP.Pulsar.Search.Keyword.Orchestrator;
+using static System.Net.Mime.MediaTypeNames;
 
 internal class Program
 {
@@ -18,9 +20,12 @@ internal class Program
             SearchEngineIndexName = "Pulsar3"
         };
 
-        // init
-        InitializationClient init = new(info);
-        await init.InitAsync();
+        TestForRex test = new(info);
+        IEnumerable<CommonDataModel> testData = await test.GetDataAsync();
+
+        //// init
+        //InitializationClient init = new(info);
+        //await init.InitAsync();
 
         //// search
         //SearchClient searchClient = new SearchClient(info);
