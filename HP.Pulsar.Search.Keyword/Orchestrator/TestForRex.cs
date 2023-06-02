@@ -43,27 +43,13 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator
                 {
                     continue;
                 }
-                //else if (product.GetValue("Name").Count() != 11
-                //    && product.GetValue("Name").Count() != 10)
-                //{
-                //    Console.WriteLine(product.GetValue("Name").Count());
-                //    Console.WriteLine(product.GetValue("Name"));
-                //}
-                //else if (product.GetValue("Name").Count() == 10)
-                //{
-                //    strings10.Add(product.GetValue("Name"));
-                //}
-                //else if (Regex.IsMatch(product.GetValue("Name"), @"[0-9]{2}[A-Za-z]{2}[A-Za-z0-9]{3}[A-Za-z]{1}[A-Za-z0-9]{3}"))
-                //{
-                //    strings11.Add(product.GetValue("Name"));
-                //}
-                //else if (Regex.IsMatch(product.GetValue("Name"), @"[0-9]{2}[A-Za-z0-9]{2}[A-Za-z]{3}[A-Za-z0-9\#]{3}"))
-                //{
-                //    strings10.Add(product.GetValue("Name"));
-                //}
                 else if (product.GetValue("Name").Count() == 11)
                 {
                     if (Regex.IsMatch(product.GetValue("Name"), @"[A-Za-z0-9]{4}[0-9]{1}[A-Za-z]{2}"))
+                    {
+                        strings11.Add(product.GetValue("Name"));
+                    }
+                    else if (Regex.IsMatch(product.GetValue("Name"), @"[A-Za-z0-9]{5}[A-Za-z]{1}[A-Za-z0-9]{1}#[A-Za-z0-9]{1}"))
                     {
                         strings11.Add(product.GetValue("Name"));
                     }
@@ -78,7 +64,7 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator
                     {
                         strings7.Add(product.GetValue("Name"));
                     }
-                    else if (Regex.IsMatch(product.GetValue("Name"), @"[A-Za-z0-9]{3}[0-9]{2}AV"))
+                    else if (Regex.IsMatch(product.GetValue("Name"), @"[A-Za-z0-9]{7}"))
                     {
                         strings7.Add(product.GetValue("Name"));
                     }
@@ -190,14 +176,6 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator
                 {
                     strings18.Add(product.GetValue("Name"));
                 }
-                //else if (Regex.IsMatch(product.GetValue("Name"), @"[0-9]{2}[A-Za-z]{2}[A-Za-z0-9]{3}[A-Za-z]{1}[A-Za-z0-9]{3}"))
-                //{
-                //    strings11.Add(product.GetValue("Name"));
-                //}
-                //else if (Regex.IsMatch(product.GetValue("Name"), @"[0-9]{2}[A-Za-z0-9]{2}[A-Za-z]{3}[A-Za-z0-9\#]{3}"))
-                //{
-                //    strings10.Add(product.GetValue("Name"));
-                //}
                 else
                 {
                     Console.WriteLine(product.GetValue("Name").Count());
@@ -300,14 +278,12 @@ FROM DeliverableVersion Dv
         private string GetAVdetailCommandText()
         {
             return @"
-SELECT DISTINCT p.ID AS ProductId,
-    A.AvNo as Name
+SELECT DISTINCT A.AvNo as Name
 FROM productversion p
 LEFT JOIN Product_Brand PB ON PB.productVersionID = p.ID
 LEFT JOIN AvDetail_ProductBrand APB ON APB.productBrandID = PB.Id
 LEFT JOIN AvDetail A ON A.AvDetailID = APB.AvDetailID
 WHERE APB.STATUS = 'A'
-order by p.ID
 ";
         }
     }
