@@ -8,12 +8,14 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator;
 
 internal class HpAMOPartNumberOrchestrator : IInitializationOrchestrator
 {
-    public HpAMOPartNumberOrchestrator(KeywordSearchInfo keywordSearchInfo)
+    private KeywordSearchInfo KeywordSearchInfo { get; }
+    private MeiliSearchClient MeiliSearchClient { get; }
+
+    public HpAMOPartNumberOrchestrator(KeywordSearchInfo keywordSearchInfo, MeiliSearchClient meiliSearchClient)
     {
         KeywordSearchInfo = keywordSearchInfo;
+        MeiliSearchClient = meiliSearchClient;
     }
-
-    public KeywordSearchInfo KeywordSearchInfo { get; }
 
     public async Task InitializeAsync()
     {
@@ -29,9 +31,7 @@ internal class HpAMOPartNumberOrchestrator : IInitializationOrchestrator
         ElementKeyContainer.Add(hpAMOPartNumber.SelectMany(p => p.GetKeys()).Distinct<string>());
 
         // write to meiliesearch
-        MeiliSearchClient writer = new(KeywordSearchInfo.SearchEngineUrl, KeywordSearchInfo.SearchEngineIndexName);
-
-        await writer.SendElementsCreationAsync(hpAMOPartNumber);
+        await MeiliSearchClient.SendElementsCreationAsync(hpAMOPartNumber);
     }
 }
 

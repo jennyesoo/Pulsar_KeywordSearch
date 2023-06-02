@@ -1,9 +1,7 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
-using HP.Pulsar.Search.Keyword.CommonDataStructure;
 using HP.Pulsar.Search.Keyword.Infrastructure;
 using HP.Pulsar.Search.Keyword.Orchestrator;
-using HP.Pulsar.Search.Keyword.SearchEngine;
 
 internal class Program
 {
