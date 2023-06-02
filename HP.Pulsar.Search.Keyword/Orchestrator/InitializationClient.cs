@@ -7,7 +7,7 @@ public class InitializationClient
 {
     private readonly List<IInitializationOrchestrator> _orchestrators;
     private readonly KeywordSearchInfo _keywordSearchInfo;
-    private readonly MeiliSearchClient _writer; 
+    private readonly MeiliSearchClient _writer;
 
     public InitializationClient(KeywordSearchInfo info)
     {
