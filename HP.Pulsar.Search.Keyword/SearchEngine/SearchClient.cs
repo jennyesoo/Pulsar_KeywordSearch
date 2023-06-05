@@ -49,7 +49,7 @@ public class SearchClient
 
     private static List<string> PreProcess(string input)
     {
-        string[] inputs = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        string[] inputs = input.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
 
         List<string> handledInput = new();
         foreach (string temp in inputs)

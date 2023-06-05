@@ -43,10 +43,10 @@ public static class CommonDataTransformer
             return string.Empty;
         }
 
-        if (propertyName.Contains("email", StringComparison.OrdinalIgnoreCase)
-            && propertyValue.Contains("disabled-", StringComparison.OrdinalIgnoreCase))
+        if (propertyName.IndexOf("email", StringComparison.OrdinalIgnoreCase) >= 0
+            && propertyValue.IndexOf("disabled-", StringComparison.OrdinalIgnoreCase) >= 0)
         {
-            propertyValue = propertyValue.Split("-").Last();
+            propertyValue = propertyValue.Split(new char[] { '-' }).Last();
         }
 
         return propertyValue;

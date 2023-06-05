@@ -2,7 +2,7 @@
 
 public class KeywordSearchInfo
 {
-    public required string DatabaseConnectionString { get; init; }
-    public required string SearchEngineUrl { get; init; }
-    public required string SearchEngineIndexName { get; init; }
+    public string DatabaseConnectionString { get; set; }
+    public string SearchEngineUrl { get; set; }
+    public string SearchEngineIndexName { get; set; }
 }

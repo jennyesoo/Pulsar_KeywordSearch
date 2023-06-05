@@ -18,7 +18,7 @@ public class CommonDataModel
 
     public void Delete(string key)
     {
-        _pairs.Remove(key, out _);
+        _pairs.TryRemove(key, out _);
     }
 
     public string GetValue(string key)
