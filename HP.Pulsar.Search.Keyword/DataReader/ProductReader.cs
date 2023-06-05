@@ -1,4 +1,5 @@
-﻿using HP.Pulsar.Search.Keyword.CommonDataStructure;
+﻿using System.Reflection.Metadata;
+using HP.Pulsar.Search.Keyword.CommonDataStructure;
 using HP.Pulsar.Search.Keyword.Infrastructure;
 using Microsoft.Data.SqlClient;
 
@@ -275,6 +276,7 @@ WHERE (
         @ProductId = - 1
         OR pv.Id = @ProductId
         )
+GROUP BY pv.Id
 ";
     }
 
@@ -298,6 +300,10 @@ WHERE (
         )
     AND avb.[Status] = 'A'
     AND av.RASDiscontinueDt IS NOT NULL
+    AND (
+            @ProductId = - 1
+            OR pb.ProductVersionId = @ProductId
+            )
 GROUP BY pb.ProductVersionId
 ";
     }
@@ -463,9 +469,10 @@ WHERE APB.STATUS = 'A'
         await connection.OpenAsync();
         SqlCommand command1 = new(GetEndOfProductionCommand1Text(), connection);
         SqlCommand command2 = new(GetEndOfProductionCommand2Text(), connection);
-        SqlParameter parameter = new("ProductId", "-1");
-        command1.Parameters.Add(parameter);
-        command2.Parameters.Add(parameter);
+        SqlParameter parameter1 = new("ProductId", "-1");
+        SqlParameter parameter2 = new("ProductId", "-1");
+        command1.Parameters.Add(parameter1);
+        command2.Parameters.Add(parameter2);
         Dictionary<int, DateTime> eopDates1 = new();
         Dictionary<int, DateTime> eopDates2 = new();
 
@@ -560,6 +567,8 @@ WHERE APB.STATUS = 'A'
         await connection.OpenAsync();
 
         SqlCommand command = new(GetProductGroupsCommandText(), connection);
+        SqlParameter parameter = new("ProductId", "-1");
+        command.Parameters.Add(parameter);
         using SqlDataReader reader = command.ExecuteReader();
         Dictionary<int, List<string>> productGroups = new();
 
