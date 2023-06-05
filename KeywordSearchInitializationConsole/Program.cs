@@ -20,7 +20,7 @@ internal class Program
             SearchEngineIndexName = "Pulsar3"
         };
 
-        //// init
+        // init
         //InitializationClient init = new(info);
         //await init.InitAsync();
 
@@ -31,9 +31,8 @@ internal class Program
         //DateTime end = DateTime.Now;
         //Console.WriteLine("total seconds = " + (end - start).TotalSeconds);
 
-        // update
-        //Update update = new();
-        //update.update(HP.Pulsar.KeywordSearch.CommonDataStructures.SearchType.Product, 2018);
-
+        //update
+        //UpdateClient updateClient = new UpdateClient(info);
+        //await updateClient.UpdateAsync(SearchType.Version, 2018);
     }
 }
