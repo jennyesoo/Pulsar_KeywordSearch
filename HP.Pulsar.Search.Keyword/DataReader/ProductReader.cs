@@ -46,9 +46,9 @@ public class ProductReader : IKeywordSearchDataReader
         List<Task> tasks = new()
         {
             FillEndOfProductionDatesAsync(products),
-            FillProductGroupAsync(products),
+            FillProductGroupsAsync(products),
             FillLeadProductsAsync(products),
-            GetChipsetsAsync(products),
+            FillChipsetsAsync(products),
             FillCurrentBiosVersionsAsync(products),
             FillAvDetailsAsync(products),
             FillFactoryNamesAsync(products)
@@ -542,16 +542,18 @@ WHERE APB.STATUS = 'A'
 
         while (await reader.ReadAsync())
         {
-            if (int.TryParse(reader["ProductId"].ToString(), out int dbProductId))
+            if (!int.TryParse(reader["ProductId"].ToString(), out int dbProductId))
             {
-                if (productGroups.ContainsKey(dbProductId))
-                {
-                    productGroups[dbProductId].Add(reader["FullName"].ToString());
-                }
-                else
-                {
-                    productGroups[dbProductId] = new List<string> { reader["FullName"].ToString() };
-                }
+                continue;
+            }
+
+            if (productGroups.ContainsKey(dbProductId))
+            {
+                productGroups[dbProductId].Add(reader["FullName"].ToString());
+            }
+            else
+            {
+                productGroups[dbProductId] = new List<string> { reader["FullName"].ToString() };
             }
         }
 
@@ -561,7 +563,7 @@ WHERE APB.STATUS = 'A'
         }
     }
 
-    private async Task FillProductGroupAsync(IEnumerable<CommonDataModel> products)
+    private async Task FillProductGroupsAsync(IEnumerable<CommonDataModel> products)
     {
         using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();
@@ -720,7 +722,7 @@ WHERE APB.STATUS = 'A'
         }
     }
 
-    private async Task GetChipsetsAsync(IEnumerable<CommonDataModel> products)
+    private async Task FillChipsetsAsync(IEnumerable<CommonDataModel> products)
     {
         using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();

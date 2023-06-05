@@ -22,13 +22,8 @@ internal class ChangeRequestReader : IKeywordSearchDataReader
             return null;
         }
 
-        List<Task> tasks = new()
-        {
-            HandlePropertyValue(changeRequest),
-            FillApproversAsync(changeRequest)
-        };
-
-        await Task.WhenAll(tasks);
+        HandlePropertyValue(changeRequest);
+        await FillApproverAsync(changeRequest);
         return changeRequest;
     }
 
@@ -39,7 +34,7 @@ internal class ChangeRequestReader : IKeywordSearchDataReader
         List<Task> tasks = new()
         {
             HandlePropertyValuesAsync(changeRequest),
-            GetApproverAsync(changeRequest)
+            FillApproversAsync(changeRequest)
         };
 
         await Task.WhenAll(tasks);
@@ -192,7 +187,7 @@ GROUP BY dcr.id
         return output;
     }
 
-    private Task HandlePropertyValue(CommonDataModel changeRequest)
+    private static CommonDataModel HandlePropertyValue(CommonDataModel changeRequest)
     {
         if (changeRequest.GetValue("ZsrpRequired").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
@@ -293,7 +288,7 @@ GROUP BY dcr.id
             changeRequest.Delete("APJ");
         }
 
-        return Task.CompletedTask;
+        return changeRequest;
 
     }
 
@@ -404,12 +399,13 @@ GROUP BY dcr.id
         return Task.CompletedTask;
     }
 
-    private async Task FillApproversAsync(CommonDataModel changeRequest)
+    private async Task FillApproverAsync(CommonDataModel changeRequest)
     {
         if (!int.TryParse(changeRequest.GetValue("ChangeRequestId"), out int changeRequestId))
         {
             return;
         }
+
         using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();
 
@@ -437,7 +433,7 @@ GROUP BY dcr.id
 
     }
 
-    private async Task GetApproverAsync(IEnumerable<CommonDataModel> changeRequests)
+    private async Task FillApproversAsync(IEnumerable<CommonDataModel> changeRequests)
     {
         using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();

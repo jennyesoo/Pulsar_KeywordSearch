@@ -22,12 +22,8 @@ public class ComponentVersionReader : IKeywordSearchDataReader
             return null;
         }
 
-        List<Task> tasks = new()
-            {
-                GetPropertyValueAsync(componentVersion),
-                HandleDifferentPropertyNameBasedOnCategoryAsync(componentVersion)
-            };
-        await Task.WhenAll(tasks);
+        HandlePropertyValue(componentVersion);
+        HandleDifferentPropertyNameBasedOnCategory(componentVersion);
         return componentVersion;
     }
 
@@ -37,7 +33,7 @@ public class ComponentVersionReader : IKeywordSearchDataReader
 
         List<Task> tasks = new()
             {
-                GetPropertyValueAsync(componentVersions),
+                HandlePropertyValuesAsync(componentVersions),
                 HandleDifferentPropertyNameBasedOnCategoryAsync(componentVersions)
             };
         await Task.WhenAll(tasks);
@@ -204,7 +200,7 @@ WHERE (
 ";
     }
 
-    private static Task GetPropertyValueAsync(CommonDataModel componentVersion)
+    private static CommonDataModel HandlePropertyValue(CommonDataModel componentVersion)
     {
         if (componentVersion.GetValue("Preinstall").Equals("1", StringComparison.OrdinalIgnoreCase))
         {
@@ -385,10 +381,10 @@ WHERE (
         componentVersion.Delete("CDImage");
         componentVersion.Delete("ISOImage");
         componentVersion.Delete("AR");
-        return Task.CompletedTask;
+        return componentVersion;
     }
 
-    private static Task GetPropertyValueAsync(IEnumerable<CommonDataModel> componentVersions)
+    private static Task HandlePropertyValuesAsync(IEnumerable<CommonDataModel> componentVersions)
     {
         foreach (CommonDataModel rootversion in componentVersions)
         {
@@ -596,57 +592,62 @@ WHERE (
         return Task.FromResult(0);
     }
 
-    private Task HandleDifferentPropertyNameBasedOnCategoryAsync(CommonDataModel componentVersion)
+    private CommonDataModel HandleDifferentPropertyNameBasedOnCategory(CommonDataModel componentVersion)
     {
-        if (componentVersion.GetValue("ComponentType").Equals("Hardware"))
+        if (!componentVersion.GetValue("ComponentType").Equals("Hardware"))
         {
-            if (!string.IsNullOrWhiteSpace(componentVersion.GetValue("Version")))
-            {
-                componentVersion.Add("HardwareVersion", componentVersion.GetValue("Version"));
-            }
-
-            if (!string.IsNullOrWhiteSpace(componentVersion.GetValue("Revision")))
-            {
-                componentVersion.Add("FirmwareVersion", componentVersion.GetValue("Revision"));
-            }
-
-            if (!string.IsNullOrWhiteSpace(componentVersion.GetValue("Pass")))
-            {
-                componentVersion.Add("Rev", componentVersion.GetValue("Pass"));
-            }
-
-            componentVersion.Delete("Version");
-            componentVersion.Delete("Revision");
-            componentVersion.Delete("Pass");
+            return componentVersion;
         }
-        return Task.CompletedTask;
+
+        if (!string.IsNullOrWhiteSpace(componentVersion.GetValue("Version")))
+        {
+            componentVersion.Add("HardwareVersion", componentVersion.GetValue("Version"));
+        }
+
+        if (!string.IsNullOrWhiteSpace(componentVersion.GetValue("Revision")))
+        {
+            componentVersion.Add("FirmwareVersion", componentVersion.GetValue("Revision"));
+        }
+
+        if (!string.IsNullOrWhiteSpace(componentVersion.GetValue("Pass")))
+        {
+            componentVersion.Add("Rev", componentVersion.GetValue("Pass"));
+        }
+
+        componentVersion.Delete("Version");
+        componentVersion.Delete("Revision");
+        componentVersion.Delete("Pass");
+
+        return componentVersion;
     }
 
     private Task HandleDifferentPropertyNameBasedOnCategoryAsync(IEnumerable<CommonDataModel> componentVersions)
     {
         foreach (CommonDataModel rootversion in componentVersions)
         {
-            if (rootversion.GetValue("ComponentType").Equals("Hardware"))
+            if (!rootversion.GetValue("ComponentType").Equals("Hardware"))
             {
-                if (!string.IsNullOrWhiteSpace(rootversion.GetValue("Version")))
-                {
-                    rootversion.Add("HardwareVersion", rootversion.GetValue("Version"));
-                }
-
-                if (!string.IsNullOrWhiteSpace(rootversion.GetValue("Revision")))
-                {
-                    rootversion.Add("FirmwareVersion", rootversion.GetValue("Revision"));
-                }
-
-                if (!string.IsNullOrWhiteSpace(rootversion.GetValue("Pass")))
-                {
-                    rootversion.Add("Rev", rootversion.GetValue("Pass"));
-                }
-
-                rootversion.Delete("Version");
-                rootversion.Delete("Revision");
-                rootversion.Delete("Pass");
+                continue;
             }
+
+            if (!string.IsNullOrWhiteSpace(rootversion.GetValue("Version")))
+            {
+                rootversion.Add("HardwareVersion", rootversion.GetValue("Version"));
+            }
+
+            if (!string.IsNullOrWhiteSpace(rootversion.GetValue("Revision")))
+            {
+                rootversion.Add("FirmwareVersion", rootversion.GetValue("Revision"));
+            }
+
+            if (!string.IsNullOrWhiteSpace(rootversion.GetValue("Pass")))
+            {
+                rootversion.Add("Rev", rootversion.GetValue("Pass"));
+            }
+
+            rootversion.Delete("Version");
+            rootversion.Delete("Revision");
+            rootversion.Delete("Pass");
         }
 
         return Task.CompletedTask;

@@ -23,11 +23,12 @@ internal class ComponentRootReader : IKeywordSearchDataReader
             return null;
         }
 
+        HandlePropertyValue(componentRoot);
+
         List<Task> tasks = new()
         {
-            HandlePropertyValue(componentRoot),
             FillProductListAsync(componentRoot),
-            FillTrulyLinkedFeaturesAsync(componentRoot),
+            FillTrulyLinkedFeatureAsync(componentRoot),
             FillLinkedFeatureAsync(componentRoot),
             FillComponentInitiatedLinkageAsync(componentRoot)
         };
@@ -45,7 +46,7 @@ internal class ComponentRootReader : IKeywordSearchDataReader
             HandlePropertyValueAsync(componentRoot),
             FillProductListAsync(componentRoot),
             FillTrulyLinkedFeaturesAsync(componentRoot),
-            FillLinkedFeatureAsync(componentRoot),
+            FillLinkedFeaturesAsync(componentRoot),
             FillComponentInitiatedLinkageAsync(componentRoot)
         };
 
@@ -340,12 +341,14 @@ GROUP BY DR.Id
         using SqlDataReader reader = command.ExecuteReader();
         Dictionary<int, string> productList = new();
 
-        if (await reader.ReadAsync())
+        if (!await reader.ReadAsync())
         {
-            if (int.TryParse(reader["ComponentRootId"].ToString(), out int dbComponentRootId))
-            {
-                productList[dbComponentRootId] = reader["ProductList"].ToString();
-            }
+            return;
+        }
+
+        if (int.TryParse(reader["ComponentRootId"].ToString(), out int dbComponentRootId))
+        {
+            productList[dbComponentRootId] = reader["ProductList"].ToString();
         }
 
         if (productList.ContainsKey(componentRootId))
@@ -382,7 +385,7 @@ GROUP BY DR.Id
         }
     }
 
-    private Task HandlePropertyValue(CommonDataModel componentRoot)
+    private static CommonDataModel HandlePropertyValue(CommonDataModel componentRoot)
     {
         if (componentRoot.GetValue("Preinstall").Equals("1", StringComparison.OrdinalIgnoreCase))
         {
@@ -626,8 +629,7 @@ GROUP BY DR.Id
         componentRoot.Delete("ISOImage");
         componentRoot.Delete("AR");
 
-        return Task.CompletedTask;
-
+        return componentRoot;
     }
 
     private Task HandlePropertyValueAsync(IEnumerable<CommonDataModel> componentRoots)
@@ -897,7 +899,7 @@ GROUP BY DR.Id
         return 0;
     }
 
-    private async Task FillTrulyLinkedFeaturesAsync(CommonDataModel componentRoot)
+    private async Task FillTrulyLinkedFeatureAsync(CommonDataModel componentRoot)
     {
         if (!int.TryParse(componentRoot.GetValue("ComponentRootId"), out int componentRootId))
         {
@@ -1023,7 +1025,7 @@ GROUP BY DR.Id
         }
     }
 
-    private async Task FillLinkedFeatureAsync(IEnumerable<CommonDataModel> roots)
+    private async Task FillLinkedFeaturesAsync(IEnumerable<CommonDataModel> roots)
     {
         using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();

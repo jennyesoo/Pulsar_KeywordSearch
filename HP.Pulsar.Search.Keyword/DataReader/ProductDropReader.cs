@@ -22,11 +22,12 @@ internal class ProductDropReader : IKeywordSearchDataReader
             return null;
         }
 
+        HandlePropertyValue(productDrop);
+        
         List<Task> tasks = new()
         {
-            GetOwnerbyAsync(productDrop),
-            GetMlNameAsync(productDrop),
-            HandlePropertyValueAsync(productDrop)
+            FillOwnerbyAsync(productDrop),
+            FillMlNameAsync(productDrop)
         };
 
         await Task.WhenAll(tasks);
@@ -40,8 +41,8 @@ internal class ProductDropReader : IKeywordSearchDataReader
 
         List<Task> tasks = new()
         {
-            GetOwnerbyAsync(productDrop),
-            GetMlNameAsync(productDrop),
+            FillOwnerbysAsync(productDrop),
+            FillMlNamesAsync(productDrop),
             HandlePropertyValueAsync(productDrop)
         };
 
@@ -220,12 +221,13 @@ GROUP BY ml2.ProductDropId
         return output;
     }
 
-    private async Task GetOwnerbyAsync(CommonDataModel productDrop)
+    private async Task FillOwnerbyAsync(CommonDataModel productDrop)
     {
         if (!int.TryParse(productDrop.GetValue("ProductDropID"), out int productDropId))
         {
             return;
         }
+
         using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();
         SqlCommand command = new(GetOwnedByCommandText(), connection);
@@ -253,7 +255,7 @@ GROUP BY ml2.ProductDropId
         }
     }
 
-    private async Task GetOwnerbyAsync(IEnumerable<CommonDataModel> productDrop)
+    private async Task FillOwnerbysAsync(IEnumerable<CommonDataModel> productDrop)
     {
         using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();
@@ -287,7 +289,7 @@ GROUP BY ml2.ProductDropId
         }
     }
 
-    private async Task GetMlNameAsync(CommonDataModel productDrop)
+    private async Task FillMlNameAsync(CommonDataModel productDrop)
     {
         if (!int.TryParse(productDrop.GetValue("ProductDropID"), out int productDropId))
         {
@@ -321,7 +323,7 @@ GROUP BY ml2.ProductDropId
         }
     }
 
-    private async Task GetMlNameAsync(IEnumerable<CommonDataModel> productDrop)
+    private async Task FillMlNamesAsync(IEnumerable<CommonDataModel> productDrop)
     {
         using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();
@@ -355,7 +357,7 @@ GROUP BY ml2.ProductDropId
         }
     }
 
-    private static Task HandlePropertyValueAsync(CommonDataModel productDrop)
+    private static CommonDataModel HandlePropertyValue(CommonDataModel productDrop)
     {
         if (productDrop.GetValue("Locked").Equals("1", StringComparison.OrdinalIgnoreCase))
         {
@@ -410,7 +412,7 @@ GROUP BY ml2.ProductDropId
         {
             productDrop.Delete("ODMViewOnly");
         }
-        return Task.CompletedTask;
+        return productDrop;
     }
 
 
