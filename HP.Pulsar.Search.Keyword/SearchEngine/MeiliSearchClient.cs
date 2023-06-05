@@ -72,6 +72,27 @@ internal class MeiliSearchClient
     }
 
     /// <summary>
+    /// This method is only for sending signal to meilisearch to update a new element.
+    /// When this method completes, it doesn't mean the new element has been updated in meilisearch.
+    /// </summary>
+    /// <param name="elements"></param>
+    /// <exception cref="ArgumentException"></exception>
+    public async Task SendElementUpdationAsync(CommonDataModel element)
+    {
+        if (element.GetElements()?.Any() != true)
+        {
+            return;
+        }
+
+        Meilisearch.Index index = _client.Index(_indexName);
+        List<IReadOnlyDictionary<string, string>> pairs = new()
+        {
+            element.GetElements()
+        };
+        await index.UpdateDocumentsAsync(pairs);
+    }
+
+    /// <summary>
     /// This method is only for sending signal to meilisearch to update index setting.
     /// When this method completes, it doesn't mean the setting has been updated in meilisearch.
     /// </summary>

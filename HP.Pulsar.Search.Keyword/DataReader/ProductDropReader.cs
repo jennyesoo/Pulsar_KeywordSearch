@@ -13,9 +13,25 @@ internal class ProductDropReader : IKeywordSearchDataReader
         _info = info;
     }
 
-    public Task<CommonDataModel> GetDataAsync(int productDropId)
+    public async Task<CommonDataModel> GetDataAsync(int productDropId)
     {
-        throw new NotImplementedException();
+        CommonDataModel productDrop = await GetProductDropAsync(productDropId);
+
+        if (!productDrop.GetElements().Any())
+        {
+            return null;
+        }
+
+        List<Task> tasks = new()
+        {
+            GetOwnerbyAsync(productDrop),
+            GetMlNameAsync(productDrop),
+            HandlePropertyValueAsync(productDrop)
+        };
+
+        await Task.WhenAll(tasks);
+
+        return productDrop;
     }
 
     public async Task<IEnumerable<CommonDataModel>> GetDataAsync()
@@ -30,6 +46,7 @@ internal class ProductDropReader : IKeywordSearchDataReader
         };
 
         await Task.WhenAll(tasks);
+
         return productDrop;
     }
 
@@ -37,7 +54,7 @@ internal class ProductDropReader : IKeywordSearchDataReader
     {
         return @"
 SELECT pd.ProductDropId,
-    ps.Name AS Status,
+    ps.Name AS STATUS,
     pd.Creator AS CreatedBy,
     pd.Updater AS LastUpdatedBy,
     pd.TimeCreated AS CreatedDate,
@@ -55,31 +72,34 @@ SELECT pd.ProductDropId,
     pd.AllowPDAutoSelected,
     pd.AllowSWCompToSI,
     pd.ODMViewOnly,
-    (SELECT min(prel.ReleaseYear) 
-        FROM Productversion pv 
-        LEFT  JOIN productversion_Release pvr WITH (NOLOCK) ON pv.id = pvr.ProductversionID 
-        LEFT  JOIN productversionRelease prel ON pvr.ReleaseID = prel.ID 
-        WHERE pv.id IN ( 
-                SELECT pvr2.ProductversionID 
-                FROM productversion_Release pvr2 WITH (NOLOCK) 
-                LEFT  JOIN Productdrop pd WITH (NOLOCK) ON pvr2.id = pd.ProductversionReleaseID 
-                WHERE pd.ProductDropID = pd.ProductDropID  --PDid
-                ) ) as ReleaseYear,
-        pd.ProductDropID,
-        Pv.ProductName,
-        bs.Name as BusinessSegmentname,
-        PF.Name as ProductFamily,
-        CASE WHEN bs.BusinessId = 1 
-        THEN '' 
+    (
+        SELECT min(prel.ReleaseYear)
+        FROM Productversion pv
+        LEFT JOIN productversion_Release pvr WITH (NOLOCK) ON pv.id = pvr.ProductversionID
+        LEFT JOIN productversionRelease prel ON pvr.ReleaseID = prel.ID
+        WHERE pv.id IN (
+                SELECT pvr2.ProductversionID
+                FROM productversion_Release pvr2 WITH (NOLOCK)
+                LEFT JOIN Productdrop pd WITH (NOLOCK) ON pvr2.id = pd.ProductversionReleaseID
+                WHERE pd.ProductDropID = pd.ProductDropID --PDid
+                )
+        ) AS ReleaseYear,
+    pd.ProductDropID,
+    Pv.ProductName,
+    bs.Name AS BusinessSegmentname,
+    PF.Name AS ProductFamily,
+    CASE 
+        WHEN bs.BusinessId = 1
+            THEN ''
         ELSE rtrim(isnull(pvr.Name, ''))
-        END as ReleaseName
+        END AS ReleaseName
 FROM ProductDrop AS pd
 LEFT JOIN ProductdropStatus ps ON ps.statusid = pd.StatusID
-LEFT JOIN ProductVersion_Release P WITH (NOLOCK) ON  P.ID = pd.ProductversionReleaseID 
-LEFT Join Productversion pv ON Pv.ID = P.ProductVersionID
-LEFT Join BusinessSegment bs ON pv.BusinessSegmentID = bs.BusinessSegmentID 
-LEFT JOIN ProductFamily PF ON Pv.ProductFamilyID = PF.ID 
-LEFT JOIN ProductVersionRelease pvr WITH (NOLOCK) ON p.ReleaseID = pvr.ID 
+LEFT JOIN ProductVersion_Release P WITH (NOLOCK) ON P.ID = pd.ProductversionReleaseID
+LEFT JOIN Productversion pv ON Pv.ID = P.ProductVersionID
+LEFT JOIN BusinessSegment bs ON pv.BusinessSegmentID = bs.BusinessSegmentID
+LEFT JOIN ProductFamily PF ON Pv.ProductFamilyID = PF.ID
+LEFT JOIN ProductVersionRelease pvr WITH (NOLOCK) ON p.ReleaseID = pvr.ID
 WHERE (
         @ProductDropId = - 1
         OR pd.ProductDropId = @ProductDropId
@@ -100,6 +120,10 @@ SELECT p.ProductDropId,
             FOR XML path('')
             ), 1, 2, '') AS Ownerby
 FROM ProductDrop_Team p
+WHERE (
+        @ProductDropId = - 1
+        OR p.ProductDropId = @ProductDropId
+        )
 GROUP BY p.ProductDropID
 ";
     }
@@ -116,8 +140,47 @@ SELECT ml2.ProductDropId,
             FOR XML path('')
             ), 1, 2, '') AS MLName
 FROM ML_INI ml2
+WHERE (
+        @ProductDropId = - 1
+        OR ml2.ProductDropId = @ProductDropId
+        )
 GROUP BY ml2.ProductDropId
 ";
+    }
+
+    private async Task<CommonDataModel> GetProductDropAsync(int productDropId)
+    {
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+
+        SqlCommand command = new(GetProductDropCommandText(), connection);
+        SqlParameter parameter = new("ProductDropId", productDropId);
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+
+        CommonDataModel productDrop = new();
+        if (reader.Read())
+        {
+            int fieldCount = reader.FieldCount;
+
+            for (int i = 0; i < fieldCount; i++)
+            {
+                if (await reader.IsDBNullAsync(i))
+                {
+                    continue;
+                }
+                if (!string.IsNullOrWhiteSpace(reader[i].ToString()))
+                {
+                    string columnName = reader.GetName(i);
+                    string value = reader[i].ToString().Trim();
+                    productDrop.Add(columnName, value.Trim());
+                }
+            }
+            productDrop.Add("Target", "ProductDrop");
+            productDrop.Add("Id", SearchIdName.ProductDrop + productDrop.GetValue("ProductDropId"));
+        }
+
+        return productDrop;
     }
 
     private async Task<IEnumerable<CommonDataModel>> GetProductDropAsync()
@@ -153,7 +216,41 @@ GROUP BY ml2.ProductDropId
             productDrop.Add("Id", SearchIdName.ProductDrop + productDrop.GetValue("ProductDropId"));
             output.Add(productDrop);
         }
+
         return output;
+    }
+
+    private async Task GetOwnerbyAsync(CommonDataModel productDrop)
+    {
+        if (!int.TryParse(productDrop.GetValue("ProductDropID"), out int productDropId))
+        {
+            return;
+        }
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetOwnedByCommandText(), connection);
+        SqlParameter parameter = new("ProductDropId", productDropId);
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, string> ownerBy = new();
+
+        if (await reader.ReadAsync())
+        {
+            if (int.TryParse(reader["ProductDropID"].ToString(), out int dbProductDropId)
+                && !string.IsNullOrWhiteSpace(reader["Ownerby"].ToString()))
+            {
+                ownerBy[dbProductDropId] = reader["Ownerby"].ToString();
+            }
+        }
+
+        if (ownerBy.ContainsKey(productDropId))
+        {
+            string[] ownerByList = ownerBy[productDropId].Split(',');
+            for (int i = 0; i < ownerByList.Length; i++)
+            {
+                productDrop.Add("OwnerBy " + i, ownerByList[i]);
+            }
+        }
     }
 
     private async Task GetOwnerbyAsync(IEnumerable<CommonDataModel> productDrop)
@@ -162,6 +259,8 @@ GROUP BY ml2.ProductDropId
         await connection.OpenAsync();
 
         SqlCommand command = new(GetOwnedByCommandText(), connection);
+        SqlParameter parameter = new("ProductDropId", "-1");
+        command.Parameters.Add(parameter);
         using SqlDataReader reader = command.ExecuteReader();
         Dictionary<int, string> ownerBy = new();
 
@@ -188,12 +287,48 @@ GROUP BY ml2.ProductDropId
         }
     }
 
+    private async Task GetMlNameAsync(CommonDataModel productDrop)
+    {
+        if (!int.TryParse(productDrop.GetValue("ProductDropID"), out int productDropId))
+        {
+            return;
+        }
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+
+        SqlCommand command = new(GetMlNameCommandText(), connection);
+        SqlParameter parameter = new("ProductDropId", productDropId);
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, string> mlName = new();
+
+        if (await reader.ReadAsync())
+        {
+            if (int.TryParse(reader["ProductDropID"].ToString(), out int dbProductDropId)
+                && !string.IsNullOrWhiteSpace(reader["MLName"].ToString()))
+            {
+                mlName[dbProductDropId] = reader["MLName"].ToString();
+            }
+        }
+
+        if (mlName.ContainsKey(productDropId))
+        {
+            string[] mlNameList = mlName[productDropId].Split(',');
+            for (int i = 0; i < mlNameList.Length; i++)
+            {
+                productDrop.Add("MLName " + i, mlNameList[i]);
+            }
+        }
+    }
+
     private async Task GetMlNameAsync(IEnumerable<CommonDataModel> productDrop)
     {
         using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();
 
         SqlCommand command = new(GetMlNameCommandText(), connection);
+        SqlParameter parameter = new("ProductDropId", "-1");
+        command.Parameters.Add(parameter);
         using SqlDataReader reader = command.ExecuteReader();
         Dictionary<int, string> mlName = new();
 
@@ -220,11 +355,70 @@ GROUP BY ml2.ProductDropId
         }
     }
 
+    private static Task HandlePropertyValueAsync(CommonDataModel productDrop)
+    {
+        if (productDrop.GetValue("Locked").Equals("1", StringComparison.OrdinalIgnoreCase))
+        {
+            productDrop.Add("Locked", "Locked");
+        }
+        else
+        {
+            productDrop.Delete("Locked");
+        }
+
+        if (productDrop.GetValue("HideInTree").Equals("True", StringComparison.OrdinalIgnoreCase))
+        {
+            productDrop.Add("HideInTree", "Hide In Tree");
+        }
+        else
+        {
+            productDrop.Delete("HideInTree");
+        }
+
+        if (productDrop.GetValue("AllowSameRootDeliverables").Equals("True", StringComparison.OrdinalIgnoreCase))
+        {
+            productDrop.Add("AllowSameRootDeliverables", "Allow to add components with the same parent part number");
+        }
+        else
+        {
+            productDrop.Delete("AllowSameRootDeliverables");
+        }
+
+        if (productDrop.GetValue("AllowPDAutoSelected").Equals("True", StringComparison.OrdinalIgnoreCase))
+        {
+            productDrop.Add("AllowPDAutoSelected", "Component Replacement Product Drop auto selected");
+        }
+        else
+        {
+            productDrop.Delete("AllowPDAutoSelected");
+        }
+
+        if (productDrop.GetValue("AllowSWcompToSI").Equals("True", StringComparison.OrdinalIgnoreCase))
+        {
+            productDrop.Add("AllowSWcompToSI", "Feed SW Componenets to SI");
+        }
+        else
+        {
+            productDrop.Delete("AllowSWcompToSI");
+        }
+
+        if (productDrop.GetValue("ODMViewOnly").Equals("True", StringComparison.OrdinalIgnoreCase))
+        {
+            productDrop.Add("ODMViewOnly", "ODM R&D Sites can only View");
+        }
+        else
+        {
+            productDrop.Delete("ODMViewOnly");
+        }
+        return Task.CompletedTask;
+    }
+
+
     private static Task HandlePropertyValueAsync(IEnumerable<CommonDataModel> productDrop)
     {
         foreach (CommonDataModel pd in productDrop)
         {
-            if (pd.GetValue("Locked").Equals("1"))
+            if (pd.GetValue("Locked").Equals("1", StringComparison.OrdinalIgnoreCase))
             {
                 pd.Add("Locked", "Locked");
             }
@@ -233,7 +427,7 @@ GROUP BY ml2.ProductDropId
                 pd.Delete("Locked");
             }
 
-            if (pd.GetValue("HideInTree").Equals("True"))
+            if (pd.GetValue("HideInTree").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
                 pd.Add("HideInTree", "Hide In Tree");
             }
@@ -242,7 +436,7 @@ GROUP BY ml2.ProductDropId
                 pd.Delete("HideInTree");
             }
 
-            if (pd.GetValue("AllowSameRootDeliverables").Equals("True"))
+            if (pd.GetValue("AllowSameRootDeliverables").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
                 pd.Add("AllowSameRootDeliverables", "Allow to add components with the same parent part number");
             }
@@ -251,7 +445,7 @@ GROUP BY ml2.ProductDropId
                 pd.Delete("AllowSameRootDeliverables");
             }
 
-            if (pd.GetValue("AllowPDAutoSelected").Equals("True"))
+            if (pd.GetValue("AllowPDAutoSelected").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
                 pd.Add("AllowPDAutoSelected", "Component Replacement Product Drop auto selected");
             }
@@ -260,7 +454,7 @@ GROUP BY ml2.ProductDropId
                 pd.Delete("AllowPDAutoSelected");
             }
 
-            if (pd.GetValue("AllowSWcompToSI").Equals("True"))
+            if (pd.GetValue("AllowSWcompToSI").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
                 pd.Add("AllowSWcompToSI", "Feed SW Componenets to SI");
             }
@@ -268,7 +462,7 @@ GROUP BY ml2.ProductDropId
             {
                 pd.Delete("AllowSWcompToSI");
             }
-            if (pd.GetValue("ODMViewOnly").Equals("True"))
+            if (pd.GetValue("ODMViewOnly").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
                 pd.Add("ODMViewOnly", "ODM R&D Sites can only View");
             }

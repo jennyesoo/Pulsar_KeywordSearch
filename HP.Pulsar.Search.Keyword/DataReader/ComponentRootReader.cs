@@ -1,4 +1,5 @@
-﻿using HP.Pulsar.Search.Keyword.CommonDataStructure;
+﻿using System.Xml.Linq;
+using HP.Pulsar.Search.Keyword.CommonDataStructure;
 using HP.Pulsar.Search.Keyword.Infrastructure;
 using Microsoft.Data.SqlClient;
 
@@ -13,9 +14,26 @@ internal class ComponentRootReader : IKeywordSearchDataReader
         _info = info;
     }
 
-    public Task<CommonDataModel> GetDataAsync(int componentRootId)
+    public async Task<CommonDataModel> GetDataAsync(int componentRootId)
     {
-        throw new NotImplementedException();
+        CommonDataModel componentRoot = await GetComponentRootAsync(componentRootId);
+
+        if (!componentRoot.GetElements().Any())
+        {
+            return null;
+        }
+
+        List<Task> tasks = new()
+        {
+            HandlePropertyValue(componentRoot),
+            FillProductListAsync(componentRoot),
+            FillTrulyLinkedFeaturesAsync(componentRoot),
+            FillLinkedFeatureAsync(componentRoot),
+            FillComponentInitiatedLinkageAsync(componentRoot)
+        };
+
+        await Task.WhenAll(tasks);
+        return componentRoot;
     }
 
     public async Task<IEnumerable<CommonDataModel>> GetDataAsync()
@@ -25,10 +43,10 @@ internal class ComponentRootReader : IKeywordSearchDataReader
         List<Task> tasks = new()
         {
             HandlePropertyValueAsync(componentRoot),
-            GetComponentRootListAsync(componentRoot),
-            GetTrulyLinkedFeaturesAsync(componentRoot),
-            GetLinkedFeaturesAsync(componentRoot),
-            GetComponentInitiatedLinkageAsync(componentRoot)
+            FillProductListAsync(componentRoot),
+            FillTrulyLinkedFeaturesAsync(componentRoot),
+            FillLinkedFeatureAsync(componentRoot),
+            FillComponentInitiatedLinkageAsync(componentRoot)
         };
 
         await Task.WhenAll(tasks);
@@ -66,10 +84,10 @@ internal class ComponentRootReader : IKeywordSearchDataReader
     root.CDImage,
     root.ISOImage,
     root.CAB,
-    root.Binary,
+    root.BINARY,
     root.FloppyDisk,
     root.CertRequired AS WHQLCertificationRequire,
-    root.ScriptPaq as PackagingSoftpaq,
+    root.ScriptPaq AS PackagingSoftpaq,
     root.MultiLanguage,
     Sc.name AS SoftpaqCategory,
     root.Created,
@@ -113,20 +131,20 @@ internal class ComponentRootReader : IKeywordSearchDataReader
     root.DrDvd,
     root.MsStore,
     root.ErdComments,
-    og.Name as SiFunctionTestGroup, 
-    root.Active as Visibility,
-    root.Notes as InternalNotes,
+    og.Name AS SiFunctionTestGroup,
+    root.Active AS Visibility,
+    root.Notes AS InternalNotes,
     root.CDImage,
     root.ISOImage,
     root.AR,
     root.FloppyDisk,
     root.IsSoftPaqInPreinstall,
     root.IconMenu,
-    root.RootFilename as ROMFamily,
+    root.RootFilename AS ROMFamily,
     root.Rompaq,
     root.PreinstallROM,
     root.CAB,
-    root.Softpaq as ROMSoftpaq
+    root.Softpaq AS ROMSoftpaq
 FROM DeliverableRoot root
 LEFT JOIN vendor ON root.vendorid = vendor.id
 LEFT JOIN componentCategory cate ON cate.CategoryId = root.categoryid
@@ -139,7 +157,7 @@ LEFT JOIN ComponentPrismSWType CPSW ON CPSW.PRISMTypeID = root.PrismSWType
 LEFT JOIN SWSetupCategory sws ON sws.ID = root.SWSetupCategoryID
 LEFT JOIN ComponentTransferServer cts ON cts.Id = root.TransferServerId
 LEFT JOIN SoftpaqCategory Sc ON Sc.id = root.SoftpaqCategoryID
-LEFT JOIN OTSFVTOrganizations og on root.OTSFVTOrganizationID  = og.id 
+LEFT JOIN OTSFVTOrganizations og ON root.OTSFVTOrganizationID = og.id
 WHERE (
         @ComponentRootId = - 1
         OR root.id = @ComponentRootId
@@ -156,23 +174,35 @@ WHERE (
     private string GetTSQLTrulyLinkedFeaturesCommandText()
     {
         return @"
-select fr.ComponentRootId,
-        fr.FeatureId,
-        f.FeatureName
-from Feature_Root fr
-JOIN Feature f WITH (NOLOCK) ON fr.FeatureID = f.FeatureID 
-where ComponentRootId >= 1 and AutoLinkage = 1";
+SELECT fr.ComponentRootId,
+    fr.FeatureId,
+    f.FeatureName
+FROM Feature_Root fr
+JOIN Feature f WITH (NOLOCK) ON fr.FeatureID = f.FeatureID
+WHERE ComponentRootId >= 1
+    AND AutoLinkage = 1
+    AND (
+        @ComponentRootId = - 1
+        OR fr.ComponentRootId = @ComponentRootId
+        )
+";
     }
 
     private string GetTSQLLinkedFeaturesCommandText()
     {
         return @"
-select fr.ComponentRootId,
-        fr.FeatureId,
-        f.FeatureName
-from Feature_Root fr
-JOIN Feature f WITH (NOLOCK) ON fr.FeatureID = f.FeatureID 
-where ComponentRootId >= 1 and AutoLinkage = 0";
+SELECT fr.ComponentRootId,
+    fr.FeatureId,
+    f.FeatureName
+FROM Feature_Root fr
+JOIN Feature f WITH (NOLOCK) ON fr.FeatureID = f.FeatureID
+WHERE ComponentRootId >= 1
+    AND AutoLinkage = 0
+    AND (
+        @ComponentRootId = - 1
+        OR fr.ComponentRootId = @ComponentRootId
+        )
+";
     }
 
     private string GetTSQLComponentInitiatedLinkageCommandText()
@@ -182,7 +212,12 @@ SELECT fril.FeatureId AS FeatureId,
     fril.ComponentRootId,
     f.FeatureName AS FeatureName
 FROM Feature_Root_InitiatedLinkage fril WITH (NOLOCK)
-LEFT JOIN feature f WITH (NOLOCK) ON f.featureID = fril.FeatureId";
+LEFT JOIN feature f WITH (NOLOCK) ON f.featureID = fril.FeatureId
+WHERE (
+        @ComponentRootId = - 1
+        OR fril.ComponentRootId = @ComponentRootId
+        )
+";
     }
 
     private string GetTSQLProductListCommandText()
@@ -191,9 +226,9 @@ LEFT JOIN feature f WITH (NOLOCK) ON f.featureID = fril.FeatureId";
     stuff((
             SELECT ' , ' + (CONVERT(VARCHAR, p.Id) + ' ' + p.DOTSName)
             FROM ProductVersion p
-            left JOIN ProductStatus ps ON ps.id = p.ProductStatusID
-            left JOIN Product_DelRoot pr ON pr.ProductVersionId = p.id
-            left JOIN DeliverableRoot root ON root.Id = pr.DeliverableRootId
+            LEFT JOIN ProductStatus ps ON ps.id = p.ProductStatusID
+            LEFT JOIN Product_DelRoot pr ON pr.ProductVersionId = p.id
+            LEFT JOIN DeliverableRoot root ON root.Id = pr.DeliverableRootId
             WHERE root.Id = DR.Id
                 AND ps.Name <> 'Inactive'
                 AND p.FusionRequirements = 1
@@ -201,6 +236,10 @@ LEFT JOIN feature f WITH (NOLOCK) ON f.featureID = fril.FeatureId";
             FOR XML path('')
             ), 1, 3, '') AS ProductList
 FROM DeliverableRoot DR
+WHERE (
+        @ComponentRootId = - 1
+        OR DR.Id = @ComponentRootId
+        )
 GROUP BY DR.Id
 ";
 
@@ -214,31 +253,39 @@ GROUP BY DR.Id
         //order by p.dotsname
     }
 
-    // TODO - performance improvement needed
-    private async Task GetComponentRootListAsync(IEnumerable<CommonDataModel> componentRoots)
+    private async Task<CommonDataModel> GetComponentRootAsync(int componentRootId)
     {
         using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();
-        SqlCommand command = new(GetTSQLProductListCommandText(), connection);
+
+        SqlCommand command = new(GetAllComponentRootSqlCommandText(), connection);
+        SqlParameter parameter = new("ComponentRootId", componentRootId);
+        command.Parameters.Add(parameter);
         using SqlDataReader reader = command.ExecuteReader();
-        Dictionary<int, string> productList = new();
 
-        while (reader.Read())
+        CommonDataModel root = new();
+        if (await reader.ReadAsync())
         {
-            if (int.TryParse(reader["ComponentRootId"].ToString(), out int componentRootId))
-            {
-                productList[componentRootId] = reader["ProductList"].ToString();
-            }
-        }
+            int fieldCount = reader.FieldCount;
 
-        foreach (CommonDataModel root in componentRoots)
-        {
-            if (int.TryParse(root.GetValue("ComponentRootId"), out int componentRootId)
-            && productList.ContainsKey(componentRootId))
+            for (int i = 0; i < fieldCount; i++)
             {
-                root.Add("ProductList", productList[componentRootId]);
+                if (await reader.IsDBNullAsync(i))
+                {
+                    continue;
+                }
+                if (!string.IsNullOrWhiteSpace(reader[i].ToString()) &&
+                    !string.Equals(reader[i].ToString(), "None"))
+                {
+                    string columnName = reader.GetName(i);
+                    string value = reader[i].ToString().Trim();
+                    root.Add(columnName, value);
+                }
             }
+            root.Add("Target", "ComponentRoot");
+            root.Add("Id", SearchIdName.ComponentRoot + root.GetValue("ComponentRootId"));
         }
+        return root;
     }
 
     private async Task<IEnumerable<CommonDataModel>> GetComponentRootAsync()
@@ -253,7 +300,7 @@ GROUP BY DR.Id
 
         List<CommonDataModel> output = new();
 
-        while (reader.Read())
+        while (await reader.ReadAsync())
         {
             CommonDataModel root = new();
             int fieldCount = reader.FieldCount;
@@ -279,11 +326,315 @@ GROUP BY DR.Id
         return output;
     }
 
+    private async Task FillProductListAsync(CommonDataModel componentRoot)
+    {
+        if (!int.TryParse(componentRoot.GetValue("ComponentRootId"), out int componentRootId))
+        {
+            return;
+        }
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetTSQLProductListCommandText(), connection);
+        SqlParameter parameter = new("ComponentRootId", componentRootId);
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, string> productList = new();
+
+        if (await reader.ReadAsync())
+        {
+            if (int.TryParse(reader["ComponentRootId"].ToString(), out int dbComponentRootId))
+            {
+                productList[dbComponentRootId] = reader["ProductList"].ToString();
+            }
+        }
+
+        if (productList.ContainsKey(componentRootId))
+        {
+            componentRoot.Add("ProductList", productList[componentRootId]);
+        }
+    }
+
+    private async Task FillProductListAsync(IEnumerable<CommonDataModel> componentRoots)
+    {
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetTSQLProductListCommandText(), connection);
+        SqlParameter parameter = new("ComponentRootId", "-1");
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, string> productList = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (int.TryParse(reader["ComponentRootId"].ToString(), out int componentRootId))
+            {
+                productList[componentRootId] = reader["ProductList"].ToString();
+            }
+        }
+
+        foreach (CommonDataModel root in componentRoots)
+        {
+            if (int.TryParse(root.GetValue("ComponentRootId"), out int componentRootId)
+            && productList.ContainsKey(componentRootId))
+            {
+                root.Add("ProductList", productList[componentRootId]);
+            }
+        }
+    }
+
+    private Task HandlePropertyValue(CommonDataModel componentRoot)
+    {
+        if (componentRoot.GetValue("Preinstall").Equals("1", StringComparison.OrdinalIgnoreCase))
+        {
+            componentRoot.Add("Preinstall", "Preinstall");
+        }
+        else
+        {
+            componentRoot.Delete("Preinstall");
+        }
+
+        if (componentRoot.GetValue("DrDvd").Equals("True", StringComparison.OrdinalIgnoreCase))
+        {
+            componentRoot.Add("DrDvd", "DRDVD");
+        }
+        else
+        {
+            componentRoot.Delete("DrDvd");
+        }
+
+        if (componentRoot.GetValue("PackagingSoftpaq").Equals("1", StringComparison.OrdinalIgnoreCase))
+        {
+            componentRoot.Add("PackagingSoftpaq", "Packaging Softpaq");
+        }
+        else
+        {
+            componentRoot.Delete("PackagingSoftpaq");
+        }
+
+        if (componentRoot.GetValue("MsStore").Equals("True", StringComparison.OrdinalIgnoreCase))
+        {
+            componentRoot.Add("MsStore", "Ms Store");
+        }
+        else
+        {
+            componentRoot.Delete("MsStore");
+        }
+
+        if (componentRoot.GetValue("FloppyDisk").Equals("1", StringComparison.OrdinalIgnoreCase))
+        {
+            componentRoot.Add("FloppyDisk", "Internal Tool");
+        }
+        else
+        {
+            componentRoot.Delete("FloppyDisk");
+        }
+
+        if (componentRoot.GetValue("Patch").Equals("1", StringComparison.OrdinalIgnoreCase))
+        {
+            componentRoot.Add("Patch", "Patch");
+        }
+        else
+        {
+            componentRoot.Delete("Patch");
+        }
+
+        if (componentRoot.GetValue("Binary").Equals("1", StringComparison.OrdinalIgnoreCase))
+        {
+            componentRoot.Add("Binary", "Binary");
+        }
+        else
+        {
+            componentRoot.Delete("Binary");
+        }
+
+        if (componentRoot.GetValue("PreinstallROM").Equals("1", StringComparison.OrdinalIgnoreCase))
+        {
+            componentRoot.Add("PreinstallROM", "ROM Component Preinstall");
+        }
+        else
+        {
+            componentRoot.Delete("PreinstallROM");
+        }
+
+        if (componentRoot.GetValue("CAB").Equals("1", StringComparison.OrdinalIgnoreCase))
+        {
+            componentRoot.Add("CAB", "CAB");
+        }
+        else
+        {
+            componentRoot.Delete("CAB");
+        }
+
+        if (componentRoot.GetValue("ROMSoftpaq").Equals("1", StringComparison.OrdinalIgnoreCase))
+        {
+            componentRoot.Add("ROMSoftpaq", "ROM component Softpaq");
+        }
+        else
+        {
+            componentRoot.Delete("ROMSoftpaq");
+        }
+
+        if (componentRoot.GetValue("IconDesktop").Equals("True", StringComparison.OrdinalIgnoreCase))
+        {
+            componentRoot.Add("IconDesktop", "Desktop");
+        }
+        else
+        {
+            componentRoot.Delete("IconDesktop");
+        }
+
+        if (componentRoot.GetValue("IconMenu").Equals("True", StringComparison.OrdinalIgnoreCase))
+        {
+            componentRoot.Add("IconMenu", "Start Menu");
+        }
+        else
+        {
+            componentRoot.Delete("IconMenu");
+        }
+
+        if (componentRoot.GetValue("IconTray").Equals("True", StringComparison.OrdinalIgnoreCase))
+        {
+            componentRoot.Add("IconTray", "System Tray");
+        }
+        else
+        {
+            componentRoot.Delete("IconTray");
+        }
+
+        if (componentRoot.GetValue("IconPanel").Equals("True", StringComparison.OrdinalIgnoreCase))
+        {
+            componentRoot.Add("IconPanel", "Control Panel");
+        }
+        else
+        {
+            componentRoot.Delete("IconPanel");
+        }
+
+        if (componentRoot.GetValue("IconInfoCenter").Equals("True", StringComparison.OrdinalIgnoreCase))
+        {
+            componentRoot.Add("IconInfoCenter", "Info Center");
+        }
+        else
+        {
+            componentRoot.Delete("IconInfoCenter");
+        }
+
+        if (componentRoot.GetValue("IconTile").Equals("True", StringComparison.OrdinalIgnoreCase))
+        {
+            componentRoot.Add("IconTile", "Start Menu Tile");
+        }
+        else
+        {
+            componentRoot.Delete("IconTile");
+        }
+
+        if (componentRoot.GetValue("IconTaskBarIcon").Equals("True", StringComparison.OrdinalIgnoreCase))
+        {
+            componentRoot.Add("IconTaskBarIcon", "Taskbar Pinned Icon ");
+        }
+        else
+        {
+            componentRoot.Delete("IconTaskBarIcon");
+        }
+
+        if (componentRoot.GetValue("SettingFWML").Equals("True", StringComparison.OrdinalIgnoreCase))
+        {
+            componentRoot.Add("SettingFWML", "FWML");
+        }
+        else
+        {
+            componentRoot.Delete("SettingFWML");
+        }
+
+        if (componentRoot.GetValue("SettingUWPCompliant").Equals("True", StringComparison.OrdinalIgnoreCase))
+        {
+            componentRoot.Add("SettingUWPCompliant", "FWML");
+        }
+        else
+        {
+            componentRoot.Delete("SettingUWPCompliant");
+        }
+
+        if (componentRoot.GetValue("RoyaltyBearing").Equals("True", StringComparison.OrdinalIgnoreCase))
+        {
+            componentRoot.Add("RoyaltyBearing", "Royalty Bearing");
+        }
+        else
+        {
+            componentRoot.Delete("RoyaltyBearing");
+        }
+
+        if (componentRoot.GetValue("KoreanCertificationRequired").Equals("True", StringComparison.OrdinalIgnoreCase))
+        {
+            componentRoot.Add("KoreanCertificationRequired", "Korean Certification Required");
+        }
+        else
+        {
+            componentRoot.Delete("KoreanCertificationRequired");
+        }
+
+        if (componentRoot.GetValue("WHQLCertificationRequire").Equals("1", StringComparison.OrdinalIgnoreCase))
+        {
+            componentRoot.Add("WHQLCertificationRequire", "WHQL Certification Require");
+        }
+        else
+        {
+            componentRoot.Delete("WHQLCertificationRequire");
+        }
+
+        if (componentRoot.GetValue("LimitFuncTestGroupVisability").Equals("True", StringComparison.OrdinalIgnoreCase))
+        {
+            componentRoot.Add("LimitFuncTestGroupVisability", "Limit partner visibility");
+        }
+        else
+        {
+            componentRoot.Delete("LimitFuncTestGroupVisability");
+        }
+
+        if (componentRoot.GetValue("Visibility").Equals("True", StringComparison.OrdinalIgnoreCase))
+        {
+            componentRoot.Add("Visibility", "Active");
+        }
+        else
+        {
+            componentRoot.Delete("Visibility");
+        }
+
+        if (componentRoot.GetValue("IsSoftPaqInPreinstall").Equals("1", StringComparison.OrdinalIgnoreCase))
+        {
+            componentRoot.Add("IsSoftPaqInPreinstall", "SoftPaq In Preinstall");
+        }
+        else
+        {
+            componentRoot.Delete("IsSoftPaqInPreinstall");
+        }
+
+        if (componentRoot.GetValue("Rompaq").Equals("1", StringComparison.OrdinalIgnoreCase))
+        {
+            componentRoot.Add("Rompaq", "Rompaq Binary");
+        }
+        else
+        {
+            componentRoot.Delete("Rompaq");
+        }
+
+        if (GetCd(componentRoot).Equals(1))
+        {
+            componentRoot.Add("CD", "CD");
+        }
+        componentRoot.Delete("CDImage");
+        componentRoot.Delete("ISOImage");
+        componentRoot.Delete("AR");
+
+        return Task.CompletedTask;
+
+    }
+
     private Task HandlePropertyValueAsync(IEnumerable<CommonDataModel> componentRoots)
     {
         foreach (CommonDataModel root in componentRoots)
         {
-            if (root.GetValue("Preinstall").Equals("1"))
+            if (root.GetValue("Preinstall").Equals("1", StringComparison.OrdinalIgnoreCase))
             {
                 root.Add("Preinstall", "Preinstall");
             }
@@ -292,7 +643,7 @@ GROUP BY DR.Id
                 root.Delete("Preinstall");
             }
 
-            if (root.GetValue("DrDvd").Equals("True"))
+            if (root.GetValue("DrDvd").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
                 root.Add("DrDvd", "DRDVD");
             }
@@ -301,7 +652,7 @@ GROUP BY DR.Id
                 root.Delete("DrDvd");
             }
 
-            if (root.GetValue("PackagingSoftpaq").Equals("1"))
+            if (root.GetValue("PackagingSoftpaq").Equals("1", StringComparison.OrdinalIgnoreCase))
             {
                 root.Add("PackagingSoftpaq", "Packaging Softpaq");
             }
@@ -310,7 +661,7 @@ GROUP BY DR.Id
                 root.Delete("PackagingSoftpaq");
             }
 
-            if (root.GetValue("MsStore").Equals("True"))
+            if (root.GetValue("MsStore").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
                 root.Add("MsStore", "Ms Store");
             }
@@ -319,7 +670,7 @@ GROUP BY DR.Id
                 root.Delete("MsStore");
             }
 
-            if (root.GetValue("FloppyDisk").Equals("1"))
+            if (root.GetValue("FloppyDisk").Equals("1", StringComparison.OrdinalIgnoreCase))
             {
                 root.Add("FloppyDisk", "Internal Tool");
             }
@@ -328,7 +679,7 @@ GROUP BY DR.Id
                 root.Delete("FloppyDisk");
             }
 
-            if (root.GetValue("Patch").Equals("1"))
+            if (root.GetValue("Patch").Equals("1", StringComparison.OrdinalIgnoreCase))
             {
                 root.Add("Patch", "Patch");
             }
@@ -337,7 +688,7 @@ GROUP BY DR.Id
                 root.Delete("Patch");
             }
 
-            if (root.GetValue("Binary").Equals("1"))
+            if (root.GetValue("Binary").Equals("1", StringComparison.OrdinalIgnoreCase))
             {
                 root.Add("Binary", "Binary");
             }
@@ -346,7 +697,7 @@ GROUP BY DR.Id
                 root.Delete("Binary");
             }
 
-            if (root.GetValue("PreinstallROM").Equals("1"))
+            if (root.GetValue("PreinstallROM").Equals("1", StringComparison.OrdinalIgnoreCase))
             {
                 root.Add("PreinstallROM", "ROM Component Preinstall");
             }
@@ -355,7 +706,7 @@ GROUP BY DR.Id
                 root.Delete("PreinstallROM");
             }
 
-            if (root.GetValue("CAB").Equals("1"))
+            if (root.GetValue("CAB").Equals("1", StringComparison.OrdinalIgnoreCase))
             {
                 root.Add("CAB", "CAB");
             }
@@ -364,7 +715,7 @@ GROUP BY DR.Id
                 root.Delete("CAB");
             }
 
-            if (root.GetValue("ROMSoftpaq").Equals("1"))
+            if (root.GetValue("ROMSoftpaq").Equals("1", StringComparison.OrdinalIgnoreCase))
             {
                 root.Add("ROMSoftpaq", "ROM component Softpaq");
             }
@@ -373,7 +724,7 @@ GROUP BY DR.Id
                 root.Delete("ROMSoftpaq");
             }
 
-            if (root.GetValue("IconDesktop").Equals("True"))
+            if (root.GetValue("IconDesktop").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
                 root.Add("IconDesktop", "Desktop");
             }
@@ -382,7 +733,7 @@ GROUP BY DR.Id
                 root.Delete("IconDesktop");
             }
 
-            if (root.GetValue("IconMenu").Equals("True"))
+            if (root.GetValue("IconMenu").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
                 root.Add("IconMenu", "Start Menu");
             }
@@ -391,7 +742,7 @@ GROUP BY DR.Id
                 root.Delete("IconMenu");
             }
 
-            if (root.GetValue("IconTray").Equals("True"))
+            if (root.GetValue("IconTray").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
                 root.Add("IconTray", "System Tray");
             }
@@ -400,7 +751,7 @@ GROUP BY DR.Id
                 root.Delete("IconTray");
             }
 
-            if (root.GetValue("IconPanel").Equals("True"))
+            if (root.GetValue("IconPanel").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
                 root.Add("IconPanel", "Control Panel");
             }
@@ -409,7 +760,7 @@ GROUP BY DR.Id
                 root.Delete("IconPanel");
             }
 
-            if (root.GetValue("IconInfoCenter").Equals("True"))
+            if (root.GetValue("IconInfoCenter").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
                 root.Add("IconInfoCenter", "Info Center");
             }
@@ -418,7 +769,7 @@ GROUP BY DR.Id
                 root.Delete("IconInfoCenter");
             }
 
-            if (root.GetValue("IconTile").Equals("True"))
+            if (root.GetValue("IconTile").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
                 root.Add("IconTile", "Start Menu Tile");
             }
@@ -427,7 +778,7 @@ GROUP BY DR.Id
                 root.Delete("IconTile");
             }
 
-            if (root.GetValue("IconTaskBarIcon").Equals("True"))
+            if (root.GetValue("IconTaskBarIcon").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
                 root.Add("IconTaskBarIcon", "Taskbar Pinned Icon ");
             }
@@ -436,7 +787,7 @@ GROUP BY DR.Id
                 root.Delete("IconTaskBarIcon");
             }
 
-            if (root.GetValue("SettingFWML").Equals("True"))
+            if (root.GetValue("SettingFWML").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
                 root.Add("SettingFWML", "FWML");
             }
@@ -445,7 +796,7 @@ GROUP BY DR.Id
                 root.Delete("SettingFWML");
             }
 
-            if (root.GetValue("SettingUWPCompliant").Equals("True"))
+            if (root.GetValue("SettingUWPCompliant").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
                 root.Add("SettingUWPCompliant", "FWML");
             }
@@ -454,7 +805,7 @@ GROUP BY DR.Id
                 root.Delete("SettingUWPCompliant");
             }
 
-            if (root.GetValue("RoyaltyBearing").Equals("True"))
+            if (root.GetValue("RoyaltyBearing").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
                 root.Add("RoyaltyBearing", "Royalty Bearing");
             }
@@ -463,7 +814,7 @@ GROUP BY DR.Id
                 root.Delete("RoyaltyBearing");
             }
 
-            if (root.GetValue("KoreanCertificationRequired").Equals("True"))
+            if (root.GetValue("KoreanCertificationRequired").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
                 root.Add("KoreanCertificationRequired", "Korean Certification Required");
             }
@@ -472,7 +823,7 @@ GROUP BY DR.Id
                 root.Delete("KoreanCertificationRequired");
             }
 
-            if (root.GetValue("WHQLCertificationRequire").Equals("1"))
+            if (root.GetValue("WHQLCertificationRequire").Equals("1", StringComparison.OrdinalIgnoreCase))
             {
                 root.Add("WHQLCertificationRequire", "WHQL Certification Require");
             }
@@ -481,7 +832,7 @@ GROUP BY DR.Id
                 root.Delete("WHQLCertificationRequire");
             }
 
-            if (root.GetValue("LimitFuncTestGroupVisability").Equals("True"))
+            if (root.GetValue("LimitFuncTestGroupVisability").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
                 root.Add("LimitFuncTestGroupVisability", "Limit partner visibility");
             }
@@ -490,7 +841,7 @@ GROUP BY DR.Id
                 root.Delete("LimitFuncTestGroupVisability");
             }
 
-            if (root.GetValue("Visibility").Equals("True"))
+            if (root.GetValue("Visibility").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
                 root.Add("Visibility", "Active");
             }
@@ -499,7 +850,7 @@ GROUP BY DR.Id
                 root.Delete("Visibility");
             }
 
-            if (root.GetValue("IsSoftPaqInPreinstall").Equals("1"))
+            if (root.GetValue("IsSoftPaqInPreinstall").Equals("1", StringComparison.OrdinalIgnoreCase))
             {
                 root.Add("IsSoftPaqInPreinstall", "SoftPaq In Preinstall");
             }
@@ -508,7 +859,7 @@ GROUP BY DR.Id
                 root.Delete("IsSoftPaqInPreinstall");
             }
 
-            if (root.GetValue("Rompaq").Equals("1"))
+            if (root.GetValue("Rompaq").Equals("1", StringComparison.OrdinalIgnoreCase))
             {
                 root.Add("Rompaq", "Rompaq Binary");
             }
@@ -531,27 +882,70 @@ GROUP BY DR.Id
 
     private static int GetCd(CommonDataModel root)
     {
-        if (root.GetValue("CDImage").Equals("1"))
+        if (root.GetValue("CDImage").Equals("1", StringComparison.OrdinalIgnoreCase))
         {
             return 1;
         }
-        if (root.GetValue("ISOImage").Equals("1"))
+        if (root.GetValue("ISOImage").Equals("1", StringComparison.OrdinalIgnoreCase))
         {
             return 1;
         }
-        if (root.GetValue("AR").Equals("1"))
+        if (root.GetValue("AR").Equals("1", StringComparison.OrdinalIgnoreCase))
         {
             return 1;
         }
         return 0;
     }
 
-    private async Task GetTrulyLinkedFeaturesAsync(IEnumerable<CommonDataModel> roots)
+    private async Task FillTrulyLinkedFeaturesAsync(CommonDataModel componentRoot)
+    {
+        if (!int.TryParse(componentRoot.GetValue("ComponentRootId"), out int componentRootId))
+        {
+            return;
+        }
+
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetTSQLTrulyLinkedFeaturesCommandText(), connection);
+        SqlParameter parameter = new("ComponentRootId", componentRootId);
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, List<(string, string)>> trulyLinkedFeatures = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["ComponentRootId"].ToString(), out int dbComponentRootId))
+            {
+                continue;
+            }
+
+            if (trulyLinkedFeatures.ContainsKey(dbComponentRootId))
+            {
+                trulyLinkedFeatures[dbComponentRootId].Add((reader["FeatureId"].ToString(), reader["FeatureName"].ToString()));
+            }
+            else
+            {
+                trulyLinkedFeatures[dbComponentRootId] = new List<(string, string)>() { (reader["FeatureId"].ToString(), reader["FeatureName"].ToString()) };
+            }
+        }
+
+        if (trulyLinkedFeatures.ContainsKey(componentRootId))
+        {
+            for (int i = 0; i < trulyLinkedFeatures[componentRootId].Count; i++)
+            {
+                componentRoot.Add("TrulyLinkedFeatures Id" + i, trulyLinkedFeatures[componentRootId][i].Item1);
+                componentRoot.Add("TrulyLinkedFeatures Name" + i, trulyLinkedFeatures[componentRootId][i].Item2);
+            }
+        }
+    }
+
+    private async Task FillTrulyLinkedFeaturesAsync(IEnumerable<CommonDataModel> roots)
     {
         using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();
         SqlCommand command = new(GetTSQLTrulyLinkedFeaturesCommandText(), connection);
-
+        SqlParameter parameter = new("ComponentRootId", "-1");
+        command.Parameters.Add(parameter);
         using SqlDataReader reader = command.ExecuteReader();
         Dictionary<int, List<(string, string)>> trulyLinkedFeatures = new();
 
@@ -587,12 +981,55 @@ GROUP BY DR.Id
         }
     }
 
-    private async Task GetLinkedFeaturesAsync(IEnumerable<CommonDataModel> roots)
+    private async Task FillLinkedFeatureAsync(CommonDataModel componentRoot)
+    {
+        if (!int.TryParse(componentRoot.GetValue("ComponentRootId"), out int componentRootId))
+        {
+            return;
+        }
+
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetTSQLLinkedFeaturesCommandText(), connection);
+        SqlParameter parameter = new("ComponentRootId", componentRootId);
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, List<(string, string)>> linkedFeatures = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["ComponentRootId"].ToString(), out int dbComponentRootId))
+            {
+                continue;
+            }
+
+            if (linkedFeatures.ContainsKey(dbComponentRootId))
+            {
+                linkedFeatures[dbComponentRootId].Add((reader["FeatureId"].ToString(), reader["FeatureName"].ToString()));
+            }
+            else
+            {
+                linkedFeatures[dbComponentRootId] = new List<(string, string)>() { (reader["FeatureId"].ToString(), reader["FeatureName"].ToString()) };
+            }
+        }
+
+        if (linkedFeatures.ContainsKey(componentRootId))
+        {
+            for (int i = 0; i < linkedFeatures[componentRootId].Count; i++)
+            {
+                componentRoot.Add("LinkedFeatures Id" + i, linkedFeatures[componentRootId][i].Item1);
+                componentRoot.Add("LinkedFeatures Name" + i, linkedFeatures[componentRootId][i].Item2);
+            }
+        }
+    }
+
+    private async Task FillLinkedFeatureAsync(IEnumerable<CommonDataModel> roots)
     {
         using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();
         SqlCommand command = new(GetTSQLLinkedFeaturesCommandText(), connection);
-
+        SqlParameter parameter = new("ComponentRootId", "-1");
+        command.Parameters.Add(parameter);
         using SqlDataReader reader = command.ExecuteReader();
         Dictionary<int, List<(string, string)>> linkedFeatures = new();
 
@@ -627,12 +1064,55 @@ GROUP BY DR.Id
         }
     }
 
-    private async Task GetComponentInitiatedLinkageAsync(IEnumerable<CommonDataModel> roots)
+    private async Task FillComponentInitiatedLinkageAsync(CommonDataModel componentRoot)
+    {
+        if (!int.TryParse(componentRoot.GetValue("ComponentRootId"), out int componentRootId))
+        {
+            return;
+        }
+
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetTSQLComponentInitiatedLinkageCommandText(), connection);
+        SqlParameter parameter = new("ComponentRootId", componentRootId);
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, List<(string, string)>> componentInitiatedLinkage = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["ComponentRootId"].ToString(), out int dbComponentRootId))
+            {
+                continue;
+            }
+
+            if (componentInitiatedLinkage.ContainsKey(dbComponentRootId))
+            {
+                componentInitiatedLinkage[dbComponentRootId].Add((reader["FeatureId"].ToString(), reader["FeatureName"].ToString()));
+            }
+            else
+            {
+                componentInitiatedLinkage[dbComponentRootId] = new List<(string, string)>() { (reader["FeatureId"].ToString(), reader["FeatureName"].ToString()) };
+            }
+        }
+
+        if (componentInitiatedLinkage.ContainsKey(componentRootId))
+        {
+            for (int i = 0; i < componentInitiatedLinkage[componentRootId].Count; i++)
+            {
+                componentRoot.Add("ComponentInitiatedLinkage Id" + i, componentInitiatedLinkage[componentRootId][i].Item1);
+                componentRoot.Add("ComponentInitiatedLinkage Name" + i, componentInitiatedLinkage[componentRootId][i].Item2);
+            }
+        }
+    }
+
+    private async Task FillComponentInitiatedLinkageAsync(IEnumerable<CommonDataModel> roots)
     {
         using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();
         SqlCommand command = new(GetTSQLComponentInitiatedLinkageCommandText(), connection);
-
+        SqlParameter parameter = new("ComponentRootId", "-1");
+        command.Parameters.Add(parameter);
         using SqlDataReader reader = command.ExecuteReader();
         Dictionary<int, List<(string, string)>> componentInitiatedLinkage = new();
 

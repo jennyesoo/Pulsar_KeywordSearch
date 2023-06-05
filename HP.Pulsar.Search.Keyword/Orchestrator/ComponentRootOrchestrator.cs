@@ -19,7 +19,7 @@ internal class ComponentRootOrchestrator : IInitializationOrchestrator
 
     public async Task InitializeAsync()
     {
-        // read products from database
+        // read roots from database
         ComponentRootReader reader = new(KeywordSearchInfo);
         IEnumerable<CommonDataModel> roots = await reader.GetDataAsync();
 

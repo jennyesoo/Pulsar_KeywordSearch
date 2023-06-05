@@ -19,7 +19,7 @@ internal class FeatureOrchestrator : IInitializationOrchestrator
 
     public async Task InitializeAsync()
     {
-        // read products from database
+        // read features from database
         FeatureReader reader = new(KeywordSearchInfo);
         IEnumerable<CommonDataModel> features = await reader.GetDataAsync();
 

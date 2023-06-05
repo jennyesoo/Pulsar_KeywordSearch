@@ -13,9 +13,29 @@ public class ProductReader : IKeywordSearchDataReader
         _info = info;
     }
 
-    public Task<CommonDataModel> GetDataAsync(int productId)
+    public async Task<CommonDataModel> GetDataAsync(int productId)
     {
-        throw new NotImplementedException();
+        CommonDataModel product = await GetProductAsync(productId);
+
+        if (!product.GetElements().Any())
+        {
+            return null;
+        }
+
+        List<Task> tasks = new()
+        {
+            FillEndOfProductionDateAsync(product),
+            FillProductGroupAsync(product),
+            FillLeadProductAsync(product),
+            FillChipsetAsync(product),
+            FillCurrentBiosVersionAsync(product),
+            FillAvDetailAsync(product),
+            FillFactoryNameAsync(product)
+        };
+
+        await Task.WhenAll(tasks);
+
+        return product;
     }
 
     public async Task<IEnumerable<CommonDataModel>> GetDataAsync()
@@ -24,14 +44,13 @@ public class ProductReader : IKeywordSearchDataReader
 
         List<Task> tasks = new()
         {
-            GetEndOfProductionDateAsync(products),
-            GetProductGroupsAsync(products),
-            GetLeadProductAsync(products),
+            FillEndOfProductionDatesAsync(products),
+            FillProductGroupAsync(products),
+            FillLeadProductsAsync(products),
             GetChipsetsAsync(products),
-            GetCurrentBIOSVersionsAsync(products),
-            GetAvDetailAsync(products),
-            GetFactoryNameAsync(products)
-//            GetComponentRootListAsync(products)
+            FillCurrentBiosVersionsAsync(products),
+            FillAvDetailsAsync(products),
+            FillFactoryNamesAsync(products)
         };
 
         await Task.WhenAll(tasks);
@@ -132,34 +151,69 @@ SELECT p.id AS ProductId,
     p.RCTOSites,
     p.IsNdaProduct
 FROM ProductVersion p
-left JOIN ProductFamily pf ON p.ProductFamilyId = pf.id
-left JOIN Partner partner ON partner.id = p.PartnerId
-left JOIN ProductDevCenter pdc ON pdc.ProductDevCenterId = DevCenter
-left JOIN ProductStatus ps ON ps.id = p.ProductStatusID
-left JOIN BusinessSegment sg ON sg.BusinessSegmentID = p.BusinessSegmentID
-left JOIN PreinstallTeam pis ON pis.ID = p.ReleaseTeam
-left JOIN UserInfo user_SMID ON user_SMID.userid = p.SMID
-left JOIN UserInfo user_PDPM ON user_PDPM.userid = p.PlatformDevelopmentID
-left JOIN UserInfo user_SCID ON user_SCID.userid = p.SupplyChainID
-left JOIN UserInfo user_ODMSEPM ON user_ODMSEPM.userid = p.ODMSEPMID
-left JOIN UserInfo user_CM ON user_CM.userid = p.PMID
-left JOIN UserInfo user_CPM ON user_CPM.userid = p.PDEID
-left JOIN UserInfo user_Service ON user_Service.userid = p.ServiceID
-left JOIN UserInfo user_ODMHWPM ON user_ODMHWPM.userid = p.ODMHWPMID
-left JOIN UserInfo user_POPM ON user_POPM.userid = p.TDCCMID
-left JOIN UserInfo user_Quality ON user_Quality.userid = p.QualityID
-left JOIN UserInfo user_PPM ON user_PPM.userid = p.PlanningPMID
-left JOIN UserInfo user_BIOSPM ON user_BIOSPM.userid = p.BIOSLeadID
-left JOIN UserInfo user_SEPM ON user_SEPM.userid = p.SEPMID
-left JOIN UserInfo user_MPM ON user_MPM.userid = p.ConsMarketingID
-left JOIN UserInfo user_ProPM ON user_ProPM.userid = p.ProcurementPMID
-left JOIN UserInfo user_SWM ON user_SWM.userid = p.SwMarketingId
-left JOIN ProductLine pl ON pl.Id = p.ProductLineId
-WHERE   (
+LEFT JOIN ProductFamily pf ON p.ProductFamilyId = pf.id
+LEFT JOIN Partner partner ON partner.id = p.PartnerId
+LEFT JOIN ProductDevCenter pdc ON pdc.ProductDevCenterId = DevCenter
+LEFT JOIN ProductStatus ps ON ps.id = p.ProductStatusID
+LEFT JOIN BusinessSegment sg ON sg.BusinessSegmentID = p.BusinessSegmentID
+LEFT JOIN PreinstallTeam pis ON pis.ID = p.ReleaseTeam
+LEFT JOIN UserInfo user_SMID ON user_SMID.userid = p.SMID
+LEFT JOIN UserInfo user_PDPM ON user_PDPM.userid = p.PlatformDevelopmentID
+LEFT JOIN UserInfo user_SCID ON user_SCID.userid = p.SupplyChainID
+LEFT JOIN UserInfo user_ODMSEPM ON user_ODMSEPM.userid = p.ODMSEPMID
+LEFT JOIN UserInfo user_CM ON user_CM.userid = p.PMID
+LEFT JOIN UserInfo user_CPM ON user_CPM.userid = p.PDEID
+LEFT JOIN UserInfo user_Service ON user_Service.userid = p.ServiceID
+LEFT JOIN UserInfo user_ODMHWPM ON user_ODMHWPM.userid = p.ODMHWPMID
+LEFT JOIN UserInfo user_POPM ON user_POPM.userid = p.TDCCMID
+LEFT JOIN UserInfo user_Quality ON user_Quality.userid = p.QualityID
+LEFT JOIN UserInfo user_PPM ON user_PPM.userid = p.PlanningPMID
+LEFT JOIN UserInfo user_BIOSPM ON user_BIOSPM.userid = p.BIOSLeadID
+LEFT JOIN UserInfo user_SEPM ON user_SEPM.userid = p.SEPMID
+LEFT JOIN UserInfo user_MPM ON user_MPM.userid = p.ConsMarketingID
+LEFT JOIN UserInfo user_ProPM ON user_ProPM.userid = p.ProcurementPMID
+LEFT JOIN UserInfo user_SWM ON user_SWM.userid = p.SwMarketingId
+LEFT JOIN ProductLine pl ON pl.Id = p.ProductLineId
+WHERE (
         @ProductId = - 1
         OR p.Id = @ProductId
         )
+
 ";
+    }
+
+    private async Task<CommonDataModel> GetProductAsync(int productId)
+    {
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+
+        SqlCommand command = new(GetProductsCommandText(), connection);
+        SqlParameter parameter = new("ProductId", productId);
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+
+        CommonDataModel product = new();
+        if (await reader.ReadAsync())
+        {
+            int fieldCount = reader.FieldCount;
+
+            for (int i = 0; i < fieldCount; i++)
+            {
+                if (await reader.IsDBNullAsync(i))
+                {
+                    continue;
+                }
+                if (!string.IsNullOrWhiteSpace(reader[i].ToString()))
+                {
+                    string columnName = reader.GetName(i);
+                    string value = reader[i].ToString().Trim();
+                    product.Add(columnName, value);
+                }
+            }
+            product.Add("Target", "Product");
+            product.Add("Id", SearchIdName.Product + product.GetValue("ProductId"));
+        }
+        return product;
     }
 
     // This function is to get all products
@@ -174,7 +228,7 @@ WHERE   (
         using SqlDataReader reader = command.ExecuteReader();
 
         List<CommonDataModel> output = new();
-        while (reader.Read())
+        while (await reader.ReadAsync())
         {
             CommonDataModel product = new();
             int fieldCount = reader.FieldCount;
@@ -217,7 +271,10 @@ WHERE (
         )
     AND pcd.DeliveryTypeId = 2 -- AMO 
     AND amo.STATUS = 1 -- active
-GROUP BY pv.Id
+    AND (
+        @ProductId = - 1
+        OR pv.Id = @ProductId
+        )
 ";
     }
 
@@ -245,7 +302,7 @@ GROUP BY pb.ProductVersionId
 ";
     }
 
-    private string GetProductGroupsCommandText() => "select t1.ProductVersionId as ProductId, t2.FullName from ProductVersion_ProductGroup t1 join PROGRAM t2 on t1.ProductGroupId = t2.id";
+    private string GetProductGroupsCommandText() => "select t1.ProductVersionId as ProductId, t2.FullName from ProductVersion_ProductGroup t1 join PROGRAM t2 on t1.ProductGroupId = t2.id WHERE ( @ProductId = - 1 OR t1.ProductVersionId = @ProductId )";
 
     private string GetTSQLLeadproductCommandText()
     {
@@ -257,6 +314,10 @@ LEFT JOIN ProductVersion_Release pv WITH (NOLOCK) ON pr.id = pv.ReleaseID
 LEFT JOIN ProductVersion_Release lpv WITH (NOLOCK) ON lpv.id = pv.LeadProductreleaseID
 LEFT JOIN ProductVersion lp WITH (NOLOCK) ON lp.id = lpv.ProductVersionID
 LEFT JOIN ProductVersionRelease lpr WITH (NOLOCK) ON lpr.id = lpv.ReleaseID
+WHERE (
+        @ProductId = - 1
+        OR lp.ID = @ProductId
+        )
 ";
     }
 
@@ -268,6 +329,10 @@ SELECT p_c.ProductVersionID AS ProductId,
 FROM Chipset c WITH (NOLOCK)
 LEFT JOIN Product_Chipset p_c WITH (NOLOCK) ON c.[ID] = p_c.[ChipsetId]
 WHERE p_c.ChipsetId IS NOT NULL
+    AND (
+        @ProductId = - 1
+        OR p_c.ProductVersionID = @ProductId
+        )
 ";
     }
 
@@ -275,7 +340,7 @@ WHERE p_c.ChipsetId IS NOT NULL
     {
         return @"
 SELECT dbo.Concatenate(v.version) AS TargetedVersions,
-    pd.ProductVersionId as ProductId
+    pd.ProductVersionId AS ProductId
 FROM (
     SELECT deliverableversionid,
         pd.productversionid
@@ -292,6 +357,10 @@ WHERE r.categoryid = 161
             AND substring(v.version, 3, 1) = '.'
             )
         )
+    AND (
+        @ProductId = - 1
+        OR pd.ProductVersionId = @ProductId
+        )
 GROUP BY pd.productversionid
 ";
     }
@@ -299,16 +368,20 @@ GROUP BY pd.productversionid
     private string GetFactoryNameCommandText()
     {
         return @"
-select Name + ' (' + Code + ')' as FactoryName,
-        productversionID as ProductId
-from ManufacturingSite
-INNER JOIN product_Factory WITH (NOLOCK) ON ManufacturingSite.ManufacturingSiteId = product_Factory.FactoryID 
+SELECT Name + ' (' + Code + ')' AS FactoryName,
+    productversionID AS ProductId
+FROM ManufacturingSite
+INNER JOIN product_Factory WITH (NOLOCK) ON ManufacturingSite.ManufacturingSiteId = product_Factory.FactoryID
+WHERE (
+        @ProductId = - 1
+        OR productversionID = @ProductId
+        )
 ";
     }
 
     private string GetCurrentROMText()
     {
-        return "Select id,currentROM,currentWebROM From ProductVersion";
+        return "Select id,currentROM,currentWebROM From ProductVersion WHERE ( @ProductId = - 1 OR id = @ProductId )";
     }
 
     private string GetAvDetailText()
@@ -321,16 +394,78 @@ LEFT JOIN Product_Brand PB ON PB.productVersionID = p.ID
 LEFT JOIN AvDetail_ProductBrand APB ON APB.productBrandID = PB.Id
 LEFT JOIN AvDetail A ON A.AvDetailID = APB.AvDetailID
 WHERE APB.STATUS = 'A'
+    AND (
+        @ProductId = - 1
+        OR p.ID = @ProductId
+        )
 ";
     }
 
-    private async Task GetEndOfProductionDateAsync(IEnumerable<CommonDataModel> products)
+    private async Task FillEndOfProductionDateAsync(CommonDataModel product)
+    {
+        if (int.TryParse(product.GetValue("ProductId"), out int productId)
+            && int.TryParse(product.GetValue("TypeId"), out int typeId))
+        {
+            using SqlConnection connection = new(_info.DatabaseConnectionString);
+            await connection.OpenAsync();
+            SqlCommand command1 = new(GetEndOfProductionCommand1Text(), connection);
+            SqlCommand command2 = new(GetEndOfProductionCommand2Text(), connection);
+            SqlParameter parameter = new("ProductId", productId);
+            command1.Parameters.Add(parameter);
+            command2.Parameters.Add(parameter);
+            Dictionary<int, DateTime> eopDates1 = new();
+            Dictionary<int, DateTime> eopDates2 = new();
+
+            using (SqlDataReader reader1 = command1.ExecuteReader())
+            {
+                if (await reader1.ReadAsync())
+                {
+                    if (int.TryParse(reader1["ProductId"].ToString(), out int dbProductId)
+                        && DateTime.TryParse(reader1["EndOfProductionDate"].ToString(), out DateTime date1))
+                    {
+                        eopDates1[dbProductId] = date1;
+                    }
+                }
+            }
+
+            using (SqlDataReader reader2 = command2.ExecuteReader())
+            {
+                if (await reader2.ReadAsync())
+                {
+                    if (int.TryParse(reader2["ProductId"].ToString(), out int dbProductId)
+                        && DateTime.TryParse(reader2["EndOfProductionDate"].ToString(), out DateTime date2))
+                    {
+                        eopDates2[dbProductId] = date2;
+                    }
+                }
+            }
+
+            if (typeId == 3)
+            {
+                if (eopDates1.ContainsKey(productId))
+                {
+                    product.Add("EndOfProduction", eopDates1[productId].ToString("yyyy/MM/dd"));
+                }
+            }
+            else
+            {
+                if (eopDates2.ContainsKey(productId))
+                {
+                    product.Add("EndOfProduction", eopDates2[productId].ToString("yyyy/MM/dd"));
+                }
+            }
+        }
+    }
+
+    private async Task FillEndOfProductionDatesAsync(IEnumerable<CommonDataModel> products)
     {
         using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();
         SqlCommand command1 = new(GetEndOfProductionCommand1Text(), connection);
         SqlCommand command2 = new(GetEndOfProductionCommand2Text(), connection);
-
+        SqlParameter parameter = new("ProductId", "-1");
+        command1.Parameters.Add(parameter);
+        command2.Parameters.Add(parameter);
         Dictionary<int, DateTime> eopDates1 = new();
         Dictionary<int, DateTime> eopDates2 = new();
 
@@ -383,7 +518,43 @@ WHERE APB.STATUS = 'A'
         }
     }
 
-    private async Task GetProductGroupsAsync(IEnumerable<CommonDataModel> products)
+    private async Task FillProductGroupAsync(CommonDataModel product)
+    {
+        if (!int.TryParse(product.GetValue("ProductId"), out int productId))
+        {
+            return;
+        }
+
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetProductGroupsCommandText(), connection);
+        SqlParameter parameter = new("ProductId", productId);
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, List<string>> productGroups = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (int.TryParse(reader["ProductId"].ToString(), out int dbProductId))
+            {
+                if (productGroups.ContainsKey(dbProductId))
+                {
+                    productGroups[dbProductId].Add(reader["FullName"].ToString());
+                }
+                else
+                {
+                    productGroups[dbProductId] = new List<string> { reader["FullName"].ToString() };
+                }
+            }
+        }
+
+        if (productGroups.ContainsKey(productId))
+        {
+            product.Add("ProductGroups", string.Join(" ", productGroups[productId]));
+        }
+    }
+
+    private async Task FillProductGroupAsync(IEnumerable<CommonDataModel> products)
     {
         using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();
@@ -394,16 +565,18 @@ WHERE APB.STATUS = 'A'
 
         while (await reader.ReadAsync())
         {
-            if (int.TryParse(reader["ProductId"].ToString(), out int productId))
+            if (!int.TryParse(reader["ProductId"].ToString(), out int productId))
             {
-                if (productGroups.ContainsKey(productId))
-                {
-                    productGroups[productId].Add(reader["FullName"].ToString());
-                }
-                else
-                {
-                    productGroups[productId] = new List<string> { reader["FullName"].ToString() };
-                }
+                continue;
+            }
+
+            if (productGroups.ContainsKey(productId))
+            {
+                productGroups[productId].Add(reader["FullName"].ToString());
+            }
+            else
+            {
+                productGroups[productId] = new List<string> { reader["FullName"].ToString() };
             }
         }
 
@@ -417,30 +590,76 @@ WHERE APB.STATUS = 'A'
         }
     }
 
-    private async Task GetLeadProductAsync(IEnumerable<CommonDataModel> products)
+    private async Task FillLeadProductAsync(CommonDataModel product)
+    {
+        if (!int.TryParse(product.GetValue("ProductId"), out int productId))
+        {
+            return;
+        }
+
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+
+        Dictionary<int, List<string>> leadProducts = new();
+        SqlCommand command = new(GetTSQLLeadproductCommandText(), connection);
+        SqlParameter parameter = new("ProductId", productId);
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+
+        while (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["ProductId"].ToString(), out int dbProductId))
+            {
+                continue;
+            }
+
+            if (leadProducts.ContainsKey(dbProductId))
+            {
+                leadProducts[dbProductId].Add(reader["LeadProduct"].ToString());
+            }
+            else
+            {
+                leadProducts[dbProductId] = new List<string>()
+                {
+                    reader["LeadProduct"].ToString()
+                };
+            }
+        }
+
+        if (leadProducts.ContainsKey(productId))
+        {
+            product.Add("LeadProduct", string.Join(", ", leadProducts[productId]));
+        }
+    }
+
+    private async Task FillLeadProductsAsync(IEnumerable<CommonDataModel> products)
     {
         using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();
 
         Dictionary<int, List<string>> leadProducts = new();
         SqlCommand command = new(GetTSQLLeadproductCommandText(), connection);
+        SqlParameter parameter = new("ProductId", "-1");
+        command.Parameters.Add(parameter);
         using SqlDataReader reader = command.ExecuteReader();
 
         while (await reader.ReadAsync())
         {
-            if (int.TryParse(reader["ProductId"].ToString(), out int productId))
+            if (!int.TryParse(reader["ProductId"].ToString(), out int productId))
             {
-                if (leadProducts.ContainsKey(productId))
-                {
-                    leadProducts[productId].Add(reader["LeadProduct"].ToString());
-                }
-                else
-                {
-                    leadProducts[productId] = new List<string>()
+                continue;
+            }
+
+            if (leadProducts.ContainsKey(productId))
+            {
+                leadProducts[productId].Add(reader["LeadProduct"].ToString());
+            }
+            else
+            {
+                leadProducts[productId] = new List<string>()
                     {
                         reader["LeadProduct"].ToString()
                     };
-                }
             }
         }
 
@@ -454,12 +673,51 @@ WHERE APB.STATUS = 'A'
         }
     }
 
+    private async Task FillChipsetAsync(CommonDataModel product)
+    {
+        if (!int.TryParse(product.GetValue("ProductId"), out int productId))
+        {
+            return;
+        }
+
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetChipsetsCommandText(), connection);
+        SqlParameter parameter = new("ProductId", productId);
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, List<string>> chipsets = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["ProductId"].ToString(), out int dbProductId))
+            {
+                continue;
+            }
+
+            if (chipsets.ContainsKey(dbProductId))
+            {
+                chipsets[dbProductId].Add(reader["CodeName"].ToString());
+            }
+            else
+            {
+                chipsets[dbProductId] = new List<string>() { reader["CodeName"].ToString() };
+            }
+        }
+
+        if (chipsets.ContainsKey(productId))
+        {
+            product.Add("Chipsets", string.Join(" ", chipsets[productId]));
+        }
+    }
+
     private async Task GetChipsetsAsync(IEnumerable<CommonDataModel> products)
     {
         using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();
         SqlCommand command = new(GetChipsetsCommandText(), connection);
-
+        SqlParameter parameter = new("ProductId", "-1");
+        command.Parameters.Add(parameter);
         using SqlDataReader reader = command.ExecuteReader();
         Dictionary<int, List<string>> chipsets = new();
 
@@ -490,19 +748,60 @@ WHERE APB.STATUS = 'A'
         }
     }
 
-    private async Task GetCurrentBIOSVersionsAsync(IEnumerable<CommonDataModel> products)
+    private async Task FillCurrentBiosVersionAsync(CommonDataModel product)
     {
-        Dictionary<int, string> biosVersion = await GetTargetBIOSVersionAsync();
-        Dictionary<int, (string, string)> currentROM = await GetCurrentROMOrCurrentWebROMAsync();
+        if (!int.TryParse(product.GetValue("ProductId"), out int productId))
+        {
+            return;
+        }
+
+        Dictionary<int, string> biosVersion = await GetTargetBIOSVersionAsync(productId);
+        Dictionary<int, (string, string)> currentROM = await GetCurrentROMOrCurrentWebROMAsync(productId);
+
+        if (currentROM.ContainsKey(productId))
+        {
+            product.Add("CurrentBIOSVersions", await GetTargetedVersionsAsync(productId,
+                                                                              product.GetValue("ProductStatus"),
+                                                                              currentROM[productId].Item1,
+                                                                              currentROM[productId].Item2,
+                                                                              biosVersion));
+        }
+        else
+        {
+            product.Add("CurrentBIOSVersions", await GetTargetedVersionsAsync(productId,
+                                                                              product.GetValue("ProductStatus"),
+                                                                              string.Empty,
+                                                                              string.Empty,
+                                                                              biosVersion));
+        }
+    }
+
+    private async Task FillCurrentBiosVersionsAsync(IEnumerable<CommonDataModel> products)
+    {
+        Dictionary<int, string> biosVersion = await GetTargetBiosVersionsAsync();
+        Dictionary<int, (string, string)> currentROM = await GetCurrentROMsOrCurrentWebROMsAsync();
 
         foreach (CommonDataModel product in products)
         {
-            if (int.TryParse(product.GetValue("ProductId").ToString(), out int productId))
+            if (!int.TryParse(product.GetValue("ProductId"), out int productId))
+            {
+                continue;
+            }
+
+            if (currentROM.ContainsKey(productId))
             {
                 product.Add("CurrentBIOSVersions", await GetTargetedVersionsAsync(productId,
                                                                                   product.GetValue("ProductStatus"),
                                                                                   currentROM[productId].Item1,
                                                                                   currentROM[productId].Item2,
+                                                                                  biosVersion));
+            }
+            else
+            {
+                product.Add("CurrentBIOSVersions", await GetTargetedVersionsAsync(productId,
+                                                                                  product.GetValue("ProductStatus"),
+                                                                                  string.Empty,
+                                                                                  string.Empty,
                                                                                   biosVersion));
             }
         }
@@ -539,12 +838,32 @@ WHERE APB.STATUS = 'A'
         return currentROM;
     }
 
-    public async Task<Dictionary<int, string>> GetTargetBIOSVersionAsync()
+    private async Task<Dictionary<int, string>> GetTargetBIOSVersionAsync(int productId)
     {
         using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();
         SqlCommand command = new(GetBiosVersionText(), connection);
+        SqlParameter parameter = new("ProductId", productId);
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, string> biosVersion = new();
 
+        if (await reader.ReadAsync()
+            && int.TryParse(reader["ProductId"].ToString(), out int dbProductId))
+        {
+            biosVersion[productId] = reader["TargetedVersions"].ToString();
+        }
+
+        return biosVersion;
+    }
+
+    private async Task<Dictionary<int, string>> GetTargetBiosVersionsAsync()
+    {
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetBiosVersionText(), connection);
+        SqlParameter parameter = new("ProductId", "-1");
+        command.Parameters.Add(parameter);
         using SqlDataReader reader = command.ExecuteReader();
         Dictionary<int, string> biosVersion = new();
 
@@ -560,12 +879,31 @@ WHERE APB.STATUS = 'A'
         return biosVersion;
     }
 
-    public async Task<Dictionary<int, (string, string)>> GetCurrentROMOrCurrentWebROMAsync()
+    private async Task<Dictionary<int, (string, string)>> GetCurrentROMOrCurrentWebROMAsync(int productId)
     {
         using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();
         SqlCommand command = new(GetCurrentROMText(), connection);
+        SqlParameter parameter = new("ProductId", productId);
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, (string, string)> currentROM = new();
 
+        if (await reader.ReadAsync()
+            && int.TryParse(reader["id"].ToString(), out int dbProductId))
+        {
+            currentROM[productId] = (reader["currentROM"].ToString(), reader["currentWebROM"].ToString());
+        }
+        return currentROM;
+    }
+
+    private async Task<Dictionary<int, (string, string)>> GetCurrentROMsOrCurrentWebROMsAsync()
+    {
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetCurrentROMText(), connection);
+        SqlParameter parameter = new("ProductId", "-1");
+        command.Parameters.Add(parameter);
         using SqlDataReader reader = command.ExecuteReader();
         Dictionary<int, (string, string)> currentROM = new();
 
@@ -580,27 +918,71 @@ WHERE APB.STATUS = 'A'
         return currentROM;
     }
 
-    private async Task GetAvDetailAsync(IEnumerable<CommonDataModel> products)
+    private async Task FillAvDetailAsync(CommonDataModel product)
+    {
+        if (int.TryParse(product.GetValue("ProductId"), out int productId))
+        {
+            using SqlConnection connection = new(_info.DatabaseConnectionString);
+            await connection.OpenAsync();
+
+            SqlCommand command = new(GetAvDetailText(), connection);
+            SqlParameter parameter = new("ProductId", productId);
+            command.Parameters.Add(parameter);
+            using SqlDataReader reader = command.ExecuteReader();
+            Dictionary<int, List<string>> avDetail = new();
+
+            while (await reader.ReadAsync())
+            {
+                if (!int.TryParse(reader["ProductId"].ToString(), out int dbProductId))
+                {
+                    continue;
+                }
+
+                if (avDetail.ContainsKey(dbProductId))
+                {
+                    avDetail[dbProductId].Add(reader["AvNo"].ToString());
+                }
+                else
+                {
+                    avDetail[dbProductId] = new List<string> { reader["AvNo"].ToString() };
+                }
+            }
+
+            if (avDetail.ContainsKey(productId))
+            {
+                for (int i = 0; i < avDetail[productId].Count(); i++)
+                {
+                    product.Add("AvDetail " + i, avDetail[productId][i]);
+                }
+            }
+        }
+    }
+
+    private async Task FillAvDetailsAsync(IEnumerable<CommonDataModel> products)
     {
         using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();
 
         SqlCommand command = new(GetAvDetailText(), connection);
+        SqlParameter parameter = new("ProductId", "-1");
+        command.Parameters.Add(parameter);
         using SqlDataReader reader = command.ExecuteReader();
         Dictionary<int, List<string>> avDetail = new();
 
         while (await reader.ReadAsync())
         {
-            if (int.TryParse(reader["ProductId"].ToString(), out int productId))
+            if (!int.TryParse(reader["ProductId"].ToString(), out int productId))
             {
-                if (avDetail.ContainsKey(productId))
-                {
-                    avDetail[productId].Add(reader["AvNo"].ToString());
-                }
-                else
-                {
-                    avDetail[productId] = new List<string> { reader["AvNo"].ToString() };
-                }
+                continue;
+            }
+
+            if (avDetail.ContainsKey(productId))
+            {
+                avDetail[productId].Add(reader["AvNo"].ToString());
+            }
+            else
+            {
+                avDetail[productId] = new List<string> { reader["AvNo"].ToString() };
             }
         }
 
@@ -617,12 +999,54 @@ WHERE APB.STATUS = 'A'
         }
     }
 
-    private async Task GetFactoryNameAsync(IEnumerable<CommonDataModel> products)
+    private async Task FillFactoryNameAsync(CommonDataModel product)
+    {
+        if (!int.TryParse(product.GetValue("ProductId"), out int productId))
+        {
+            return;
+        }
+
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetFactoryNameCommandText(), connection);
+        SqlParameter parameter = new("ProductId", productId);
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, List<string>> factoryName = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["ProductId"].ToString(), out int dbProductId))
+            {
+                continue;
+            }
+
+            if (factoryName.ContainsKey(dbProductId))
+            {
+                factoryName[dbProductId].Add(reader["FactoryName"].ToString());
+            }
+            else
+            {
+                factoryName[dbProductId] = new List<string>() { reader["FactoryName"].ToString() };
+            }
+        }
+
+        if (factoryName.ContainsKey(productId))
+        {
+            for (int i = 0; i < factoryName[productId].Count; i++)
+            {
+                product.Add("FactoryName" + i, factoryName[productId][i]);
+            }
+        }
+    }
+
+    private async Task FillFactoryNamesAsync(IEnumerable<CommonDataModel> products)
     {
         using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();
         SqlCommand command = new(GetFactoryNameCommandText(), connection);
-
+        SqlParameter parameter = new("ProductId", "-1");
+        command.Parameters.Add(parameter);
         using SqlDataReader reader = command.ExecuteReader();
         Dictionary<int, List<string>> factoryName = new();
 

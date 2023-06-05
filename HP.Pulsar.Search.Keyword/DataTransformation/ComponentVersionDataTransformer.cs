@@ -8,24 +8,54 @@ public class ComponentVersionDataTransformer : IDataTransformer
 
     public IEnumerable<CommonDataModel> Transform(IEnumerable<CommonDataModel> componentVersions)
     {
-        foreach (CommonDataModel rootversion in componentVersions)
+        if (!componentVersions.Any())
         {
-            foreach (string key in rootversion.GetKeys())
+            return null;
+        }
+
+        foreach (CommonDataModel version in componentVersions)
+        {
+            foreach (string key in version.GetKeys())
             {
-                string propertyValue = CommonDataTransformer.DataProcessingInitializationCombination(_datePropertyList, rootversion.GetValue(key), key);
+                string propertyValue = CommonDataTransformer.DataProcessingInitializationCombination(_datePropertyList, version.GetValue(key), key);
 
                 if (!string.IsNullOrWhiteSpace(propertyValue)
-                    && !string.Equals(propertyValue, rootversion.GetValue(key)))
+                    && !string.Equals(propertyValue, version.GetValue(key)))
                 {
-                    rootversion.Add(key, propertyValue);
+                    version.Add(key, propertyValue);
                 }
                 else if (string.IsNullOrWhiteSpace(propertyValue))
                 {
-                    rootversion.Delete(key);
+                    version.Delete(key);
                 }
             }
         }
 
         return componentVersions;
+    }
+
+    public CommonDataModel Transform(CommonDataModel version)
+    {
+        if (!version.GetElements().Any())
+        {
+            return null;
+        }
+
+        foreach (string key in version.GetKeys())
+        {
+            string propertyValue = CommonDataTransformer.DataProcessingInitializationCombination(_datePropertyList, version.GetValue(key), key);
+
+            if (!string.IsNullOrWhiteSpace(propertyValue)
+                && !string.Equals(propertyValue, version.GetValue(key)))
+            {
+                version.Add(key, propertyValue);
+            }
+            else if (string.IsNullOrWhiteSpace(propertyValue))
+            {
+                version.Delete(key);
+            }
+        }
+
+        return version;
     }
 }

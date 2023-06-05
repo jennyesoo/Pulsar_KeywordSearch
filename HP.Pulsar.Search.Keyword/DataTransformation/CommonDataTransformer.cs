@@ -6,7 +6,7 @@ public static class CommonDataTransformer
     {
         if (string.IsNullOrWhiteSpace(propertyValue)
             || string.IsNullOrWhiteSpace(propertyName)
-            || datePropertyList == null)
+            || !datePropertyList.Any())
         {
             return propertyValue;
         }

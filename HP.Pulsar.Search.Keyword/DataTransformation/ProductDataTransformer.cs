@@ -8,6 +8,11 @@ public class ProductDataTransformer : IDataTransformer
 
     public IEnumerable<CommonDataModel> Transform(IEnumerable<CommonDataModel> products)
     {
+        if (!products.Any())
+        {
+            return null;
+        }
+
         foreach (CommonDataModel product in products)
         {
             foreach (string key in product.GetKeys())
@@ -19,7 +24,7 @@ public class ProductDataTransformer : IDataTransformer
                 {
                     product.Add(key, propertyValue);
                 }
-                else if(string.IsNullOrWhiteSpace(propertyValue))
+                else if (string.IsNullOrWhiteSpace(propertyValue))
                 {
                     product.Delete(key);
                 }
@@ -27,5 +32,29 @@ public class ProductDataTransformer : IDataTransformer
         }
 
         return products;
+    }
+
+    public CommonDataModel Transform(CommonDataModel product)
+    {
+        if (!product.GetElements().Any())
+        {
+            return null;
+        }
+
+        foreach (string key in product.GetKeys())
+        {
+            string propertyValue = CommonDataTransformer.DataProcessingInitializationCombination(_datePropertyList, product.GetValue(key), key);
+
+            if (!string.IsNullOrWhiteSpace(propertyValue)
+                && !string.Equals(propertyValue, product.GetValue(key)))
+            {
+                product.Add(key, propertyValue);
+            }
+            else if (string.IsNullOrWhiteSpace(propertyValue))
+            {
+                product.Delete(key);
+            }
+        }
+        return product;
     }
 }

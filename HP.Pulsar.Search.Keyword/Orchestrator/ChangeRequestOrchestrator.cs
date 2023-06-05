@@ -19,7 +19,7 @@ internal class ChangeRequestOrchestrator : IInitializationOrchestrator
 
     public async Task InitializeAsync()
     {
-        // read products from database
+        // read changeRequests from database
         ChangeRequestReader reader = new(KeywordSearchInfo);
         IEnumerable<CommonDataModel> changeRequests = await reader.GetDataAsync();
 

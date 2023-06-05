@@ -19,7 +19,7 @@ internal class ProductDropOrchestrator : IInitializationOrchestrator
 
     public async Task InitializeAsync()
     {
-        // read products from database
+        // read productDrops from database
         ProductDropReader reader = new(KeywordSearchInfo);
         IEnumerable<CommonDataModel> productDrops = await reader.GetDataAsync();
 

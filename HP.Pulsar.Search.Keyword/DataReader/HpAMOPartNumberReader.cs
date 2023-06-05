@@ -13,9 +13,16 @@ internal class HpAMOPartNumberReader : IKeywordSearchDataReader
         _info = info;
     }
 
-    public Task<CommonDataModel> GetDataAsync(int featureId)
+    public async Task<CommonDataModel> GetDataAsync(int hpAMOPartNumberId)
     {
-        throw new NotImplementedException();
+        CommonDataModel hpAMOPartNumber = await GetHpAMOPartNumberAsync(hpAMOPartNumberId);
+        
+        if (!hpAMOPartNumber.GetElements().Any())
+        {
+            return null;
+        }
+
+        return hpAMOPartNumber;
     }
 
     public async Task<IEnumerable<CommonDataModel>> GetDataAsync()
@@ -25,8 +32,7 @@ internal class HpAMOPartNumberReader : IKeywordSearchDataReader
 
     private string GetHpAMOPartNumberCommandText()
     {
-        return @"
-SELECT hppn.AmoHpPartNumberID AS HpAMOPartNumberId,
+        return @"SELECT hppn.AmoHpPartNumberID AS HpAMOPartNumberId,
     hppn.HpPartNo AS HpPartNumber,
     CASE 
         WHEN ISNULL(f.PMG100_AMO, '') <> ''
@@ -49,7 +55,7 @@ SELECT hppn.AmoHpPartNumberID AS HpAMOPartNumberId,
     u1.firstname + ' ' + u1.lastname AS CreatedBy,
     u2.firstname + ' ' + u2.lastname AS LastUpdatedBy
 FROM Feature f
-right JOIN AmoHpPartNo hppn ON f.FeatureID = hppn.FeatureID
+RIGHT JOIN AmoHpPartNo hppn ON f.FeatureID = hppn.FeatureID
 LEFT JOIN Regions r ON hppn.LocalizationId = r.ID
 LEFT JOIN SCMCategory scm ON scm.SCMCategoryID = hppn.ASCMCategoryId
 LEFT JOIN AMOFeatureV2 amof ON f.featureID = amof.FeatureId
@@ -65,6 +71,42 @@ WHERE (
 ";
     }
 
+    private async Task<CommonDataModel> GetHpAMOPartNumberAsync(int hpAMOPartNumberId)
+    {
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+
+        SqlCommand command = new(GetHpAMOPartNumberCommandText(), connection);
+        SqlParameter parameter = new("HpAMOPartNumberId", hpAMOPartNumberId);
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+
+        CommonDataModel hpAMOPartNumber = new();
+        if (await reader.ReadAsync())
+        {
+            int fieldCount = reader.FieldCount;
+
+            for (int i = 0; i < fieldCount; i++)
+            {
+                if (await reader.IsDBNullAsync(i))
+                {
+                    continue;
+                }
+                if (!string.IsNullOrWhiteSpace(reader[i].ToString()))
+                {
+                    string columnName = reader.GetName(i);
+                    string value = reader[i].ToString().Trim();
+                    hpAMOPartNumber.Add(columnName, value);
+                }
+            }
+
+            hpAMOPartNumber.Add("Target", "HpAmoPartNumber");
+            hpAMOPartNumber.Add("Id", SearchIdName.AmoPartNumber + hpAMOPartNumber.GetValue("HpAMOPartNumberId"));
+        }
+
+        return hpAMOPartNumber;
+    }
+
     private async Task<IEnumerable<CommonDataModel>> GetHpAMOPartNumberAsync()
     {
         using SqlConnection connection = new(_info.DatabaseConnectionString);
@@ -77,7 +119,7 @@ WHERE (
 
         List<CommonDataModel> output = new();
 
-        while (reader.Read())
+        while (await reader.ReadAsync())
         {
             CommonDataModel hpAMOPartNumber = new();
             int fieldCount = reader.FieldCount;

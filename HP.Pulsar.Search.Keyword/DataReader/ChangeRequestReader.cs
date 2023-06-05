@@ -13,9 +13,23 @@ internal class ChangeRequestReader : IKeywordSearchDataReader
         _info = info;
     }
 
-    public Task<CommonDataModel> GetDataAsync(int changeRequestId)
+    public async Task<CommonDataModel> GetDataAsync(int changeRequestId)
     {
-        throw new NotImplementedException();
+        CommonDataModel changeRequest = await GetChangeRequestAsync(changeRequestId);
+
+        if (!changeRequest.GetElements().Any())
+        {
+            return null;
+        }
+
+        List<Task> tasks = new()
+        {
+            HandlePropertyValue(changeRequest),
+            FillApproversAsync(changeRequest)
+        };
+
+        await Task.WhenAll(tasks);
+        return changeRequest;
     }
 
     public async Task<IEnumerable<CommonDataModel>> GetDataAsync()
@@ -50,7 +64,7 @@ SELECT di.id AS ChangeRequestId,
     di.Created AS DateSubmitter,
     di.actualDate AS DateClosed,
     pv.Dotsname AS Product,
-    DR.Name as ComponentRoot,
+    DR.Name AS ComponentRoot,
     di.summary AS Summary,
     AStatus.Name AS STATUS,
     ui.FirstName + ', ' + ui.LastName AS OWNER,
@@ -75,10 +89,10 @@ SELECT di.id AS ChangeRequestId,
     di.RASDiscoDate,
     di.OnStatusReport
 FROM Deliverableissues di
-left join DeliverableRoot DR on DR.id = di.DeliverableRootID
-left JOIN ProductVersion pv ON pv.id = di.ProductVersionID
-left JOIN ActionStatus AStatus ON AStatus.id = di.STATUS
-left JOIN UserInfo ui ON ui.userid = di.OwnerID
+LEFT JOIN DeliverableRoot DR ON DR.id = di.DeliverableRootID
+LEFT JOIN ProductVersion pv ON pv.id = di.ProductVersionID
+LEFT JOIN ActionStatus AStatus ON AStatus.id = di.STATUS
+LEFT JOIN UserInfo ui ON ui.userid = di.OwnerID
 WHERE (
         @ChangeRequestId = - 1
         OR di.Id = @ChangeRequestId
@@ -89,19 +103,57 @@ WHERE (
     private string GetApproversCommandText()
     {
         return @"
-SELECT dcr.id as ChangeRequestId,
+SELECT dcr.id AS ChangeRequestId,
     stuff((
-            SELECT '{' + e.Name 
+            SELECT '{' + e.Name
             FROM ActionApproval AS a WITH (NOLOCK)
-            left JOIN Employee AS e WITH (NOLOCK) ON a.ApproverId = e.Id
-            left JOIN DeliverableIssues d WITH (NOLOCK) ON a.ActionId = d.Id
+            LEFT JOIN Employee AS e WITH (NOLOCK) ON a.ApproverId = e.Id
+            LEFT JOIN DeliverableIssues d WITH (NOLOCK) ON a.ActionId = d.Id
             WHERE d.id = dcr.id
             ORDER BY d.id
             FOR XML path('')
             ), 1, 1, '') AS Approvers
 FROM DeliverableIssues dcr
+WHERE (
+        @ChangeRequestId = - 1
+        OR dcr.id = @ChangeRequestId
+        )
 GROUP BY dcr.id
 ";
+    }
+
+    private async Task<CommonDataModel> GetChangeRequestAsync(int changeRequestId)
+    {
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+
+        SqlCommand command = new(GetChangeRequestCommandText(), connection);
+        SqlParameter parameter = new("ChangeRequestId", changeRequestId);
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+
+        CommonDataModel changeRequest = new();
+        while (reader.Read())
+        {
+            int fieldCount = reader.FieldCount;
+
+            for (int i = 0; i < fieldCount; i++)
+            {
+                if (await reader.IsDBNullAsync(i))
+                {
+                    continue;
+                }
+                if (!string.IsNullOrWhiteSpace(reader[i].ToString()))
+                {
+                    string columnName = reader.GetName(i);
+                    string value = reader[i].ToString().Trim();
+                    changeRequest.Add(columnName, value);
+                }
+            }
+            changeRequest.Add("Target", "ChangeRequest");
+            changeRequest.Add("Id", SearchIdName.Dcr + changeRequest.GetValue("ChangeRequestId"));
+        }
+        return changeRequest;
     }
 
     private async Task<IEnumerable<CommonDataModel>> GetChangeRequestAsync()
@@ -140,11 +192,116 @@ GROUP BY dcr.id
         return output;
     }
 
+    private Task HandlePropertyValue(CommonDataModel changeRequest)
+    {
+        if (changeRequest.GetValue("ZsrpRequired").Equals("True", StringComparison.OrdinalIgnoreCase))
+        {
+            changeRequest.Add("ZsrpRequired", "ZSRP Ready Date Required");
+        }
+        else
+        {
+            changeRequest.Delete("ZsrpRequired");
+        }
+
+        if (changeRequest.GetValue("AVRequired").Equals("True", StringComparison.OrdinalIgnoreCase))
+        {
+            changeRequest.Add("AVRequired", "AV Required");
+        }
+        else
+        {
+            changeRequest.Delete("AVRequired");
+        }
+
+        if (changeRequest.GetValue("QualificationRequired").Equals("True", StringComparison.OrdinalIgnoreCase))
+        {
+            changeRequest.Add("QualificationRequired", "Qualification Required");
+        }
+        else
+        {
+            changeRequest.Delete("QualificationRequired");
+        }
+
+        if (changeRequest.GetValue("GlobalSeriesRequired").Equals("True", StringComparison.OrdinalIgnoreCase))
+        {
+            changeRequest.Add("GlobalSeriesRequired", "Global Series Required");
+        }
+        else
+        {
+            changeRequest.Delete("GlobalSeriesRequired");
+        }
+
+        if (changeRequest.GetValue("CustomerImpact").Equals("1", StringComparison.OrdinalIgnoreCase))
+        {
+            changeRequest.Add("CustomerImpact", "Affects images and/or BIOS on shipping products");
+        }
+        else
+        {
+            changeRequest.Delete("CustomerImpact");
+        }
+
+        if (changeRequest.GetValue("OnStatusReport").Equals("1", StringComparison.OrdinalIgnoreCase))
+        {
+            changeRequest.Add("OnStatusReport", "Remove from Online Status Reports");
+        }
+        else
+        {
+            changeRequest.Delete("OnStatusReport");
+        }
+
+        if (changeRequest.GetValue("Important").Equals("True", StringComparison.OrdinalIgnoreCase))
+        {
+            changeRequest.Add("Important", "Important");
+        }
+        else
+        {
+            changeRequest.Delete("Important");
+        }
+
+        if (changeRequest.GetValue("NA").Equals("True", StringComparison.OrdinalIgnoreCase))
+        {
+            changeRequest.Add("NA", "NA");
+        }
+        else
+        {
+            changeRequest.Delete("NA");
+        }
+
+        if (changeRequest.GetValue("LA").Equals("True", StringComparison.OrdinalIgnoreCase))
+        {
+            changeRequest.Add("LA", "LA");
+        }
+        else
+        {
+            changeRequest.Delete("LA");
+        }
+
+        if (changeRequest.GetValue("EMEA").Equals("True", StringComparison.OrdinalIgnoreCase))
+        {
+            changeRequest.Add("EMEA", "EMEA");
+        }
+        else
+        {
+            changeRequest.Delete("EMEA");
+        }
+
+        if (changeRequest.GetValue("APJ").Equals("True", StringComparison.OrdinalIgnoreCase))
+        {
+            changeRequest.Add("APJ", "APJ");
+        }
+        else
+        {
+            changeRequest.Delete("APJ");
+        }
+
+        return Task.CompletedTask;
+
+    }
+
     private Task HandlePropertyValuesAsync(IEnumerable<CommonDataModel> changeRequests)
     {
         foreach (CommonDataModel dcr in changeRequests)
         {
-            if (dcr.GetValue("ZsrpRequired").Equals("True"))
+            if (dcr.GetValue("ZsrpRequired").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
                 dcr.Add("ZsrpRequired", "ZSRP Ready Date Required");
             }
@@ -153,7 +310,7 @@ GROUP BY dcr.id
                 dcr.Delete("ZsrpRequired");
             }
 
-            if (dcr.GetValue("AVRequired").Equals("True"))
+            if (dcr.GetValue("AVRequired").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
                 dcr.Add("AVRequired", "AV Required");
             }
@@ -162,7 +319,7 @@ GROUP BY dcr.id
                 dcr.Delete("AVRequired");
             }
 
-            if (dcr.GetValue("QualificationRequired").Equals("True"))
+            if (dcr.GetValue("QualificationRequired").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
                 dcr.Add("QualificationRequired", "Qualification Required");
             }
@@ -171,7 +328,7 @@ GROUP BY dcr.id
                 dcr.Delete("QualificationRequired");
             }
 
-            if (dcr.GetValue("GlobalSeriesRequired").Equals("True"))
+            if (dcr.GetValue("GlobalSeriesRequired").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
                 dcr.Add("GlobalSeriesRequired", "Global Series Required");
             }
@@ -180,7 +337,7 @@ GROUP BY dcr.id
                 dcr.Delete("GlobalSeriesRequired");
             }
 
-            if (dcr.GetValue("CustomerImpact").Equals("1"))
+            if (dcr.GetValue("CustomerImpact").Equals("1", StringComparison.OrdinalIgnoreCase))
             {
                 dcr.Add("CustomerImpact", "Affects images and/or BIOS on shipping products");
             }
@@ -189,7 +346,7 @@ GROUP BY dcr.id
                 dcr.Delete("CustomerImpact");
             }
 
-            if (dcr.GetValue("OnStatusReport").Equals("1"))
+            if (dcr.GetValue("OnStatusReport").Equals("1", StringComparison.OrdinalIgnoreCase))
             {
                 dcr.Add("OnStatusReport", "Remove from Online Status Reports");
             }
@@ -198,7 +355,7 @@ GROUP BY dcr.id
                 dcr.Delete("OnStatusReport");
             }
 
-            if (dcr.GetValue("Important").Equals("True"))
+            if (dcr.GetValue("Important").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
                 dcr.Add("Important", "Important");
             }
@@ -207,7 +364,7 @@ GROUP BY dcr.id
                 dcr.Delete("Important");
             }
 
-            if (dcr.GetValue("NA").Equals("True"))
+            if (dcr.GetValue("NA").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
                 dcr.Add("NA", "NA");
             }
@@ -216,7 +373,7 @@ GROUP BY dcr.id
                 dcr.Delete("NA");
             }
 
-            if (dcr.GetValue("LA").Equals("True"))
+            if (dcr.GetValue("LA").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
                 dcr.Add("LA", "LA");
             }
@@ -225,7 +382,7 @@ GROUP BY dcr.id
                 dcr.Delete("LA");
             }
 
-            if (dcr.GetValue("EMEA").Equals("True"))
+            if (dcr.GetValue("EMEA").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
                 dcr.Add("EMEA", "EMEA");
             }
@@ -234,7 +391,7 @@ GROUP BY dcr.id
                 dcr.Delete("EMEA");
             }
 
-            if (dcr.GetValue("APJ").Equals("True"))
+            if (dcr.GetValue("APJ").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
                 dcr.Add("APJ", "APJ");
             }
@@ -247,12 +404,47 @@ GROUP BY dcr.id
         return Task.CompletedTask;
     }
 
+    private async Task FillApproversAsync(CommonDataModel changeRequest)
+    {
+        if (!int.TryParse(changeRequest.GetValue("ChangeRequestId"), out int changeRequestId))
+        {
+            return;
+        }
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+
+        SqlCommand command = new(GetApproversCommandText(), connection);
+        SqlParameter parameter = new("ChangeRequestId", changeRequestId);
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, string> approvers = new();
+
+        if (await reader.ReadAsync()
+            && !string.IsNullOrWhiteSpace(reader["Approvers"].ToString())
+            && int.TryParse(reader["ChangeRequestId"].ToString(), out int dbChangeRequestId))
+        {
+            approvers[dbChangeRequestId] = reader["Approvers"].ToString();
+        }
+
+        if (approvers.ContainsKey(changeRequestId))
+        {
+            string[] approverList = approvers[changeRequestId].Split('{');
+            for (int i = 0; i < approverList.Length; i++)
+            {
+                changeRequest.Add("Approvals " + i, approverList[i]);
+            }
+        }
+
+    }
+
     private async Task GetApproverAsync(IEnumerable<CommonDataModel> changeRequests)
     {
         using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();
 
         SqlCommand command = new(GetApproversCommandText(), connection);
+        SqlParameter parameter = new("ChangeRequestId", "-1");
+        command.Parameters.Add(parameter);
         using SqlDataReader reader = command.ExecuteReader();
         Dictionary<int, string> approvers = new();
 

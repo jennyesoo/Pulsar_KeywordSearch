@@ -19,7 +19,7 @@ internal class HpAMOPartNumberOrchestrator : IInitializationOrchestrator
 
     public async Task InitializeAsync()
     {
-        // read products from database
+        // read hpAMOPartNumber from database
         HpAMOPartNumberReader reader = new(KeywordSearchInfo);
         IEnumerable<CommonDataModel> hpAMOPartNumber = await reader.GetDataAsync();
 

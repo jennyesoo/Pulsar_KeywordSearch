@@ -9,6 +9,11 @@ public class ChangeRequestDataTransformer : IDataTransformer
 
     public IEnumerable<CommonDataModel> Transform(IEnumerable<CommonDataModel> changeRequests)
     {
+        if (!changeRequests.Any())
+        {
+            return null;
+        }
+
         foreach (CommonDataModel dcr in changeRequests)
         {
             foreach (string key in dcr.GetKeys())
@@ -28,5 +33,29 @@ public class ChangeRequestDataTransformer : IDataTransformer
         }
 
         return changeRequests;
+    }
+
+    public CommonDataModel Transform(CommonDataModel changeRequest)
+    {
+        if (!changeRequest.GetElements().Any())
+        {
+            return null;
+        }
+
+        foreach (string key in changeRequest.GetKeys())
+        {
+            string propertyValue = CommonDataTransformer.DataProcessingInitializationCombination(_datePropertyList, changeRequest.GetValue(key), key);
+
+            if (!string.IsNullOrWhiteSpace(propertyValue)
+                && !string.Equals(propertyValue, changeRequest.GetValue(key)))
+            {
+                changeRequest.Add(key, propertyValue);
+            }
+            else if (string.IsNullOrWhiteSpace(propertyValue))
+            {
+                changeRequest.Delete(key);
+            }
+        }
+        return changeRequest;
     }
 }

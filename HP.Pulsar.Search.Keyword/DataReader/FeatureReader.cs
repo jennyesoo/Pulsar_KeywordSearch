@@ -13,9 +13,24 @@ public class FeatureReader
         _info = info;
     }
 
-    public Task<CommonDataModel> GetDataAsync(int featureId)
+    public async Task<CommonDataModel> GetDataAsync(int featureId)
     {
-        throw new NotImplementedException();
+        CommonDataModel feature = await GetFeaturesAsync(featureId);
+
+        if (!feature.GetElements().Any())
+        {
+            return null;
+        }
+
+        List<Task> tasks = new()
+        {
+            FillComponentInitiatedLinkageAsync(feature),
+            HandlePropertyValueAsync(feature)
+        };
+
+        await Task.WhenAll(tasks);
+
+        return feature;
     }
 
     public async Task<IEnumerable<CommonDataModel>> GetDataAsync()
@@ -39,12 +54,18 @@ public class FeatureReader
 SELECT F.FeatureId,
     F.FeatureName,
     Fc.Name AS FeatureCategory,
-    CASE WHEN Fc.FeatureClassID = 1 THEN 'Documentation'
-    WHEN Fc.FeatureClassID = 2 THEN 'Firmware'
-    WHEN Fc.FeatureClassID = 3 THEN 'Hardware'
-    WHEN Fc.FeatureClassID = 4 THEN 'Software'
-    WHEN Fc.FeatureClassID = 5 THEN 'Base Unit'
-    END AS FeatureClass,
+    CASE 
+        WHEN Fc.FeatureClassID = 1
+            THEN 'Documentation'
+        WHEN Fc.FeatureClassID = 2
+            THEN 'Firmware'
+        WHEN Fc.FeatureClassID = 3
+            THEN 'Hardware'
+        WHEN Fc.FeatureClassID = 4
+            THEN 'Software'
+        WHEN Fc.FeatureClassID = 5
+            THEN 'Base Unit'
+        END AS FeatureClass,
     Dt.Name AS DeliveryType,
     F.CodeName,
     F.RuleID,
@@ -58,19 +79,54 @@ SELECT F.FeatureId,
     F.UpdatedBy,
     F.Updated,
     F.overrideReason,
-    pcc.PRLBaseUnitGroupName As PlatformName,
-    o.Name as LinkedOperatingSystem
+    pcc.PRLBaseUnitGroupName AS PlatformName,
+    o.Name AS LinkedOperatingSystem
 FROM Feature F
-left JOIN FeatureCategory Fc ON Fc.FeatureCategoryID = F.FeatureCategoryID
-left JOIN DeliveryType Dt ON Dt.DeliveryTypeID = F.DeliveryTypeID
-left JOIN FeatureStatus Fs ON Fs.StatusID = F.StatusID
-left JOIN PlatformChassisCategory pcc on pcc.PlatformID = f.PlatformID
-left join OSLookup o on o.id = F.osid
+LEFT JOIN FeatureCategory Fc ON Fc.FeatureCategoryID = F.FeatureCategoryID
+LEFT JOIN DeliveryType Dt ON Dt.DeliveryTypeID = F.DeliveryTypeID
+LEFT JOIN FeatureStatus Fs ON Fs.StatusID = F.StatusID
+LEFT JOIN PlatformChassisCategory pcc ON pcc.PlatformID = f.PlatformID
+LEFT JOIN OSLookup o ON o.id = F.osid
 WHERE (
         @FeatureId = - 1
         OR F.FeatureId = @FeatureId
         )
+
 ";
+    }
+
+    private async Task<CommonDataModel> GetFeaturesAsync(int featureId)
+    {
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+
+        SqlCommand command = new(GetFeaturesCommandText(), connection);
+        SqlParameter parameter = new("FeatureId", featureId);
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+
+        CommonDataModel feature = new();
+        if (await reader.ReadAsync())
+        {
+            int fieldCount = reader.FieldCount;
+
+            for (int i = 0; i < fieldCount; i++)
+            {
+                if (await reader.IsDBNullAsync(i))
+                {
+                    continue;
+                }
+                if (!string.IsNullOrWhiteSpace(reader[i].ToString()))
+                {
+                    string columnName = reader.GetName(i);
+                    string value = reader[i].ToString().Trim();
+                    feature.Add(columnName, value);
+                }
+            }
+            feature.Add("Target", "Feature");
+            feature.Add("Id", SearchIdName.Feature + feature.GetValue("FeatureId"));
+        }
+        return feature;
     }
 
     private async Task<IEnumerable<CommonDataModel>> GetFeaturesAsync()
@@ -84,7 +140,7 @@ WHERE (
         using SqlDataReader reader = command.ExecuteReader();
 
         List<CommonDataModel> output = new();
-        while (reader.Read())
+        while (await reader.ReadAsync())
         {
             CommonDataModel feature = new();
             int fieldCount = reader.FieldCount;
@@ -117,8 +173,52 @@ SELECT fril.FeatureId AS FeatureId,
     dr.ID AS ComponentId,
     dr.Name AS ComponentName
 FROM Feature_Root_InitiatedLinkage fril WITH (NOLOCK)
-left JOIN DeliverableRoot dr WITH (NOLOCK) ON dr.Id = fril.ComponentRootId
+LEFT JOIN DeliverableRoot dr WITH (NOLOCK) ON dr.Id = fril.ComponentRootId
+WHERE (
+        @FeatureId = - 1
+        OR fril.FeatureId = @FeatureId
+        )
 ";
+    }
+
+    private async Task FillComponentInitiatedLinkageAsync(CommonDataModel feature)
+    {
+        if (feature is not null
+            && int.TryParse(feature.GetValue("FeatureId"), out int featureId))
+        {
+            using SqlConnection connection = new(_info.DatabaseConnectionString);
+            await connection.OpenAsync();
+
+            SqlCommand command = new(GetComponentInitiatedLinkageCommandText(), connection);
+            SqlParameter parameter = new("FeatureId", featureId);
+            command.Parameters.Add(parameter);
+            using SqlDataReader reader = command.ExecuteReader();
+            Dictionary<int, string> componentInitiatedLinkage = new();
+
+            if (await reader.ReadAsync())
+            {
+                if (int.TryParse(reader["FeatureId"].ToString(), out int dbFeatureId))
+                {
+                    if (componentInitiatedLinkage.ContainsKey(dbFeatureId))
+                    {
+                        componentInitiatedLinkage[dbFeatureId] = $"{componentInitiatedLinkage[dbFeatureId]} {reader["ComponentId"]} - {reader["ComponentName"]} , ";
+                    }
+                    else
+                    {
+                        componentInitiatedLinkage[dbFeatureId] = $"{reader["ComponentId"]} - {reader["ComponentName"]} , ";
+                    }
+                }
+
+                if (componentInitiatedLinkage.ContainsKey(featureId))
+                {
+                    string[] componentInitiatedLinkageList = componentInitiatedLinkage[featureId].Split(',');
+                    for (int i = 0; i < componentInitiatedLinkageList.Length; i++)
+                    {
+                        feature.Add("ComponentInitiatedLinkage " + i, componentInitiatedLinkageList[i]);
+                    }
+                }
+            }
+        }
     }
 
     private async Task GetComponentInitiatedLinkageAsync(IEnumerable<CommonDataModel> features)
@@ -127,6 +227,8 @@ left JOIN DeliverableRoot dr WITH (NOLOCK) ON dr.Id = fril.ComponentRootId
         await connection.OpenAsync();
 
         SqlCommand command = new(GetComponentInitiatedLinkageCommandText(), connection);
+        SqlParameter parameter = new("FeatureId", "-1");
+        command.Parameters.Add(parameter);
         using SqlDataReader reader = command.ExecuteReader();
         Dictionary<int, string> componentInitiatedLinkage = new();
 
@@ -160,11 +262,30 @@ left JOIN DeliverableRoot dr WITH (NOLOCK) ON dr.Id = fril.ComponentRootId
         }
     }
 
+    private static Task HandlePropertyValueAsync(CommonDataModel feature)
+    {
+        if (feature is null)
+        {
+            return Task.CompletedTask;
+        }
+
+        if (feature.GetValue("RequiresRoot").Equals("True", StringComparison.OrdinalIgnoreCase))
+        {
+            feature.Add("RequiresRoot", "Truly Linked");
+        }
+        else
+        {
+            feature.Delete("RequiresRoot");
+        }
+
+        return Task.CompletedTask;
+    }
+
     private static Task HandlePropertyValueAsync(IEnumerable<CommonDataModel> features)
     {
         foreach (CommonDataModel feature in features)
         {
-            if (feature.GetValue("RequiresRoot").Equals("True"))
+            if (feature.GetValue("RequiresRoot").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
                 feature.Add("RequiresRoot", "Truly Linked");
             }
