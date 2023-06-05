@@ -17,7 +17,7 @@ internal class Program
         {
             DatabaseConnectionString = "server=TdcPulsarItgDb.tpc.rd.hpicorp.net;initial catalog=PRS;integrated security=SSPI",
             SearchEngineUrl = "http://15.36.147.177:7700/",
-            SearchEngineIndexName = "Pulsar3"
+            SearchEngineIndexName = "Pulsar4"
         };
 
         // init
@@ -25,8 +25,8 @@ internal class Program
         //await init.InitAsync();
 
         //// search
-        //SearchClient searchClient = new SearchClient(info);
-        //IReadOnlyDictionary<SearchType, List<SingleOutputModel>> models = await searchClient.SearchAsync("Michael anna 1.0 Foxconn");
+        SearchClient searchClient = new SearchClient(info);
+        IReadOnlyDictionary<SearchType, List<SingleOutputModel>> models = await searchClient.SearchAsync("Walter Gomero houston");
 
         //DateTime end = DateTime.Now;
         //Console.WriteLine("total seconds = " + (end - start).TotalSeconds);

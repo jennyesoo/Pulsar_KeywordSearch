@@ -1,4 +1,7 @@
-﻿using HP.Pulsar.Search.Keyword.CommonDataStructure;
+﻿using System.Collections.Generic;
+using System.Text;
+using System.Text.Json;
+using HP.Pulsar.Search.Keyword.CommonDataStructure;
 using HP.Pulsar.Search.Keyword.Infrastructure;
 using Meilisearch;
 
@@ -7,6 +10,7 @@ namespace HP.Pulsar.Search.Keyword.SearchEngine;
 internal class MeiliSearchClient
 {
     private readonly MeilisearchClient _client;
+    private readonly string _meilisearchEngineUrl;
     private readonly string _indexName;
     private readonly string _idKeyName = "Id";
     private readonly string _targetKeyName = "Target";
@@ -25,6 +29,8 @@ internal class MeiliSearchClient
 
         _client = new(meilisearchEngineUrl, "masterKey");
         _indexName = indexName;
+
+        _meilisearchEngineUrl = meilisearchEngineUrl;
     }
 
     /// <summary>
@@ -145,42 +151,31 @@ internal class MeiliSearchClient
         await _client.Index(_indexName).UpdateSearchableAttributesAsync(searchableAttributes);
     }
 
-    public async Task<IReadOnlyDictionary<SearchType, List<SingleOutputModel>>> SearchAsync(string input, SearchQuery query = null)
+    public async Task<IReadOnlyDictionary<SearchType, List<SingleOutputModel>>> SearchAsync(SearchParameters parameters)
     {
-        ISearchable<IReadOnlyDictionary<string, string>> output = await _client.Index(_indexName).SearchAsync<IReadOnlyDictionary<string, string>>(input, query);
+        IReadOnlyDictionary<SearchType, List<SingleOutputModel>> output = await TempSearchAsync(JsonSerializer.Serialize(parameters));
 
-        Dictionary<SearchType, List<SingleOutputModel>> dict = new();
+        return output;
+    }
 
-        foreach (IReadOnlyDictionary<string, string> item in output.Hits)
-        {
-            if (!TryGetTargetId(item, out int id))
-            {
-                continue;
-            }
+    private string GetSearchUrl() => $"{_meilisearchEngineUrl}/indexes/{_indexName}/search";
 
-            if (!TryGetTargetName(item, out string name))
-            {
-                continue;
-            }
+    private async Task<IReadOnlyDictionary<SearchType, List<SingleOutputModel>>> TempSearchAsync(string json)
+    {
+        // TODO - This is a temp solution for alpha only. Need to work on HttpClientFactory in library
+        using HttpClient client = new();
+        //using HttpRequestMessage msg = new(HttpMethod.Post, GetSearchUrl());
 
-            if (!TryGetTargetType(item, out SearchType targetType))
-            {
-                continue;
-            }
+        StringContent content = new(json, Encoding.UTF8, "application/json");
 
-            List<KeyValuePair<string, string>> hitProperties = GetHitProperties(item);
+        //msg.Headers.Add("Content-Type", "application/json");
+        using HttpResponseMessage response = await client.PostAsync(GetSearchUrl(), content);
+        string result = await response.Content.ReadAsStringAsync();
 
-            if (dict.ContainsKey(targetType))
-            {
-                dict[targetType].Add(new SingleOutputModel(targetType, id, name, hitProperties));
-            }
-            else
-            {
-                dict.Add(targetType, new List<SingleOutputModel>() { new SingleOutputModel(targetType, id, name, hitProperties) });
-            }
-        }
+        // data value parsing logic
+        var output = MeilisearchUtil.ConvertOutput(result);
 
-        return dict;
+        return output;
     }
 
     private bool TryGetTargetId(IReadOnlyDictionary<string, string> input, out int id)

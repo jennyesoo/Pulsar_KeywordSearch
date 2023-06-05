@@ -5,12 +5,14 @@ public class SingleOutputModel
     public SingleOutputModel(SearchType type,
                              int id,
                              string name,
-                             IEnumerable<KeyValuePair<string, string>> values)
+                             IEnumerable<KeyValuePair<string, string>> values,
+                             ISet<string> hitPropertyNames)
     {
         Type = type;
         DataPairs = values;
         Id = id;
         Name = name;
+        HitPropertyNames = hitPropertyNames;
     }
 
     public SearchType Type { get; }
@@ -20,4 +22,6 @@ public class SingleOutputModel
     public string Name { get; }
 
     public IEnumerable<KeyValuePair<string, string>> DataPairs { get; }
+
+    public ISet<string> HitPropertyNames { get; }
 }

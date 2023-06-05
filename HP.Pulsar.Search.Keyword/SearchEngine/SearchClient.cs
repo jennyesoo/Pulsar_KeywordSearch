@@ -1,12 +1,9 @@
-﻿using System.Collections.Generic;
-using System.Text.RegularExpressions;
-using System.Threading;
+﻿using System.Text.RegularExpressions;
 using HP.Pulsar.Search.Keyword.CommonDataStructure;
 using HP.Pulsar.Search.Keyword.DataTransformation;
 using HP.Pulsar.Search.Keyword.Infrastructure;
 using Humanizer;
 using Meilisearch;
-using Microsoft.Extensions.FileSystemGlobbing.Internal;
 
 namespace HP.Pulsar.Search.Keyword.SearchEngine;
 
@@ -34,13 +31,12 @@ public class SearchClient
         //pre-process
         List<string> handledInput = PreProcess(input);
 
-        SearchQuery searchQuery = new SearchQuery
+        SearchParameters searchQuery = new()
         {
-            MatchingStrategy = "all",
-            Limit = 700
+            Q = string.Join(" ", handledInput)
         };
 
-        IReadOnlyDictionary<SearchType, List<SingleOutputModel>> models = await _client.SearchAsync(string.Join(' ', handledInput), searchQuery);
+        IReadOnlyDictionary<SearchType, List<SingleOutputModel>> models = await _client.SearchAsync(searchQuery);
 
         // TODO - post-process 
 
@@ -50,8 +46,8 @@ public class SearchClient
     private static List<string> PreProcess(string input)
     {
         string[] inputs = input.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-
         List<string> handledInput = new();
+
         foreach (string temp in inputs)
         {
             //This pattern accepts special character such as "2-2-0"
