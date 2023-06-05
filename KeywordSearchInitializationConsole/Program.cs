@@ -2,6 +2,8 @@
 
 using HP.Pulsar.Search.Keyword.Infrastructure;
 using HP.Pulsar.Search.Keyword.Orchestrator;
+using HP.Pulsar.Search.Keyword.SearchEngine;
+using HP.Pulsar.Search.Keyword.CommonDataStructure;
 
 internal class Program
 {
@@ -18,9 +20,9 @@ internal class Program
             SearchEngineIndexName = "Pulsar3"
         };
 
-        // init
-        InitializationClient init = new(info);
-        await init.InitAsync();
+        //// init
+        //InitializationClient init = new(info);
+        //await init.InitAsync();
 
         //// search
         //SearchClient searchClient = new SearchClient(info);
