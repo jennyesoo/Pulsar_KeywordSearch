@@ -22,7 +22,7 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator
             _info = info;
         }
 
-        public async Task<IEnumerable<CommonDataModel>> GetDataAsync()
+        public async Task<IEnumerable<CommonDataModel>> GetAVdetailDataAsync()
         {
             IEnumerable<CommonDataModel> products = await GetPropertyValueAsync(GetAVdetailCommandText());
 
@@ -53,9 +53,9 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator
                     {
                         strings11.Add(product.GetValue("Name"));
                     }
-                    else
+                    else 
                     {
-                        strings10.Add(product.GetValue("Name"));
+                        strings.Add(product.GetValue("Name"));
                     }
                 }
                 else if (product.GetValue("Name").Count() == 7)
@@ -64,23 +64,23 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator
                     {
                         strings7.Add(product.GetValue("Name"));
                     }
-                    else if (Regex.IsMatch(product.GetValue("Name"), @"[A-Za-z0-9]{7}"))
+                    else if (Regex.IsMatch(product.GetValue("Name"), @"[A-Za-z0-9]{7}")) //multi strings
                     {
                         strings7.Add(product.GetValue("Name"));
                     }
                     else
                     {
-                        strings13.Add(product.GetValue("Name"));
+                        strings.Add(product.GetValue("Name"));
                     }
                 }
-                //else if (product.GetValue("Name").Count() == 10)
-                //{
-                //    strings10.Add(product.GetValue("Name"));
-                //}
-                //else if (product.GetValue("Name").Count() == 13)
-                //{
-                //    strings13.Add(product.GetValue("Name"));
-                //}
+                else if (product.GetValue("Name").Count() == 10)
+                {
+                    strings10.Add(product.GetValue("Name"));
+                }
+                else if (product.GetValue("Name").Count() == 13)
+                {
+                    strings13.Add(product.GetValue("Name"));
+                }
                 else if (product.GetValue("Name").Count() == 12)
                 {
                     strings12.Add(product.GetValue("Name"));
@@ -103,7 +103,7 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator
                 }
                 else
                 {
-                    strings.Add(product.GetValue("Name").Count().ToString());
+                    strings.Add(product.GetValue("Name"));
                     //Console.WriteLine(product.GetValue("Name").Count());
                     //Console.WriteLine(product.GetValue("Name"));
                 }
@@ -123,7 +123,7 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator
             HashSet<string> strings14 = new HashSet<string>();
             HashSet<string> strings16 = new HashSet<string>();
             HashSet<string> strings17 = new HashSet<string>();
-            HashSet<string> strings18 = new HashSet<string>();
+            HashSet<string> strings18 = new HashSet<string>(); //test part number
 
             foreach (CommonDataModel product in products)
             {
@@ -131,12 +131,6 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator
                 {
                     continue;
                 }
-                //else if (product.GetValue("Name").Count() != 11
-                //    && product.GetValue("Name").Count() != 10)
-                //{
-                //    Console.WriteLine(product.GetValue("Name").Count());
-                //    Console.WriteLine(product.GetValue("Name"));
-                //}
                 else if (product.GetValue("Name").Count() == 10)
                 {
                     if (Regex.IsMatch(product.GetValue("Name"), @"[A-Za-z0-9]{1}[0-9]{2}[A-Za-z0-9]{3}\-[A-Za-z0-9]{3}"))
@@ -152,17 +146,50 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator
                 {
                     strings11.Add(product.GetValue("Name"));
                 }
-                else if (product.GetValue("Name").Count() == 15)
-                {
-                    strings15.Add(product.GetValue("Name"));
-                }
                 else if (product.GetValue("Name").Count() == 13)
                 {
-                    strings13.Add(product.GetValue("Name"));
+                    if (Regex.IsMatch(product.GetValue("Name"), @"[A-Za-z]{3}[0-9]{2}[A-Za-z]{2}[A-Za-z0-9\#]{6}"))
+                    {
+                        strings13.Add(product.GetValue("Name"));
+                    }
+                    else if (Regex.IsMatch(product.GetValue("Name"), @"[A-Za-z]{3}[0-9]{4}[A-Za-z]{5}[A-Za-z0-9]{1}"))
+                    {
+                        strings13.Add(product.GetValue("Name"));
+                    }
+                    else
+                    {
+                        strings.Add(product.GetValue("Name"));
+                    }
                 }
                 else if (product.GetValue("Name").Count() == 14)
                 {
-                    strings14.Add(product.GetValue("Name"));
+                    if (Regex.IsMatch(product.GetValue("Name"), @"[A-Za-z]{3}[0-9]{2}[A-Za-z]{2}[A-Za-z0-9]{7}"))
+                    {
+                        strings14.Add(product.GetValue("Name"));
+                    }
+                    else if (Regex.IsMatch(product.GetValue("Name"), @"[A-Za-z]{3}[0-9]{4}[A-Za-z]{4}[A-Za-z0-9]{3}"))
+                    {
+                        strings14.Add(product.GetValue("Name"));
+                    }
+                    else
+                    {
+                        strings.Add(product.GetValue("Name"));
+                    }
+                }
+                else if (product.GetValue("Name").Count() == 15)
+                {
+                    if (Regex.IsMatch(product.GetValue("Name"), @"IRS[A-Za-z]{6}[0-9]{6}"))
+                    {
+                        strings15.Add(product.GetValue("Name"));
+                    }
+                    else if (Regex.IsMatch(product.GetValue("Name"), @"[A-Za-z]{3}[0-9]{2}[A-Za-z]{2}[A-Za-z0-9]{8}"))
+                    {
+                        strings15.Add(product.GetValue("Name"));
+                    }
+                    else
+                    {
+                        strings.Add(product.GetValue("Name"));
+                    }
                 }
                 else if (product.GetValue("Name").Count() == 16)
                 {
@@ -178,8 +205,9 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator
                 }
                 else
                 {
-                    Console.WriteLine(product.GetValue("Name").Count());
-                    Console.WriteLine(product.GetValue("Name"));
+                    strings.Add(product.GetValue("Name"));
+                    //Console.WriteLine(product.GetValue("Name").Count());
+                    //Console.WriteLine(product.GetValue("Name"));
                 }
             }
             return products;
@@ -204,10 +232,6 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator
                     Console.WriteLine(product.GetValue("Name").Count());
                     Console.WriteLine(product.GetValue("Name"));
                 }
-                //else if (product.GetValue("Name").Count() == 10)
-                //{
-                //    strings10.Add(product.GetValue("Name"));
-                //}
                 else if (Regex.IsMatch(product.GetValue("Name"), @"[0-9]{2}[A-Za-z]{2}[A-Za-z0-9]{3}[A-Za-z]{1}[A-Za-z0-9]{3}"))
                 {
                     strings11.Add(product.GetValue("Name"));
