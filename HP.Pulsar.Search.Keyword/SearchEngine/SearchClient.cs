@@ -45,8 +45,13 @@ public class SearchClient
 
     public async Task<IReadOnlyDictionary<SearchType, List<SingleOutputModel>>> SearchAsync(string input)
     {
+        if (string.IsNullOrWhiteSpace(input))
+        {
+            return new Dictionary<SearchType, List<SingleOutputModel>>();
+        }
+
         //pre-process
-        List<string> handledInput = PreProcess(input);
+        List<string> handledInput = PreProcess(input.Trim());
 
         SearchQuery searchQuery = new SearchQuery
         {
