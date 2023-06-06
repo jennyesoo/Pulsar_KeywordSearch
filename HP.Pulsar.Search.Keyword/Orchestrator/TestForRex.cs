@@ -53,7 +53,7 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator
                     {
                         strings11.Add(product.GetValue("Name"));
                     }
-                    else 
+                    else
                     {
                         strings.Add(product.GetValue("Name"));
                     }
@@ -123,7 +123,8 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator
             HashSet<string> strings14 = new HashSet<string>();
             HashSet<string> strings16 = new HashSet<string>();
             HashSet<string> strings17 = new HashSet<string>();
-            HashSet<string> strings18 = new HashSet<string>(); //test part number
+            HashSet<string> strings18 = new HashSet<string>();
+            HashSet<string> strings00 = new HashSet<string>();
 
             foreach (CommonDataModel product in products)
             {
@@ -173,7 +174,7 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator
                     }
                     else
                     {
-                        strings.Add(product.GetValue("Name"));
+                        strings00.Add(product.GetValue("Name"));
                     }
                 }
                 else if (product.GetValue("Name").Count() == 15)
@@ -219,6 +220,8 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator
 
             HashSet<string> strings11 = new HashSet<string>();
             HashSet<string> strings10 = new HashSet<string>();
+            HashSet<string> strings = new HashSet<string>();
+
 
             foreach (CommonDataModel product in products)
             {
@@ -242,6 +245,7 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator
                 }
                 else
                 {
+                    strings.Add(product.GetValue("Name"));
                     Console.WriteLine(product.GetValue("Name").Count());
                     Console.WriteLine(product.GetValue("Name"));
                 }

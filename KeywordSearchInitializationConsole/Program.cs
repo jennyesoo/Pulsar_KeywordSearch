@@ -21,7 +21,7 @@ internal class Program
         };
 
         TestForRex test = new(info);
-        IEnumerable<CommonDataModel> testData = await test.GetPartNumberDataAsync();
+        IEnumerable<CommonDataModel> testData = await test.GetAVdetailDataAsync();
 
         //// init
         //InitializationClient init = new(info);
