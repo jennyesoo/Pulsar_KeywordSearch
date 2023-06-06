@@ -17,7 +17,7 @@ internal class Program
         {
             DatabaseConnectionString = "server=TdcPulsarItgDb.tpc.rd.hpicorp.net;initial catalog=PRS;integrated security=SSPI",
             SearchEngineUrl = "http://15.36.147.177:7700/",
-            SearchEngineIndexName = "Pulsar4"
+            SearchEngineIndexName = "pulsar"
         };
 
         // init

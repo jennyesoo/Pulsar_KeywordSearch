@@ -20,7 +20,7 @@ internal static class MeilisearchUtil
 
             foreach (JsonElement hit in hits.EnumerateArray())
             {
-                if (!hit.TryGetProperty("target", out JsonElement targetElement))
+                if (!hit.TryGetProperty("Target", out JsonElement targetElement))
                 {
                     continue;
                 }
@@ -48,13 +48,13 @@ internal static class MeilisearchUtil
                         continue;
                     }
 
-                    if (string.Equals(item.Name, "id", StringComparison.OrdinalIgnoreCase)
+                    if (string.Equals(item.Name, "Id", StringComparison.OrdinalIgnoreCase)
                         && TryGetId(item.Value.ToString(), out int idValue))
                     {
                         id = idValue;
                     }
 
-                    if (string.Equals(item.Name, "name", StringComparison.OrdinalIgnoreCase))
+                    if (string.Equals(item.Name, "Name", StringComparison.OrdinalIgnoreCase))
                     {
                         name = item.Value.ToString();
                     }
@@ -85,7 +85,7 @@ internal static class MeilisearchUtil
     {
         string[] temp = input.Split(new char[] { '-' });
 
-        if (temp.Length == 2 )
+        if (temp.Length == 2)
         {
             id = int.Parse(temp[1]);
             return true;

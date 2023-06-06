@@ -25,7 +25,8 @@
 
     <PropertyGroup>
         <PackageId>wooly905.keywordsearch</PackageId>
-        <PackageVersion>1.0.0-alpha</PackageVersion>
+        <PackageVersion>1.0.0-alpha.1</PackageVersion>
+        <Version>1.0.0-alpha.1</Version>
         <Authors>na</Authors>
         <Company>na</Company>
         <Product>na</Product>
