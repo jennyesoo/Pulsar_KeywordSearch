@@ -26,7 +26,7 @@ internal class Program
 
         //// search
         SearchClient searchClient = new SearchClient(info);
-        IReadOnlyDictionary<SearchType, List<SingleOutputModel>> models = await searchClient.SearchAsync("Walter Gomero houston");
+        IReadOnlyDictionary<SearchType, List<SingleOutputModel>> models = await searchClient.SearchAsync("Lee Jovi");
 
         //DateTime end = DateTime.Now;
         //Console.WriteLine("total seconds = " + (end - start).TotalSeconds);

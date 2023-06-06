@@ -1,9 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Meilisearch;
-using System.Text.Json;
+﻿using System.Text.Json;
 using HP.Pulsar.Search.Keyword.CommonDataStructure;
+using HP.Pulsar.Search.Keyword.Infrastructure;
 
 namespace HP.Pulsar.Search.Keyword.SearchEngine;
 
@@ -97,44 +94,39 @@ internal static class MeilisearchUtil
 
     private static SearchType GetSearchType(string input)
     {
-        if (string.Equals(input, "product", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(input, TargetTypeValue.Product, StringComparison.OrdinalIgnoreCase))
         {
             return SearchType.Product;
         }
 
-        if (string.Equals(input, "ComponentVersion", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(input, TargetTypeValue.ComponentVersion, StringComparison.OrdinalIgnoreCase))
         {
             return SearchType.Version;
         }
 
-        if (string.Equals(input, "ComponentRoot", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(input, TargetTypeValue.ComponentRoot, StringComparison.OrdinalIgnoreCase))
         {
             return SearchType.Root;
         }
 
-        if (string.Equals(input, "dcr", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(input, TargetTypeValue.Dcr, StringComparison.OrdinalIgnoreCase))
         {
             return SearchType.DCR;
         }
 
-        if (string.Equals(input, "AmoPartNumber", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(input, TargetTypeValue.AmoPartNumber, StringComparison.OrdinalIgnoreCase))
         {
             return SearchType.AmoPartNumber;
         }
 
-        if (string.Equals(input, "ProductDrop", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(input, TargetTypeValue.ProductDrop, StringComparison.OrdinalIgnoreCase))
         {
             return SearchType.ProductDrop;
         }
 
-        if (string.Equals(input, "Feature", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(input, TargetTypeValue.Feature, StringComparison.OrdinalIgnoreCase))
         {
             return SearchType.Feature;
-        }
-
-        if (string.Equals(input, "PRL", StringComparison.OrdinalIgnoreCase))
-        {
-            return SearchType.PRL;
         }
 
         return SearchType.None;
