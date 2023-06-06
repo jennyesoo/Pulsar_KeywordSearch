@@ -82,7 +82,8 @@ SELECT di.id AS ChangeRequestId,
     di.Important,
     di.RTPDate,
     di.RASDiscoDate,
-    di.OnStatusReport
+    di.OnStatusReport,
+    di.Notify
 FROM Deliverableissues di
 LEFT JOIN DeliverableRoot DR ON DR.id = di.DeliverableRootID
 LEFT JOIN ProductVersion pv ON pv.id = di.ProductVersionID
