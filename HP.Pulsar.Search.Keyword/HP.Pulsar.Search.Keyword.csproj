@@ -24,11 +24,13 @@
     </ItemGroup>
 
     <PropertyGroup>
-        <Authors>HP Inc.</Authors>
-        <Company>HP Inc.</Company>
-        <Product>HP Pulsar</Product>
-        <Version Condition=" '$(BUILD_BUILDNUMBER)' == '' ">0.0.0.0</Version>
-        <Version Condition=" '$(BUILD_BUILDNUMBER)' != '' ">$(BUILD_BUILDVERSION)</Version>
+        <PackageId>wooly905.keywordsearch</PackageId>
+        <PackageVersion>1.0.0-alpha</PackageVersion>
+        <Authors>na</Authors>
+        <Company>na</Company>
+        <Product>na</Product>
+        <Description>na</Description>
+        <PackageTags>#keyword #search #prelease</PackageTags>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
