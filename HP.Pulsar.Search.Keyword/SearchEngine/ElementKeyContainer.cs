@@ -22,10 +22,12 @@ public static class ElementKeyContainer
         {
             return;
         }
-        
+
         foreach (string item in hashSet)
         {
-            if (!_hashSet.Contains(item))
+            if (!_hashSet.Contains(item)
+                && !item.Equals("Id", StringComparison.OrdinalIgnoreCase)
+                && !item.Equals("Target", StringComparison.OrdinalIgnoreCase))
             {
                 _hashSet.Add(item);
             }
