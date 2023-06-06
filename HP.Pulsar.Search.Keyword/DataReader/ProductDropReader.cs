@@ -170,14 +170,25 @@ GROUP BY ml2.ProductDropId
                 {
                     continue;
                 }
-                if (!string.IsNullOrWhiteSpace(reader[i].ToString()))
+
+                string columnName = reader.GetName(i);
+                string value = reader[i].ToString().Trim();
+
+                if (string.IsNullOrWhiteSpace(value)
+                    || string.Equals(value, "None"))
                 {
-                    string columnName = reader.GetName(i);
-                    string value = reader[i].ToString().Trim();
-                    productDrop.Add(columnName, value.Trim());
+                    continue;
                 }
+
+                if (columnName.Equals(TargetName.ProductDrop, StringComparison.OrdinalIgnoreCase))
+                {
+                    columnName = "Name";
+                }
+
+                productDrop.Add(columnName, value);
             }
-            productDrop.Add("Target", "ProductDrop");
+
+            productDrop.Add("Target", TargetTypeValue.ProductDrop);
             productDrop.Add("Id", SearchIdName.ProductDrop + productDrop.GetValue("ProductDropId"));
         }
 
@@ -206,14 +217,25 @@ GROUP BY ml2.ProductDropId
                 {
                     continue;
                 }
-                if (!string.IsNullOrWhiteSpace(reader[i].ToString()))
+
+                string columnName = reader.GetName(i);
+                string value = reader[i].ToString().Trim();
+
+                if (string.IsNullOrWhiteSpace(value)
+                    || string.Equals(value, "None"))
                 {
-                    string columnName = reader.GetName(i);
-                    string value = reader[i].ToString().Trim();
-                    productDrop.Add(columnName, value.Trim());
+                    continue;
                 }
+
+                if (columnName.Equals(TargetName.ProductDrop, StringComparison.OrdinalIgnoreCase))
+                {
+                    columnName = "Name";
+                }
+
+                productDrop.Add(columnName, value);
             }
-            productDrop.Add("Target", "ProductDrop");
+
+            productDrop.Add("Target", TargetTypeValue.ProductDrop);
             productDrop.Add("Id", SearchIdName.ProductDrop + productDrop.GetValue("ProductDropId"));
             output.Add(productDrop);
         }

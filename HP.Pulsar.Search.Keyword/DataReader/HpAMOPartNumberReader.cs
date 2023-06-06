@@ -92,15 +92,25 @@ WHERE (
                 {
                     continue;
                 }
-                if (!string.IsNullOrWhiteSpace(reader[i].ToString()))
+
+                string columnName = reader.GetName(i);
+                string value = reader[i].ToString().Trim();
+
+                if (string.IsNullOrWhiteSpace(value)
+                    || string.Equals(value, "None"))
                 {
-                    string columnName = reader.GetName(i);
-                    string value = reader[i].ToString().Trim();
-                    hpAMOPartNumber.Add(columnName, value);
+                    continue;
                 }
+
+                if (columnName.Equals(TargetName.AmoPartNumber, StringComparison.OrdinalIgnoreCase))
+                {
+                    columnName = "Name";
+                }
+
+                hpAMOPartNumber.Add(columnName, value);
             }
 
-            hpAMOPartNumber.Add("Target", "HpAmoPartNumber");
+            hpAMOPartNumber.Add("Target", TargetTypeValue.AmoPartNumber);
             hpAMOPartNumber.Add("Id", SearchIdName.AmoPartNumber + hpAMOPartNumber.GetValue("HpAMOPartNumberId"));
         }
 
@@ -130,15 +140,25 @@ WHERE (
                 {
                     continue;
                 }
-                if (!string.IsNullOrWhiteSpace(reader[i].ToString()))
+
+                string columnName = reader.GetName(i);
+                string value = reader[i].ToString().Trim();
+
+                if (string.IsNullOrWhiteSpace(value)
+                    || string.Equals(value, "None"))
                 {
-                    string columnName = reader.GetName(i);
-                    string value = reader[i].ToString().Trim();
-                    hpAMOPartNumber.Add(columnName, value);
+                    continue;
                 }
+
+                if (columnName.Equals(TargetName.AmoPartNumber, StringComparison.OrdinalIgnoreCase))
+                {
+                    columnName = "Name";
+                }
+
+                hpAMOPartNumber.Add(columnName, value);
             }
 
-            hpAMOPartNumber.Add("Target", "HpAmoPartNumber");
+            hpAMOPartNumber.Add("Target", TargetTypeValue.AmoPartNumber);
             hpAMOPartNumber.Add("Id", SearchIdName.AmoPartNumber + hpAMOPartNumber.GetValue("HpAMOPartNumberId"));
             output.Add(hpAMOPartNumber);
         }

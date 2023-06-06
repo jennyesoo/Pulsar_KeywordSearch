@@ -60,17 +60,29 @@ public class ComponentVersionReader : IKeywordSearchDataReader
                 {
                     continue;
                 }
-                if (!string.IsNullOrWhiteSpace(reader[i].ToString()))
+
+                string columnName = reader.GetName(i);
+                string value = reader[i].ToString().Trim();
+
+                if (string.IsNullOrWhiteSpace(value)
+                    || string.Equals(value, "None"))
                 {
-                    string columnName = reader.GetName(i);
-                    string value = reader[i].ToString().Trim();
-                    componentVersion.Add(columnName, value);
+                    continue;
                 }
+
+                if (columnName.Equals(TargetName.ComponentVersion, StringComparison.OrdinalIgnoreCase))
+                {
+                    columnName = "Name";
+                }
+
+                componentVersion.Add(columnName, value);
             }
 
-            componentVersion.Add("Target", "ComponentVersion");
+            componentVersion.Add("Target", TargetTypeValue.ComponentVersion);
             componentVersion.Add("Id", SearchIdName.ComponentVersion + componentVersion.GetValue("ComponentVersionID"));
+
         }
+
         return componentVersion;
     }
 
@@ -96,15 +108,25 @@ public class ComponentVersionReader : IKeywordSearchDataReader
                 {
                     continue;
                 }
-                if (!string.IsNullOrWhiteSpace(reader[i].ToString()))
+
+                string columnName = reader.GetName(i);
+                string value = reader[i].ToString().Trim();
+
+                if (string.IsNullOrWhiteSpace(value)
+                    || string.Equals(value, "None"))
                 {
-                    string columnName = reader.GetName(i);
-                    string value = reader[i].ToString().Trim();
-                    componentVersion.Add(columnName, value);
+                    continue;
                 }
+
+                if (columnName.Equals(TargetName.ComponentVersion, StringComparison.OrdinalIgnoreCase))
+                {
+                    columnName = "Name";
+                }
+
+                componentVersion.Add(columnName, value);
             }
 
-            componentVersion.Add("Target", "ComponentVersion");
+            componentVersion.Add("Target", TargetTypeValue.ComponentVersion);
             componentVersion.Add("Id", SearchIdName.ComponentVersion + componentVersion.GetValue("ComponentVersionID"));
             output.Add(componentVersion);
         }
