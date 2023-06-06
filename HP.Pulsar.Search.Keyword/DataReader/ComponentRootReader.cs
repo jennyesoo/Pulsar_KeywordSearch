@@ -275,13 +275,22 @@ GROUP BY DR.Id
                 {
                     continue;
                 }
-                if (!string.IsNullOrWhiteSpace(reader[i].ToString()) &&
-                    !string.Equals(reader[i].ToString(), "None"))
+
+                string columnName = reader.GetName(i);
+                string value = reader[i].ToString().Trim();
+
+                if (string.IsNullOrWhiteSpace(value)
+                    || string.Equals(value, "None"))
                 {
-                    string columnName = reader.GetName(i);
-                    string value = reader[i].ToString().Trim();
-                    root.Add(columnName, value);
+                    continue;
                 }
+
+                if (columnName.Equals(TargetName.ComponentRoot, StringComparison.OrdinalIgnoreCase))
+                {
+                    columnName = "Name";
+                }
+
+                root.Add(columnName, value);
             }
             root.Add("Target", "ComponentRoot");
             root.Add("Id", SearchIdName.ComponentRoot + root.GetValue("ComponentRootId"));
@@ -312,15 +321,24 @@ GROUP BY DR.Id
                 {
                     continue;
                 }
-                if (!string.IsNullOrWhiteSpace(reader[i].ToString()) &&
-                    !string.Equals(reader[i].ToString(), "None"))
+
+                string columnName = reader.GetName(i);
+                string value = reader[i].ToString().Trim();
+
+                if (string.IsNullOrWhiteSpace(value)
+                    || string.Equals(value, "None"))
                 {
-                    string columnName = reader.GetName(i);
-                    string value = reader[i].ToString().Trim();
-                    root.Add(columnName, value);
+                    continue;
                 }
+
+                if (columnName.Equals(TargetName.ComponentRoot, StringComparison.OrdinalIgnoreCase))
+                {
+                    columnName = "Name";
+                }
+
+                root.Add(columnName, value);
             }
-            root.Add("Target", "ComponentRoot");
+            root.Add("Target", TargetTypeValue.ComponentRoot);
             root.Add("Id", SearchIdName.ComponentRoot + root.GetValue("ComponentRootId"));
             output.Add(root);
         }

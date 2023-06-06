@@ -204,14 +204,25 @@ WHERE (
                 {
                     continue;
                 }
-                if (!string.IsNullOrWhiteSpace(reader[i].ToString()))
+
+                string columnName = reader.GetName(i);
+                string value = reader[i].ToString().Trim();
+
+                if (string.IsNullOrWhiteSpace(value)
+                    || string.Equals(value, "None"))
                 {
-                    string columnName = reader.GetName(i);
-                    string value = reader[i].ToString().Trim();
-                    product.Add(columnName, value);
+                    continue;
                 }
+
+                if (columnName.Equals(TargetName.Product, StringComparison.OrdinalIgnoreCase))
+                {
+                    columnName = "Name";
+                }
+
+                product.Add(columnName, value);
             }
-            product.Add("Target", "Product");
+
+            product.Add("Target", TargetTypeValue.Product);
             product.Add("Id", SearchIdName.Product + product.GetValue("ProductId"));
         }
         return product;
@@ -240,14 +251,25 @@ WHERE (
                 {
                     continue;
                 }
-                if (!string.IsNullOrWhiteSpace(reader[i].ToString()))
+
+                string columnName = reader.GetName(i);
+                string value = reader[i].ToString().Trim();
+
+                if (string.IsNullOrWhiteSpace(value)
+                    || string.Equals(value, "None"))
                 {
-                    string columnName = reader.GetName(i);
-                    string value = reader[i].ToString().Trim();
-                    product.Add(columnName, value);
+                    continue;
                 }
+
+                if (columnName.Equals(TargetName.Product, StringComparison.OrdinalIgnoreCase))
+                {
+                    columnName = "Name";
+                }
+
+                product.Add(columnName, value);
             }
-            product.Add("Target", "Product");
+
+            product.Add("Target", TargetTypeValue.Product);
             product.Add("Id", SearchIdName.Product + product.GetValue("ProductId"));
             output.Add(product);
         }

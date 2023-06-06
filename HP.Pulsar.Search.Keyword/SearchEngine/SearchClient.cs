@@ -2,8 +2,6 @@
 using HP.Pulsar.Search.Keyword.CommonDataStructure;
 using HP.Pulsar.Search.Keyword.DataTransformation;
 using HP.Pulsar.Search.Keyword.Infrastructure;
-using Humanizer;
-using Meilisearch;
 
 namespace HP.Pulsar.Search.Keyword.SearchEngine;
 
@@ -13,12 +11,30 @@ public class SearchClient
 
     private static readonly List<Regex> _pattern = new()
         {
-            //This pattern accepts special character such as "17WWQ1AL6AC", "17wwyzw6#d", "17WWQ1AD3##", "3C17"
-            new Regex(@".*(([A-Za-z]+[0-9]+)+|([0-9]+[A-Za-z]+)+).*", RegexOptions.IgnoreCase),
-            //This pattern accepts special character such as "ext.15973", "1.0", "1.6.0.17", "1.2.281.8344"
-            new Regex(@"[A-Za-z0-9]+[\.]+[0-9]+", RegexOptions.IgnoreCase),
-            //This pattern accepts special character such as "+886-3-327-2345"
-            new Regex(@"[\+]*[0-9]+[\-]+[0-9]+[\-]+[0-9]+[\-]+[0-9]+", RegexOptions.IgnoreCase)
+            //This pattern accepts special character in Avdetial
+            new Regex(@"[A-Za-z0-9]{4}[0-9]{1}[A-Za-z]{2}", RegexOptions.IgnoreCase),
+            //This pattern accepts special character in Avdetial
+            new Regex(@"[A-Za-z0-9]{5}[A-Za-z]{1}[A-Za-z0-9]{1}#[A-Za-z0-9]{1}", RegexOptions.IgnoreCase),
+            //This pattern accepts special character in Avdetial
+            new Regex(@"[A-Za-z0-9]{3}[0-9]{2}AV#[A-Za-z0-9]{3}", RegexOptions.IgnoreCase),
+            //This pattern accepts special character in PartNumber
+            new Regex(@"[A-Za-z0-9]{1}[0-9]{2}[A-Za-z0-9]{3}\-[A-Za-z0-9]{3}", RegexOptions.IgnoreCase),
+            //This pattern accepts special character in PartNumber
+            new Regex(@"[A-Za-z]{3}[0-9]{2}[A-Za-z]{2}[A-Za-z0-9\#]{6}", RegexOptions.IgnoreCase),
+            //This pattern accepts special character in PartNumber
+            new Regex(@"[A-Za-z]{3}[0-9]{4}[A-Za-z]{5}[A-Za-z0-9]{1}", RegexOptions.IgnoreCase),
+            //This pattern accepts special character in PartNumber
+            new Regex(@"[A-Za-z]{3}[0-9]{2}[A-Za-z]{2}[A-Za-z0-9]{7}", RegexOptions.IgnoreCase),
+            //This pattern accepts special character in PartNumber
+            new Regex(@"[A-Za-z]{3}[0-9]{4}[A-Za-z]{4}[A-Za-z0-9]{3}", RegexOptions.IgnoreCase),
+            //This pattern accepts special character in PartNumber
+            new Regex(@"IRS[A-Za-z]{6}[0-9]{6}", RegexOptions.IgnoreCase),
+            //This pattern accepts special character in PartNumber
+            new Regex(@"[A-Za-z]{3}[0-9]{2}[A-Za-z]{2}[A-Za-z0-9]{8}", RegexOptions.IgnoreCase),
+            //This pattern accepts special character in MLName
+            new Regex(@"[0-9]{2}[A-Za-z]{2}[A-Za-z0-9]{3}[A-Za-z]{1}[A-Za-z0-9]{3}", RegexOptions.IgnoreCase),
+            //This pattern accepts special character in MLName
+            new Regex(@"[0-9]{2}[A-Za-z0-9]{2}[A-Za-z]{3}[A-Za-z0-9\#]{3}", RegexOptions.IgnoreCase)
         };
 
     public SearchClient(KeywordSearchInfo info)
@@ -50,10 +66,10 @@ public class SearchClient
 
         foreach (string temp in inputs)
         {
-            //This pattern accepts special character such as "2-2-0"
+            //This pattern accepts special character such as "2-2-0" to avoid parsing to date
             if (Regex.IsMatch(temp, @"[0-9]+\-[0-9]+"))
             {
-                handledInput.Add($"\"{temp}\"");
+                handledInput.Add($"{temp}");
             }
             else if (CommonDataTransformer.TryParseDate(temp, out DateTime date))
             {
@@ -69,7 +85,7 @@ public class SearchClient
             }
             else
             {
-                handledInput.Add(temp.Singularize());
+                handledInput.Add(temp);
             }
         }
 

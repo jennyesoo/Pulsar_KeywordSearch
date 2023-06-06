@@ -138,14 +138,24 @@ GROUP BY dcr.id
                 {
                     continue;
                 }
-                if (!string.IsNullOrWhiteSpace(reader[i].ToString()))
+
+                string columnName = reader.GetName(i);
+                string value = reader[i].ToString().Trim();
+
+                if (string.IsNullOrWhiteSpace(value)
+                    || string.Equals(value, "None"))
                 {
-                    string columnName = reader.GetName(i);
-                    string value = reader[i].ToString().Trim();
-                    changeRequest.Add(columnName, value);
+                    continue;
                 }
+
+                if (columnName.Equals(TargetName.Dcr, StringComparison.OrdinalIgnoreCase))
+                {
+                    columnName = "Name";
+                }
+
+                changeRequest.Add(columnName, value);
             }
-            changeRequest.Add("Target", "ChangeRequest");
+            changeRequest.Add("Target", TargetTypeValue.Dcr);
             changeRequest.Add("Id", SearchIdName.Dcr + changeRequest.GetValue("ChangeRequestId"));
         }
         return changeRequest;
@@ -173,14 +183,24 @@ GROUP BY dcr.id
                 {
                     continue;
                 }
-                if (!string.IsNullOrWhiteSpace(reader[i].ToString()))
-                {
-                    string columnName = reader.GetName(i);
-                    string value = reader[i].ToString().Trim();
-                    changeRequest.Add(columnName, value);
+
+                string columnName = reader.GetName(i);
+                string value = reader[i].ToString().Trim();
+
+                if (string.IsNullOrWhiteSpace(value)
+                    || string.Equals(value, "None"))
+                { 
+                    continue; 
                 }
+
+                if (columnName.Equals(TargetName.Dcr, StringComparison.OrdinalIgnoreCase))
+                {
+                    columnName = "Name";
+                }
+
+                changeRequest.Add(columnName, value);
             }
-            changeRequest.Add("Target", "ChangeRequest");
+            changeRequest.Add("Target", TargetTypeValue.Dcr);
             changeRequest.Add("Id", SearchIdName.Dcr + changeRequest.GetValue("ChangeRequestId"));
             output.Add(changeRequest);
         }

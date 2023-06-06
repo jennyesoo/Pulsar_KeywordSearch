@@ -111,14 +111,24 @@ WHERE (
                 {
                     continue;
                 }
-                if (!string.IsNullOrWhiteSpace(reader[i].ToString()))
+
+                string columnName = reader.GetName(i);
+                string value = reader[i].ToString().Trim();
+
+                if (string.IsNullOrWhiteSpace(value)
+                    || string.Equals(value, "None"))
                 {
-                    string columnName = reader.GetName(i);
-                    string value = reader[i].ToString().Trim();
-                    feature.Add(columnName, value);
+                    continue;
                 }
+
+                if (columnName.Equals(TargetName.Feature, StringComparison.OrdinalIgnoreCase))
+                {
+                    columnName = "Name";
+                }
+
+                feature.Add(columnName, value);
             }
-            feature.Add("Target", "Feature");
+            feature.Add("Target", TargetTypeValue.Feature);
             feature.Add("Id", SearchIdName.Feature + feature.GetValue("FeatureId"));
         }
         return feature;
@@ -146,14 +156,24 @@ WHERE (
                 {
                     continue;
                 }
-                if (!string.IsNullOrWhiteSpace(reader[i].ToString()))
+
+                string columnName = reader.GetName(i);
+                string value = reader[i].ToString().Trim();
+
+                if (string.IsNullOrWhiteSpace(value)
+                    || string.Equals(value, "None"))
                 {
-                    string columnName = reader.GetName(i);
-                    string value = reader[i].ToString().Trim();
-                    feature.Add(columnName, value);
+                    continue;
                 }
+
+                if (columnName.Equals(TargetName.Feature, StringComparison.OrdinalIgnoreCase))
+                {
+                    columnName = "Name";
+                }
+
+                feature.Add(columnName, value);
             }
-            feature.Add("Target", "Feature");
+            feature.Add("Target", TargetTypeValue.Feature);
             feature.Add("Id", SearchIdName.Feature + feature.GetValue("FeatureId"));
             output.Add(feature);
         }
