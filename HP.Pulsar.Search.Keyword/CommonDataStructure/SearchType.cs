@@ -7,7 +7,6 @@ public enum SearchType
     Root,
     Version,
     Feature,
-    PRL,
     DCR,
     AmoPartNumber,
     ProductDrop
