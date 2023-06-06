@@ -1,12 +1,8 @@
-﻿using System.Collections.Generic;
-using System.Text.RegularExpressions;
-using System.Threading;
+﻿using System.Text.RegularExpressions;
 using HP.Pulsar.Search.Keyword.CommonDataStructure;
 using HP.Pulsar.Search.Keyword.DataTransformation;
 using HP.Pulsar.Search.Keyword.Infrastructure;
-using Humanizer;
 using Meilisearch;
-using Microsoft.Extensions.FileSystemGlobbing.Internal;
 
 namespace HP.Pulsar.Search.Keyword.SearchEngine;
 
@@ -58,7 +54,7 @@ public class SearchClient
             Limit = 700
         };
 
-        IReadOnlyDictionary<SearchType, List<SingleOutputModel>> models = await _client.SearchAsync(string.Join(' ', handledInput), searchQuery);
+        IReadOnlyDictionary<SearchType, List<SingleOutputModel>> models = await _client.SearchAsync(string.Join(" ", handledInput), searchQuery);
 
         // TODO - post-process 
 
@@ -91,7 +87,7 @@ public class SearchClient
             }
             else
             {
-                handledInput.Add(temp.Singularize());
+                handledInput.Add(temp);
             }
         }
 
