@@ -31,7 +31,8 @@ public class ProductReader : IKeywordSearchDataReader
             FillChipsetAsync(product),
             FillCurrentBiosVersionAsync(product),
             FillAvDetailAsync(product),
-            FillFactoryNameAsync(product)
+            FillFactoryNameAsync(product),
+            FillReferencePlatformAsync(product)
         };
 
         await Task.WhenAll(tasks);
@@ -51,7 +52,8 @@ public class ProductReader : IKeywordSearchDataReader
             FillChipsetsAsync(products),
             FillCurrentBiosVersionsAsync(products),
             FillAvDetailsAsync(products),
-            FillFactoryNamesAsync(products)
+            FillFactoryNamesAsync(products),
+            FillReferencePlatformAsync(products)
         };
 
         await Task.WhenAll(tasks);
@@ -435,6 +437,20 @@ WHERE APB.STATUS = 'A'
     AND (
         @ProductId = - 1
         OR p.ID = @ProductId
+        )
+";
+    }
+
+    private string GetReferencePlatformText()
+    {
+        return @"
+Select v.id as ProductId ,f2.name + ' ' + v2.version as ReferencePlatform 
+from productversion v with (NOLOCK), productversion v2 with (NOLOCK), productfamily f2 with (NOLOCK) 
+where f2.id = v2.productfamilyid 
+and v2.id = v.referenceid 
+    AND (
+        @ProductId = - 1
+        OR v.id = @ProductId
         )
 ";
     }
@@ -1140,6 +1156,65 @@ WHERE APB.STATUS = 'A'
                 {
                     product.Add("FactoryName" + i, factoryName[productId][i]);
                 }
+            }
+        }
+    }
+
+    private async Task FillReferencePlatformAsync(CommonDataModel product)
+    {
+        if (!int.TryParse(product.GetValue("ProductId"), out int productId))
+        {
+            return;
+        }
+
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetReferencePlatformText(), connection);
+        SqlParameter parameter = new("ProductId", productId);
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+
+        if (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["ProductId"].ToString(), out int dbProductId))
+            {
+                return;
+            }
+
+            if (dbProductId.Equals(productId))
+            {
+                product.Add("ReferencePlatform", reader["ReferencePlatform"].ToString());
+            }
+        }
+    }
+
+
+    private async Task FillReferencePlatformAsync(IEnumerable<CommonDataModel> products)
+    {
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetReferencePlatformText(), connection);
+        SqlParameter parameter = new("ProductId", "-1");
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, string> referencePlatform = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["ProductId"].ToString(), out int productId))
+            {
+                continue;
+            }
+
+            referencePlatform[productId] = reader["ReferencePlatform"].ToString();
+        }
+
+        foreach (CommonDataModel product in products)
+        {
+            if (int.TryParse(product.GetValue("ProductId"), out int productId)
+              && referencePlatform.ContainsKey(productId))
+            {
+                product.Add("ReferencePlatform", referencePlatform[productId]);
             }
         }
     }
