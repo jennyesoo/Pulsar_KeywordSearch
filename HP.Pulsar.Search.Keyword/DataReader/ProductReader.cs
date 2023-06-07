@@ -150,7 +150,8 @@ SELECT p.id AS ProductId,
         END AS PreinstallTeam,
     p.MachinePNPID AS MachinePNPID,
     p.RCTOSites,
-    p.IsNdaProduct
+    p.IsNdaProduct,
+    p.TypeId
 FROM ProductVersion p
 LEFT JOIN ProductFamily pf ON p.ProductFamilyId = pf.id
 LEFT JOIN Partner partner ON partner.id = p.PartnerId
@@ -438,9 +439,10 @@ WHERE APB.STATUS = 'A'
             await connection.OpenAsync();
             SqlCommand command1 = new(GetEndOfProductionCommand1Text(), connection);
             SqlCommand command2 = new(GetEndOfProductionCommand2Text(), connection);
-            SqlParameter parameter = new("ProductId", productId);
-            command1.Parameters.Add(parameter);
-            command2.Parameters.Add(parameter);
+            SqlParameter parameter1 = new("ProductId", productId);
+            SqlParameter parameter2 = new("ProductId", productId);
+            command1.Parameters.Add(parameter1);
+            command2.Parameters.Add(parameter2);
             Dictionary<int, DateTime> eopDates1 = new();
             Dictionary<int, DateTime> eopDates2 = new();
 
