@@ -65,10 +65,20 @@ public class ProductReader : IKeywordSearchDataReader
 SELECT p.id AS ProductId,
     DOTSName AS ProductName,
     partner.name AS Partner,
-    pdc.Name AS DevCenter,
+    CASE WHEN p.DevCenter = 0 THEN ''
+        WHEN p.DevCenter = 1 THEN 'Houston'
+        WHEN p.DevCenter = 2 THEN 'Taiwan - Consumer'
+        WHEN p.DevCenter = 3 THEN 'Taiwan - Commercial'
+        WHEN p.DevCenter = 4 THEN 'Singapore'
+        WHEN p.DevCenter = 5 THEN 'Brazil'
+        WHEN p.DevCenter = 6 THEN 'Mobility'
+        WHEN p.DevCenter = 7 THEN 'San Diego'
+        WHEN p.DevCenter = 8 THEN 'No Dev. Center'
+        WHEN p.DevCenter = 9 THEN 'Fort Collins'
+    END AS DevelopmentCenter,
     Brands,
     p.SystemBoardId,
-    ServiceLifeDate,
+    vw_GetEndOfServiceLifeDate.EndOfServiceLifeDate,
     ps.Name AS ProductStatus,
     sg.Name AS BusinessSegment,
     p.CreatedBy AS CreatorName,
@@ -155,7 +165,6 @@ SELECT p.id AS ProductId,
 FROM ProductVersion p
 LEFT JOIN ProductFamily pf ON p.ProductFamilyId = pf.id
 LEFT JOIN Partner partner ON partner.id = p.PartnerId
-LEFT JOIN ProductDevCenter pdc ON pdc.ProductDevCenterId = DevCenter
 LEFT JOIN ProductStatus ps ON ps.id = p.ProductStatusID
 LEFT JOIN BusinessSegment sg ON sg.BusinessSegmentID = p.BusinessSegmentID
 LEFT JOIN PreinstallTeam pis ON pis.ID = p.ReleaseTeam
@@ -176,11 +185,11 @@ LEFT JOIN UserInfo user_MPM ON user_MPM.userid = p.ConsMarketingID
 LEFT JOIN UserInfo user_ProPM ON user_ProPM.userid = p.ProcurementPMID
 LEFT JOIN UserInfo user_SWM ON user_SWM.userid = p.SwMarketingId
 LEFT JOIN ProductLine pl ON pl.Id = p.ProductLineId
+LEFT JOIN vw_GetEndOfServiceLifeDate on vw_GetEndOfServiceLifeDate.productId = p.Id
 WHERE (
         @ProductId = - 1
         OR p.Id = @ProductId
         )
-
 ";
     }
 
@@ -475,6 +484,7 @@ WHERE APB.STATUS = 'A'
                 if (eopDates1.ContainsKey(productId))
                 {
                     product.Add("EndOfProduction", eopDates1[productId].ToString("yyyy/MM/dd"));
+                    product.Add("EndOfSales", GetEndOfSalesDate(eopDates1[productId]));
                 }
             }
             else
@@ -482,8 +492,10 @@ WHERE APB.STATUS = 'A'
                 if (eopDates2.ContainsKey(productId))
                 {
                     product.Add("EndOfProduction", eopDates2[productId].ToString("yyyy/MM/dd"));
+                    product.Add("EndOfSales", GetEndOfSalesDate(eopDates2[productId]));
                 }
             }
+            product.Delete("TypeId");
         }
     }
 
@@ -537,6 +549,7 @@ WHERE APB.STATUS = 'A'
                 if (eopDates1.ContainsKey(productId))
                 {
                     product.Add("EndOfProduction", eopDates1[productId].ToString("yyyy/MM/dd"));
+                    product.Add("EndOfSales", GetEndOfSalesDate(eopDates1[productId]));
                 }
             }
             else
@@ -544,9 +557,25 @@ WHERE APB.STATUS = 'A'
                 if (eopDates2.ContainsKey(productId))
                 {
                     product.Add("EndOfProduction", eopDates2[productId].ToString("yyyy/MM/dd"));
+                    product.Add("EndOfSales", GetEndOfSalesDate(eopDates2[productId]));
                 }
             }
         }
+    }
+
+    private static string GetEndOfSalesDate(DateTime date)
+    {
+        return GetLastDateOfMonth(date.AddMonths(3)).ToString("yyyy/MM/dd/");
+    }
+
+    private static DateTime GetFirstDateOfMonth(DateTime date)
+    {
+        return new DateTime(date.Year, date.Month, 1);
+    }
+
+    private static DateTime GetLastDateOfMonth(DateTime date)
+    {
+        return GetFirstDateOfMonth(date).AddMonths(1).AddDays(-1);
     }
 
     private async Task FillProductGroupAsync(CommonDataModel product)

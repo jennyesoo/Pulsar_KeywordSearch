@@ -4,7 +4,7 @@ namespace HP.Pulsar.Search.Keyword.DataTransformation;
 
 public class ProductDataTransformer : IDataTransformer
 {
-    private static readonly List<string> _datePropertyList = new() { "servicelifedate", "createddate", "latestupdatedate", "endofproductiondate" };
+    private static readonly List<string> _datePropertyList = new() { "EndOfSales", "createddate", "latestupdatedate", "EndOfProduction" , "EndOfServiceLifeDate" };
 
     public IEnumerable<CommonDataModel> Transform(IEnumerable<CommonDataModel> products)
     {
