@@ -176,7 +176,7 @@ public class ComponentVersionReader : IKeywordSearchDataReader
     Dv.VendorVersion,
     Dv.Comments,
     Dv.EndOfLifeDate,
-    Dv.Rompaq,
+    Dv.Binary,
     Dv.PreinstallROM,
     Dv.CAB,
     Dv.IsSoftPaqInPreinstall,
@@ -270,13 +270,13 @@ WHERE (
             componentVersion.Delete("FloppyDisk");
         }
 
-        if (componentVersion.GetValue("Rompaq").Equals("1", StringComparison.OrdinalIgnoreCase))
+        if (componentVersion.GetValue("Binary").Equals("1", StringComparison.OrdinalIgnoreCase))
         {
-            componentVersion.Add("Rompaq", "ROM Component Binary");
+            componentVersion.Add("Binary", "ROM Component Binary");
         }
         else
         {
-            componentVersion.Delete("Rompaq");
+            componentVersion.Delete("Binary");
         }
 
         if (componentVersion.GetValue("PreinstallROM").Equals("1", StringComparison.OrdinalIgnoreCase))
@@ -456,13 +456,13 @@ WHERE (
                 rootversion.Delete("FloppyDisk");
             }
 
-            if (rootversion.GetValue("Rompaq").Equals("1", StringComparison.OrdinalIgnoreCase))
+            if (rootversion.GetValue("Binary").Equals("1", StringComparison.OrdinalIgnoreCase))
             {
-                rootversion.Add("Rompaq", "ROM Component Binary");
+                rootversion.Add("Binary", "ROM Component Binary");
             }
             else
             {
-                rootversion.Delete("Rompaq");
+                rootversion.Delete("Binary");
             }
 
             if (rootversion.GetValue("PreinstallROM").Equals("1", StringComparison.OrdinalIgnoreCase))

@@ -60,7 +60,7 @@ internal class ComponentRootReader : IKeywordSearchDataReader
     root.name AS ComponentRootName,
     root.description,
     vendor.Name AS VendorName,
-    cate.name AS SIFunctionTestGroupCategory,
+    cate.name AS Category,
     user1.FirstName + ' ' + user1.LastName AS ComponentPM,
     user1.Email AS ComponentPMEmail,
     user2.FirstName + ' ' + user2.LastName AS Developer,
