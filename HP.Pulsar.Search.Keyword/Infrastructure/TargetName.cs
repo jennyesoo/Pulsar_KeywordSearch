@@ -2,11 +2,11 @@
 
 internal static class TargetName
 {
-    public static string AmoPartNumber => "HpPartNumber";
+    public static string AmoPartNumber => "Hp Part Number";
     public static string Dcr => "Summary";
-    public static string ComponentRoot => "ComponentRootName";
-    public static string ComponentVersion => "ComponentVersionName";
-    public static string Feature => "FeatureName";
-    public static string Product => "ProductName";
-    public static string ProductDrop => "ProductDropName";
+    public static string ComponentRoot => "Component Root Name";
+    public static string ComponentVersion => "Component Version Name";
+    public static string Feature => "Feature Name";
+    public static string Product => "Product Name";
+    public static string ProductDrop => "Product Drop Name";
 }

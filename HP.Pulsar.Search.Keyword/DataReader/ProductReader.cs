@@ -64,9 +64,8 @@ public class ProductReader : IKeywordSearchDataReader
     private string GetProductsCommandText()
     {
         return @"
-SELECT p.id AS ProductId,
-    DOTSName AS ProductName,
-    partner.name AS Partner,
+SELECT p.id AS 'Product Id',
+    DOTSName AS 'Product Name',
     CASE WHEN p.DevCenter = 0 THEN ''
         WHEN p.DevCenter = 1 THEN 'Houston'
         WHEN p.DevCenter = 2 THEN 'Taiwan - Consumer'
@@ -77,52 +76,52 @@ SELECT p.id AS ProductId,
         WHEN p.DevCenter = 7 THEN 'San Diego'
         WHEN p.DevCenter = 8 THEN 'No Dev. Center'
         WHEN p.DevCenter = 9 THEN 'Fort Collins'
-    END AS DevelopmentCenter,
+    END AS 'Development Center',
     Brands,
-    p.SystemBoardId,
-    vw_GetEndOfServiceLifeDate.EndOfServiceLifeDate,
-    ps.Name AS ProductStatus,
-    sg.Name AS BusinessSegment,
-    p.CreatedBy AS CreatorName,
-    p.Created AS CreatedDate,
-    p.UpdatedBy AS LastUpdaterName,
-    p.Updated AS LatestUpdateDate,
-    user_SMID.FirstName + ' ' + user_SMID.LastName AS SystemManager,
-    user_SMID.Email AS SystemManagerEmail,
-    user_PDPM.FirstName + ' ' + user_PDPM.LastName AS PlatformDevelopmentPM,
-    user_PDPM.Email AS PlatformDevelopmentPMEmail,
-    user_SCID.FirstName + ' ' + user_SCID.LastName AS SupplyChain,
-    user_SCID.Email AS SupplyChainEmail,
-    user_ODMSEPM.FirstName + ' ' + user_ODMSEPM.LastName AS ODMSystemEngineeringPM,
-    user_ODMSEPM.Email AS ODMSystemEngineeringPMEmail,
-    user_CM.FirstName + ' ' + user_CM.LastName AS ConfigurationManager,
-    user_CM.Email AS ConfigurationManagerEmail,
-    user_CPM.FirstName + ' ' + user_CPM.LastName AS CommodityPM,
-    user_CPM.Email AS CommodityPMEmail,
+    p.SystemBoardId as 'System Board Id',
+    vw_GetEndOfServiceLifeDate.EndOfServiceLifeDate as 'End Of Service',
+    ps.Name AS 'Product Phase',
+    sg.Name AS 'Business Segment',
+    p.CreatedBy AS 'Creator Name',
+    p.Created AS 'Created Date',
+    p.UpdatedBy AS 'Last Updater Name',
+    p.Updated AS 'Latest Update Date',
+    user_SMID.FirstName + ' ' + user_SMID.LastName AS 'System Manager',
+    user_SMID.Email AS 'System Manager Email',
+    user_PDPM.FirstName + ' ' + user_PDPM.LastName AS 'Platform Development PM',
+    user_PDPM.Email AS 'Platform Development PM Email',
+    user_SCID.FirstName + ' ' + user_SCID.LastName AS 'Supply Chain',
+    user_SCID.Email AS 'Supply Chain Email',
+    user_ODMSEPM.FirstName + ' ' + user_ODMSEPM.LastName AS 'ODM System Engineering PM',
+    user_ODMSEPM.Email AS 'ODM System Engineering PM Email',
+    user_CM.FirstName + ' ' + user_CM.LastName AS 'Configuration Manager',
+    user_CM.Email AS 'Configuration Manager Email',
+    user_CPM.FirstName + ' ' + user_CPM.LastName AS 'Commodity PM',
+    user_CPM.Email AS 'Commodity PM Email',
     user_Service.FirstName + ' ' + user_Service.LastName AS Service,
-    user_Service.Email AS ServiceEmail,
-    user_ODMHWPM.FirstName + ' ' + user_ODMHWPM.LastName AS ODMHWPM,
-    user_ODMHWPM.Email AS ODMHWPMEmail,
-    user_POPM.FirstName + ' ' + user_POPM.LastName AS ProgramOfficeProgramManager,
-    user_POPM.Email AS ProgramOfficeProgramManagerEmail,
+    user_Service.Email AS 'Service Email',
+    user_ODMHWPM.FirstName + ' ' + user_ODMHWPM.LastName AS 'ODM HW PM',
+    user_ODMHWPM.Email AS 'ODM HW PM Email',
+    user_POPM.FirstName + ' ' + user_POPM.LastName AS 'Program Office Program Manager',
+    user_POPM.Email AS 'Program Office Program Manager Email',
     user_Quality.FirstName + ' ' + user_Quality.LastName AS Quality,
-    user_Quality.Email AS QualityEmail,
-    user_PPM.FirstName + ' ' + user_PPM.LastName AS PlanningPM,
-    user_PPM.Email AS PlanningPMEmail,
-    user_BIOSPM.FirstName + ' ' + user_BIOSPM.LastName AS BIOSPM,
-    user_BIOSPM.Email AS BIOSPMEmail,
-    user_SEPM.FirstName + ' ' + user_SEPM.LastName AS SystemsEngineeringPM,
-    user_SEPM.Email AS SystemsEngineeringPMEmail,
-    user_MPM.FirstName + ' ' + user_MPM.LastName AS MarketingProductMgmt,
-    user_MPM.Email AS MarketingProductMgmtEmail,
-    user_ProPM.FirstName + ' ' + user_ProPM.LastName AS ProcurementPM,
-    user_ProPM.Email AS ProcurementPMEmail,
-    user_SWM.FirstName + ' ' + user_SWM.LastName AS SWMarketing,
-    user_SWM.Email AS SWMarketingEmail,
-    pf.Name AS ProductFamily,
+    user_Quality.Email AS 'Quality Email',
+    user_PPM.FirstName + ' ' + user_PPM.LastName AS 'Planning PM',
+    user_PPM.Email AS 'Planning PM Email',
+    user_BIOSPM.FirstName + ' ' + user_BIOSPM.LastName AS 'BIOS PM',
+    user_BIOSPM.Email AS 'BIOS PM Email',
+    user_SEPM.FirstName + ' ' + user_SEPM.LastName AS 'Systems Engineering PM',
+    user_SEPM.Email AS 'Systems Engineering PM Email',
+    user_MPM.FirstName + ' ' + user_MPM.LastName AS 'Marketing/Product Mgmt',
+    user_MPM.Email AS 'Marketing/Product Mgmt Email',
+    user_ProPM.FirstName + ' ' + user_ProPM.LastName AS 'Procurement PM',
+    user_ProPM.Email AS 'Procurement PM Email',
+    user_SWM.FirstName + ' ' + user_SWM.LastName AS 'SW Marketing',
+    user_SWM.Email AS 'SW Marketing Email',
+    pf.Name AS 'Product Family',
     partner.name AS ODM,
-    pis.Name AS ReleaseTeam,
-    p.RegulatoryModel AS RegulatoryModel,
+    pis.Name AS 'Release Team',
+    p.RegulatoryModel AS 'Regulatory Model',
     STUFF((
             SELECT ',' + new_releases.Releases
             FROM (
@@ -139,7 +138,7 @@ SELECT p.id AS ProductId,
             FOR XML PATH('')
             ), 1, 1, '') AS Releases,
     p.Description,
-    pl.Name + '-' + pl.Description AS ProductLine,
+    pl.Name + '-' + pl.Description AS 'Product Line',
     CASE 
         WHEN p.PreinstallTeam = - 1
             THEN ''
@@ -159,10 +158,10 @@ SELECT p.id AS ProductId,
             THEN 'Mobility'
         WHEN p.PreinstallTeam = 8
             THEN ''
-        END AS PreinstallTeam,
-    p.MachinePNPID AS MachinePNPID,
-    p.RCTOSites,
-    p.IsNdaProduct,
+        END AS 'Preinstall Team',
+    p.MachinePNPID AS 'Machine PNP ID',
+    p.RCTOSites as 'RCTO Sites',
+    p.IsNdaProduct as 'Is Nda Product',
     p.TypeId
 FROM ProductVersion p
 LEFT JOIN ProductFamily pf ON p.ProductFamilyId = pf.id
@@ -235,7 +234,7 @@ WHERE (
             }
 
             product.Add("Target", TargetTypeValue.Product);
-            product.Add("Id", SearchIdName.Product + product.GetValue("ProductId"));
+            product.Add("Id", SearchIdName.Product + product.GetValue("Product Id"));
         }
         return product;
     }
@@ -282,7 +281,7 @@ WHERE (
             }
 
             product.Add("Target", TargetTypeValue.Product);
-            product.Add("Id", SearchIdName.Product + product.GetValue("ProductId"));
+            product.Add("Id", SearchIdName.Product + product.GetValue("Product Id"));
             output.Add(product);
         }
 
@@ -499,16 +498,16 @@ and v2.id = v.referenceid
             {
                 if (eopDates1.ContainsKey(productId))
                 {
-                    product.Add("EndOfProduction", eopDates1[productId].ToString("yyyy/MM/dd"));
-                    product.Add("EndOfSales", GetEndOfSalesDate(eopDates1[productId]));
+                    product.Add("End Of Production", eopDates1[productId].ToString("yyyy/MM/dd"));
+                    product.Add("End Of Sales", GetEndOfSalesDate(eopDates1[productId]));
                 }
             }
             else
             {
                 if (eopDates2.ContainsKey(productId))
                 {
-                    product.Add("EndOfProduction", eopDates2[productId].ToString("yyyy/MM/dd"));
-                    product.Add("EndOfSales", GetEndOfSalesDate(eopDates2[productId]));
+                    product.Add("End Of Production", eopDates2[productId].ToString("yyyy/MM/dd"));
+                    product.Add("End Of Sales", GetEndOfSalesDate(eopDates2[productId]));
                 }
             }
             product.Delete("TypeId");
@@ -564,18 +563,19 @@ and v2.id = v.referenceid
             {
                 if (eopDates1.ContainsKey(productId))
                 {
-                    product.Add("EndOfProduction", eopDates1[productId].ToString("yyyy/MM/dd"));
-                    product.Add("EndOfSales", GetEndOfSalesDate(eopDates1[productId]));
+                    product.Add("End Of Production", eopDates1[productId].ToString("yyyy/MM/dd"));
+                    product.Add("End Of Sales", GetEndOfSalesDate(eopDates1[productId]));
                 }
             }
             else
             {
                 if (eopDates2.ContainsKey(productId))
                 {
-                    product.Add("EndOfProduction", eopDates2[productId].ToString("yyyy/MM/dd"));
-                    product.Add("EndOfSales", GetEndOfSalesDate(eopDates2[productId]));
+                    product.Add("End Of Production", eopDates2[productId].ToString("yyyy/MM/dd"));
+                    product.Add("End Of Sales", GetEndOfSalesDate(eopDates2[productId]));
                 }
             }
+            product.Delete("TypeId");
         }
     }
 
@@ -628,7 +628,7 @@ and v2.id = v.referenceid
 
         if (productGroups.ContainsKey(productId))
         {
-            product.Add("ProductGroups", string.Join(" ", productGroups[productId]));
+            product.Add("Product Groups", string.Join(" ", productGroups[productId]));
         }
     }
 
@@ -665,7 +665,7 @@ and v2.id = v.referenceid
             if (int.TryParse(product.GetValue("ProductId"), out int productId)
                 && productGroups.ContainsKey(productId))
             {
-                product.Add("ProductGroups", string.Join(" ", productGroups[productId]));
+                product.Add("Product Groups", string.Join(" ", productGroups[productId]));
             }
         }
     }
@@ -708,7 +708,7 @@ and v2.id = v.referenceid
 
         if (leadProducts.ContainsKey(productId))
         {
-            product.Add("LeadProduct", string.Join(", ", leadProducts[productId]));
+            product.Add("Lead Product", string.Join(", ", leadProducts[productId]));
         }
     }
 
@@ -748,7 +748,7 @@ and v2.id = v.referenceid
             if (int.TryParse(product.GetValue("ProductId"), out int productId)
                && leadProducts.ContainsKey(productId))
             {
-                product.Add("LeadProduct", string.Join(", ", leadProducts[productId]));
+                product.Add("Lead Product", string.Join(", ", leadProducts[productId]));
             }
         }
     }
@@ -840,19 +840,19 @@ and v2.id = v.referenceid
 
         if (currentROM.ContainsKey(productId))
         {
-            product.Add("CurrentBIOSVersions", await GetTargetedVersionsAsync(productId,
-                                                                              product.GetValue("ProductStatus"),
-                                                                              currentROM[productId].Item1,
-                                                                              currentROM[productId].Item2,
-                                                                              biosVersion));
+            product.Add("Current BIOS Versions", await GetTargetedVersionsAsync(productId,
+                                                                                product.GetValue("ProductStatus"),
+                                                                                currentROM[productId].Item1,
+                                                                                currentROM[productId].Item2,
+                                                                                biosVersion));
         }
         else
         {
-            product.Add("CurrentBIOSVersions", await GetTargetedVersionsAsync(productId,
-                                                                              product.GetValue("ProductStatus"),
-                                                                              string.Empty,
-                                                                              string.Empty,
-                                                                              biosVersion));
+            product.Add("Current BIOS Versions", await GetTargetedVersionsAsync(productId,
+                                                                                product.GetValue("ProductStatus"),
+                                                                                string.Empty,
+                                                                                string.Empty,
+                                                                                biosVersion));
         }
     }
 
@@ -870,19 +870,19 @@ and v2.id = v.referenceid
 
             if (currentROM.ContainsKey(productId))
             {
-                product.Add("CurrentBIOSVersions", await GetTargetedVersionsAsync(productId,
-                                                                                  product.GetValue("ProductStatus"),
-                                                                                  currentROM[productId].Item1,
-                                                                                  currentROM[productId].Item2,
-                                                                                  biosVersion));
+                product.Add("Current BIOS Versions", await GetTargetedVersionsAsync(productId,
+                                                                                    product.GetValue("ProductStatus"),
+                                                                                    currentROM[productId].Item1,
+                                                                                    currentROM[productId].Item2,
+                                                                                    biosVersion));
             }
             else
             {
-                product.Add("CurrentBIOSVersions", await GetTargetedVersionsAsync(productId,
-                                                                                  product.GetValue("ProductStatus"),
-                                                                                  string.Empty,
-                                                                                  string.Empty,
-                                                                                  biosVersion));
+                product.Add("Current BIOS Versions", await GetTargetedVersionsAsync(productId,
+                                                                                    product.GetValue("ProductStatus"),
+                                                                                    string.Empty,
+                                                                                    string.Empty,
+                                                                                    biosVersion));
             }
         }
     }
@@ -1032,7 +1032,7 @@ and v2.id = v.referenceid
             {
                 for (int i = 0; i < avDetail[productId].Count(); i++)
                 {
-                    product.Add("AvDetail " + i, avDetail[productId][i]);
+                    product.Add("Av Detail " + i, avDetail[productId][i]);
                 }
             }
         }
@@ -1073,7 +1073,7 @@ and v2.id = v.referenceid
             {
                 for (int i = 0; i < avDetail[productId].Count(); i++)
                 {
-                    product.Add("AvDetail " + i, avDetail[productId][i]);
+                    product.Add("Av Detail " + i, avDetail[productId][i]);
                 }
             }
         }
@@ -1115,7 +1115,7 @@ and v2.id = v.referenceid
         {
             for (int i = 0; i < factoryName[productId].Count; i++)
             {
-                product.Add("FactoryName" + i, factoryName[productId][i]);
+                product.Add("Factory" + i, factoryName[productId][i]);
             }
         }
     }
@@ -1154,7 +1154,7 @@ and v2.id = v.referenceid
             {
                 for (int i = 0; i < factoryName[productId].Count; i++)
                 {
-                    product.Add("FactoryName" + i, factoryName[productId][i]);
+                    product.Add("Factory" + i, factoryName[productId][i]);
                 }
             }
         }
@@ -1183,7 +1183,7 @@ and v2.id = v.referenceid
 
             if (dbProductId.Equals(productId))
             {
-                product.Add("ReferencePlatform", reader["ReferencePlatform"].ToString());
+                product.Add("Reference Platform", reader["ReferencePlatform"].ToString());
             }
         }
     }
@@ -1214,7 +1214,7 @@ and v2.id = v.referenceid
             if (int.TryParse(product.GetValue("ProductId"), out int productId)
               && referencePlatform.ContainsKey(productId))
             {
-                product.Add("ReferencePlatform", referencePlatform[productId]);
+                product.Add("Reference Platform", referencePlatform[productId]);
             }
         }
     }

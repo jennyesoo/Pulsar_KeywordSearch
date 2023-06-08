@@ -54,25 +54,25 @@ internal class ProductDropReader : IKeywordSearchDataReader
     private string GetProductDropCommandText()
     {
         return @"
-SELECT pd.ProductDropId,
-    ps.Name AS STATUS,
-    pd.Creator AS CreatedBy,
-    pd.Updater AS LastUpdatedBy,
-    pd.TimeCreated AS CreatedDate,
-    pd.TimeChanged AS UpdatedDate,
-    pd.name AS ProductDropName,
+SELECT pd.ProductDropId as 'Product Drop Id',
+    ps.Name AS Status,
+    pd.Creator AS 'Created by',
+    pd.Updater AS 'Last Updated by',
+    pd.TimeCreated AS 'Created Date',
+    pd.TimeChanged AS 'Updated Date',
+    pd.name AS 'Product Drop Name',
     pd.Description,
-    pd.ScheduledDate AS UpcomingRTMDate,
+    pd.ScheduledDate AS 'Upcoming RTM Date',
     CASE 
         WHEN pd.STATE & 8 > 0
             THEN 1
         ELSE 0
         END AS Locked,
-    pd.HideInTree,
-    pd.AllowSameRootDeliverables,
-    pd.AllowPDAutoSelected,
-    pd.AllowSWCompToSI,
-    pd.ODMViewOnly,
+    pd.HideInTree as 'Hide In Tree',
+    pd.AllowSameRootDeliverables as 'Allow to add components with the same parent part number',
+    pd.AllowPDAutoSelected as 'Component Replacement Product Drop auto selected',
+    pd.AllowSWCompToSI as 'Feed SW Components to SI',
+    pd.ODMViewOnly as 'ODM R&D Sites can only View',
     (
         SELECT min(prel.ReleaseYear)
         FROM Productversion pv
@@ -81,19 +81,18 @@ SELECT pd.ProductDropId,
         WHERE pv.id IN (
                 SELECT pvr2.ProductversionID
                 FROM productversion_Release pvr2 WITH (NOLOCK)
-                LEFT JOIN Productdrop pd WITH (NOLOCK) ON pvr2.id = pd.ProductversionReleaseID
-                WHERE pd.ProductDropID = pd.ProductDropID --PDid
+                LEFT JOIN Productdrop pd2 WITH (NOLOCK) ON pvr2.id = pd2.ProductversionReleaseID
+                WHERE pd2.ProductDropID = pd.ProductDropID --PDid
                 )
-        ) AS ReleaseYear,
-    pd.ProductDropID,
-    Pv.ProductName,
-    bs.Name AS BusinessSegmentname,
-    PF.Name AS ProductFamily,
+        ) AS 'Release Year',
+    Pv.ProductName as 'Product Name',
+    bs.Name AS 'Business Segment Name',
+    PF.Name AS 'Product Family',
     CASE 
         WHEN bs.BusinessId = 1
             THEN ''
         ELSE rtrim(isnull(pvr.Name, ''))
-        END AS ReleaseName
+        END AS 'Release Name'
 FROM ProductDrop AS pd
 LEFT JOIN ProductdropStatus ps ON ps.statusid = pd.StatusID
 LEFT JOIN ProductVersion_Release P WITH (NOLOCK) ON P.ID = pd.ProductversionReleaseID
@@ -189,7 +188,7 @@ GROUP BY ml2.ProductDropId
             }
 
             productDrop.Add("Target", TargetTypeValue.ProductDrop);
-            productDrop.Add("Id", SearchIdName.ProductDrop + productDrop.GetValue("ProductDropId"));
+            productDrop.Add("Id", SearchIdName.ProductDrop + productDrop.GetValue("Product Drop Id"));
         }
 
         return productDrop;
@@ -236,7 +235,7 @@ GROUP BY ml2.ProductDropId
             }
 
             productDrop.Add("Target", TargetTypeValue.ProductDrop);
-            productDrop.Add("Id", SearchIdName.ProductDrop + productDrop.GetValue("ProductDropId"));
+            productDrop.Add("Id", SearchIdName.ProductDrop + productDrop.GetValue("Product Drop Id"));
             output.Add(productDrop);
         }
 
@@ -272,7 +271,7 @@ GROUP BY ml2.ProductDropId
             string[] ownerByList = ownerBy[productDropId].Split(',');
             for (int i = 0; i < ownerByList.Length; i++)
             {
-                productDrop.Add("OwnerBy " + i, ownerByList[i]);
+                productDrop.Add("Owner by " + i, ownerByList[i]);
             }
         }
     }
@@ -305,7 +304,7 @@ GROUP BY ml2.ProductDropId
                 string[] ownerByList = ownerBy[productDropID].Split(',');
                 for (int i = 0; i < ownerByList.Length; i++)
                 {
-                    pd.Add("OwnerBy " + i, ownerByList[i]);
+                    pd.Add("Owner by " + i, ownerByList[i]);
                 }
             }
         }
@@ -340,7 +339,7 @@ GROUP BY ml2.ProductDropId
             string[] mlNameList = mlName[productDropId].Split(',');
             for (int i = 0; i < mlNameList.Length; i++)
             {
-                productDrop.Add("MLName " + i, mlNameList[i]);
+                productDrop.Add("ML Name " + i, mlNameList[i]);
             }
         }
     }
@@ -373,7 +372,7 @@ GROUP BY ml2.ProductDropId
                 string[] mlNameList = mlName[productDropID].Split(',');
                 for (int i = 0; i < mlNameList.Length; i++)
                 {
-                    pd.Add("MLName " + i, mlNameList[i]);
+                    pd.Add("ML Name " + i, mlNameList[i]);
                 }
             }
         }
@@ -390,49 +389,49 @@ GROUP BY ml2.ProductDropId
             productDrop.Delete("Locked");
         }
 
-        if (productDrop.GetValue("HideInTree").Equals("True", StringComparison.OrdinalIgnoreCase))
+        if (productDrop.GetValue("Hide In Tree").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            productDrop.Add("HideInTree", "Hide In Tree");
+            productDrop.Add("Hide In Tree", "Hide In Tree");
         }
         else
         {
-            productDrop.Delete("HideInTree");
+            productDrop.Delete("Hide In Tree");
         }
 
-        if (productDrop.GetValue("AllowSameRootDeliverables").Equals("True", StringComparison.OrdinalIgnoreCase))
+        if (productDrop.GetValue("Allow to add components with the same parent part number").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            productDrop.Add("AllowSameRootDeliverables", "Allow to add components with the same parent part number");
+            productDrop.Add("Allow to add components with the same parent part number", "Allow to add components with the same parent part number");
         }
         else
         {
-            productDrop.Delete("AllowSameRootDeliverables");
+            productDrop.Delete("Allow to add components with the same parent part number");
         }
 
-        if (productDrop.GetValue("AllowPDAutoSelected").Equals("True", StringComparison.OrdinalIgnoreCase))
+        if (productDrop.GetValue("Component Replacement Product Drop auto selected").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            productDrop.Add("AllowPDAutoSelected", "Component Replacement Product Drop auto selected");
+            productDrop.Add("Component Replacement Product Drop auto selected", "Component Replacement Product Drop auto selected");
         }
         else
         {
-            productDrop.Delete("AllowPDAutoSelected");
+            productDrop.Delete("Component Replacement Product Drop auto selected");
         }
 
-        if (productDrop.GetValue("AllowSWcompToSI").Equals("True", StringComparison.OrdinalIgnoreCase))
+        if (productDrop.GetValue("Feed SW Componenets to SI").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            productDrop.Add("AllowSWcompToSI", "Feed SW Componenets to SI");
+            productDrop.Add("Feed SW Componenets to SI", "Feed SW Componenets to SI");
         }
         else
         {
-            productDrop.Delete("AllowSWcompToSI");
+            productDrop.Delete("Feed SW Componenets to SI");
         }
 
-        if (productDrop.GetValue("ODMViewOnly").Equals("True", StringComparison.OrdinalIgnoreCase))
+        if (productDrop.GetValue("ODM R&D Sites can only View").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            productDrop.Add("ODMViewOnly", "ODM R&D Sites can only View");
+            productDrop.Add("ODM R&D Sites can only View", "ODM R&D Sites can only View");
         }
         else
         {
-            productDrop.Delete("ODMViewOnly");
+            productDrop.Delete("ODM R&D Sites can only View");
         }
         return productDrop;
     }
@@ -451,48 +450,48 @@ GROUP BY ml2.ProductDropId
                 pd.Delete("Locked");
             }
 
-            if (pd.GetValue("HideInTree").Equals("True", StringComparison.OrdinalIgnoreCase))
+            if (pd.GetValue("Hide In Tree").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                pd.Add("HideInTree", "Hide In Tree");
+                pd.Add("Hide In Tree", "Hide In Tree");
             }
             else
             {
-                pd.Delete("HideInTree");
+                pd.Delete("Hide In Tree");
             }
 
-            if (pd.GetValue("AllowSameRootDeliverables").Equals("True", StringComparison.OrdinalIgnoreCase))
+            if (pd.GetValue("Allow to add components with the same parent part number").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                pd.Add("AllowSameRootDeliverables", "Allow to add components with the same parent part number");
+                pd.Add("Allow to add components with the same parent part number", "Allow to add components with the same parent part number");
             }
             else
             {
-                pd.Delete("AllowSameRootDeliverables");
+                pd.Delete("Allow to add components with the same parent part number");
             }
 
-            if (pd.GetValue("AllowPDAutoSelected").Equals("True", StringComparison.OrdinalIgnoreCase))
+            if (pd.GetValue("Component Replacement Product Drop auto selected").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                pd.Add("AllowPDAutoSelected", "Component Replacement Product Drop auto selected");
+                pd.Add("Component Replacement Product Drop auto selected", "Component Replacement Product Drop auto selected");
             }
             else
             {
-                pd.Delete("AllowPDAutoSelected");
+                pd.Delete("Component Replacement Product Drop auto selected");
             }
 
-            if (pd.GetValue("AllowSWcompToSI").Equals("True", StringComparison.OrdinalIgnoreCase))
+            if (pd.GetValue("Feed SW Componenets to SI").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                pd.Add("AllowSWcompToSI", "Feed SW Componenets to SI");
+                pd.Add("Feed SW Componenets to SI", "Feed SW Componenets to SI");
             }
             else
             {
-                pd.Delete("AllowSWcompToSI");
+                pd.Delete("Feed SW Componenets to SI");
             }
-            if (pd.GetValue("ODMViewOnly").Equals("True", StringComparison.OrdinalIgnoreCase))
+            if (pd.GetValue("ODM R&D Sites can only View").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                pd.Add("ODMViewOnly", "ODM R&D Sites can only View");
+                pd.Add("ODM R&D Sites can only View", "ODM R&D Sites can only View");
             }
             else
             {
-                pd.Delete("ODMViewOnly");
+                pd.Delete("ODM R&D Sites can only View");
             }
         }
 
