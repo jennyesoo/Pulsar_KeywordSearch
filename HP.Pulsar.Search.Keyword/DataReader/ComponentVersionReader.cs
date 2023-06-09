@@ -1,4 +1,5 @@
-﻿using HP.Pulsar.Search.Keyword.CommonDataStructure;
+﻿using System.Globalization;
+using HP.Pulsar.Search.Keyword.CommonDataStructure;
 using HP.Pulsar.Search.Keyword.Infrastructure;
 using Microsoft.Data.SqlClient;
 
@@ -79,7 +80,7 @@ public class ComponentVersionReader : IKeywordSearchDataReader
             }
 
             componentVersion.Add("Target", TargetTypeValue.ComponentVersion);
-            componentVersion.Add("Id", SearchIdName.ComponentVersion + componentVersion.GetValue("ComponentVersionID"));
+            componentVersion.Add("Id", SearchIdName.ComponentVersion + componentVersion.GetValue("Component Version ID"));
 
         }
 
@@ -127,7 +128,7 @@ public class ComponentVersionReader : IKeywordSearchDataReader
             }
 
             componentVersion.Add("Target", TargetTypeValue.ComponentVersion);
-            componentVersion.Add("Id", SearchIdName.ComponentVersion + componentVersion.GetValue("ComponentVersionID"));
+            componentVersion.Add("Id", SearchIdName.ComponentVersion + componentVersion.GetValue("Component Version ID"));
             output.Add(componentVersion);
         }
         return output;
@@ -135,57 +136,57 @@ public class ComponentVersionReader : IKeywordSearchDataReader
 
     private static string GetTSQLComponentVersionCommandText()
     {
-        return @"SELECT Dv.ID AS ComponentVersionID,
-    Dv.DeliverableRootID AS ComponentRootID,
-    Dv.DeliverableName AS ComponentVersionName,
+        return @"SELECT Dv.ID AS 'Component Version ID',
+    Dv.DeliverableRootID AS 'Component Root ID',
+    Dv.DeliverableName AS 'Component Version Name',
     Dv.Version,
     Dv.Revision,
-    CPSW.Description AS PrismSWType,
+    CPSW.Description AS 'Prism SW Type',
     Dv.Pass,
     user1.FirstName + ' ' + user1.LastName AS Developer,
-    user1.Email AS DeveloperEmail,
-    user2.FirstName + ' ' + user2.LastName AS TestLead,
-    user2.Email AS TestLeadEmail,
+    user1.Email AS 'Developer Email',
+    user2.FirstName + ' ' + user2.LastName AS 'Test Lead',
+    user2.Email AS 'Test Lead Email',
     v.Name AS Vendor,
-    Dv.IRSPartNumber AS SWPartNumber,
-    cbl.Name AS BuildLevel,
-    sws.DisplayName AS RecoveryOption,
+    Dv.IRSPartNumber AS 'SW Part Number',
+    cbl.Name AS 'Build Level',
+    sws.DisplayName AS 'Recovery Option',
     Dv.MD5,
     Dv.SHA256,
-    Dv.PropertyTabs,
-    Dv.Preinstall,
+    Dv.PropertyTabs AS 'Property Tabs Added',
+    Dv.Preinstall as 'Packaging Preinstall',
     Dv.DrDvd,
-    Dv.Scriptpaq,
-    Dv.MsStore,
-    Dv.FloppyDisk,
+    Dv.Scriptpaq as 'Softpaq', 
+    Dv.MsStore as 'Ms Store',
+    Dv.FloppyDisk as 'Internal Tool',
     Dv.CDImage,
     Dv.ISOImage,
     Dv.AR,
-    Dv.IconDesktop,
-    Dv.IconMenu,
-    Dv.IconTray,
-    Dv.IconPanel,
-    Dv.IconInfoCenter,
-    Dv.IconTile,
-    Dv.IconTaskBarIcon,
-    Dv.SettingFWML,
-    Dv.SettingUWPCompliant,
+    Dv.IconDesktop as 'Desktop',
+    Dv.IconMenu as 'Start Menu',
+    Dv.IconTray as 'System Tray',
+    Dv.IconPanel as 'Control Panel',
+    Dv.IconInfoCenter as 'Info Center',
+    Dv.IconTile as 'Start Menu Tile',
+    Dv.IconTaskBarIcon as 'Taskbar Pinned Icon',
+    Dv.SettingFWML as 'FWML',
+    Dv.SettingUWPCompliant as 'UWP Compliant',
     Dv.Active AS Visibility,
-    cts.Name AS TransferServer,
-    Dv.SubmissionPath,
-    Dv.VendorVersion,
+    cts.Name AS 'Transfer Server',
+    Dv.SubmissionPath as 'Submission Path',
+    Dv.VendorVersion as 'Vendor Version',
     Dv.Comments,
-    Dv.EndOfLifeDate,
-    Dv.Binary,
-    Dv.PreinstallROM,
+    Dv.EndOfLifeDate as 'End Of Life Date',
+    Dv.Binary as 'ROM Component Binary',
+    Dv.PreinstallROM as 'ROM Component Preinstall',
     Dv.CAB,
-    Dv.IsSoftPaqInPreinstall,
-    Dv.SampleDate,
-    Dv.ModelNumber,
-    Dv.PartNumber,
-    Dv.CodeName,
-    gs.Name AS GreenSpecLevel,
-    Dv.IntroDate AS MassProduction,
+    Dv.IsSoftPaqInPreinstall as 'SoftPaq In Preinstall',
+    Dv.SampleDate as 'Samples Available',
+    Dv.ModelNumber as 'Model Number',
+    Dv.PartNumber as 'HP Part Number',
+    Dv.CodeName as 'Code Name',
+    gs.Name AS 'Green Spec Level',
+    Dv.IntroDate AS 'Intro Date',
     CASE 
         WHEN root.TypeID = 1
             THEN 'Hardware'
@@ -218,19 +219,18 @@ WHERE (
         @ComponentVersionId = - 1
         OR Dv.ID = @ComponentVersionId
         )
-
 ";
     }
 
     private static CommonDataModel HandlePropertyValue(CommonDataModel componentVersion)
     {
-        if (componentVersion.GetValue("Preinstall").Equals("1", StringComparison.OrdinalIgnoreCase))
+        if (componentVersion.GetValue("Packaging Preinstall").Equals("1", StringComparison.OrdinalIgnoreCase))
         {
-            componentVersion.Add("Preinstall", "Packaging Preinstall");
+            componentVersion.Add("Packaging Preinstall", "Packaging Preinstall");
         }
         else
         {
-            componentVersion.Delete("Preinstall");
+            componentVersion.Delete("Packaging Preinstall");
         }
 
         if (componentVersion.GetValue("DrDvd").Equals("True", StringComparison.OrdinalIgnoreCase))
@@ -242,50 +242,50 @@ WHERE (
             componentVersion.Delete("DrDvd");
         }
 
-        if (componentVersion.GetValue("Scriptpaq").Equals("True", StringComparison.OrdinalIgnoreCase))
+        if (componentVersion.GetValue("Softpaq").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            componentVersion.Add("Scriptpaq", "Packaging Softpaq");
+            componentVersion.Add("Softpaq", "Packaging Softpaq");
         }
         else
         {
-            componentVersion.Delete("Scriptpaq");
+            componentVersion.Delete("Softpaq");
         }
 
 
-        if (componentVersion.GetValue("MsStore").Equals("True", StringComparison.OrdinalIgnoreCase))
+        if (componentVersion.GetValue("Ms Store").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            componentVersion.Add("MsStore", "Ms Store");
+            componentVersion.Add("Ms Store", "Ms Store");
         }
         else
         {
-            componentVersion.Delete("MsStore");
+            componentVersion.Delete("Ms Store");
         }
 
-        if (componentVersion.GetValue("FloppyDisk").Equals("1", StringComparison.OrdinalIgnoreCase))
+        if (componentVersion.GetValue("Internal Tool").Equals("1", StringComparison.OrdinalIgnoreCase))
         {
-            componentVersion.Add("FloppyDisk", "Internal Tool");
+            componentVersion.Add("Internal Tool", "Internal Tool");
         }
         else
         {
-            componentVersion.Delete("FloppyDisk");
+            componentVersion.Delete("Internal Tool");
         }
 
-        if (componentVersion.GetValue("Binary").Equals("1", StringComparison.OrdinalIgnoreCase))
+        if (componentVersion.GetValue("ROM Component Binary").Equals("1", StringComparison.OrdinalIgnoreCase))
         {
-            componentVersion.Add("Binary", "ROM Component Binary");
+            componentVersion.Add("ROM Component Binary", "ROM Component Binary");
         }
         else
         {
-            componentVersion.Delete("Binary");
+            componentVersion.Delete("ROM Component Binary");
         }
 
-        if (componentVersion.GetValue("PreinstallROM").Equals("1", StringComparison.OrdinalIgnoreCase))
+        if (componentVersion.GetValue("ROM Component Preinstall").Equals("1", StringComparison.OrdinalIgnoreCase))
         {
-            componentVersion.Add("PreinstallROM", "ROM Component Preinstall");
+            componentVersion.Add("ROM Component Preinstall", "ROM Component Preinstall");
         }
         else
         {
-            componentVersion.Delete("PreinstallROM");
+            componentVersion.Delete("ROM Component Preinstall");
         }
 
         if (componentVersion.GetValue("CAB").Equals("1", StringComparison.OrdinalIgnoreCase))
@@ -297,94 +297,94 @@ WHERE (
             componentVersion.Delete("CAB");
         }
 
-        if (componentVersion.GetValue("SettingFWML").Equals("True", StringComparison.OrdinalIgnoreCase))
+        if (componentVersion.GetValue("FWML").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            componentVersion.Add("SettingFWML", "FWML");
+            componentVersion.Add("FWML", "FWML");
         }
         else
         {
-            componentVersion.Delete("SettingFWML");
+            componentVersion.Delete("FWML");
         }
 
-        if (componentVersion.GetValue("SettingUWPCompliant").Equals("True", StringComparison.OrdinalIgnoreCase))
+        if (componentVersion.GetValue("UWP Compliant").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            componentVersion.Add("SettingUWPCompliant", "UWP Compliant");
+            componentVersion.Add("UWP Compliant", "UWP Compliant");
         }
         else
         {
-            componentVersion.Delete("SettingUWPCompliant");
+            componentVersion.Delete("UWP Compliant");
         }
 
-        if (componentVersion.GetValue("IconDesktop").Equals("True", StringComparison.OrdinalIgnoreCase))
+        if (componentVersion.GetValue("Desktop").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            componentVersion.Add("IconDesktop", "Desktop");
+            componentVersion.Add("Desktop", "Desktop");
         }
         else
         {
-            componentVersion.Delete("IconDesktop");
+            componentVersion.Delete("Desktop");
         }
 
-        if (componentVersion.GetValue("IconMenu").Equals("True", StringComparison.OrdinalIgnoreCase))
+        if (componentVersion.GetValue("Start Menu").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            componentVersion.Add("IconMenu", "Start Menu");
+            componentVersion.Add("Start Menu", "Start Menu");
         }
         else
         {
-            componentVersion.Delete("IconMenu");
+            componentVersion.Delete("Start Menu");
         }
 
-        if (componentVersion.GetValue("IconTray").Equals("True", StringComparison.OrdinalIgnoreCase))
+        if (componentVersion.GetValue("System Tray").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            componentVersion.Add("IconTray", "System Tray");
+            componentVersion.Add("System Tray", "System Tray");
         }
         else
         {
-            componentVersion.Delete("IconTray");
+            componentVersion.Delete("System Tray");
         }
 
-        if (componentVersion.GetValue("IconPanel").Equals("True", StringComparison.OrdinalIgnoreCase))
+        if (componentVersion.GetValue("Control Panel").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            componentVersion.Add("IconPanel", "Control Panel");
+            componentVersion.Add("Control Panel", "Control Panel");
         }
         else
         {
-            componentVersion.Delete("IconPanel");
+            componentVersion.Delete("Control Panel");
         }
 
-        if (componentVersion.GetValue("IconInfoCenter").Equals("True", StringComparison.OrdinalIgnoreCase))
+        if (componentVersion.GetValue("Info Center").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            componentVersion.Add("IconInfoCenter", "Info Center");
+            componentVersion.Add("Info Center", "Info Center");
         }
         else
         {
-            componentVersion.Delete("IconInfoCenter");
+            componentVersion.Delete("Info Center");
         }
 
-        if (componentVersion.GetValue("IconTile").Equals("True", StringComparison.OrdinalIgnoreCase))
+        if (componentVersion.GetValue("Start Menu Tile").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            componentVersion.Add("IconTile", "Start Menu Tile");
+            componentVersion.Add("Start Menu Tile", "Start Menu Tile");
         }
         else
         {
-            componentVersion.Delete("IconTile");
+            componentVersion.Delete("Start Menu Tile");
         }
 
-        if (componentVersion.GetValue("IconTaskBarIcon").Equals("True", StringComparison.OrdinalIgnoreCase))
+        if (componentVersion.GetValue("Task Pinned Icon").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            componentVersion.Add("IconTaskBarIcon", "Task Pinned Icon");
+            componentVersion.Add("Task Pinned Icon", "Task Pinned Icon");
         }
         else
         {
-            componentVersion.Delete("IconTaskBarIcon");
+            componentVersion.Delete("Task Pinned Icon");
         }
 
-        if (componentVersion.GetValue("IsSoftPaqInPreinstall").Equals("True", StringComparison.OrdinalIgnoreCase))
+        if (componentVersion.GetValue("SoftPaq In Preinstall").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            componentVersion.Add("IsSoftPaqInPreinstall", "SoftPaq In Preinstall");
+            componentVersion.Add("SoftPaq In Preinstall", "SoftPaq In Preinstall");
         }
         else
         {
-            componentVersion.Delete("IsSoftPaqInPreinstall");
+            componentVersion.Delete("SoftPaq In Preinstall");
         }
 
         if (componentVersion.GetValue("Visibility").Equals("True", StringComparison.OrdinalIgnoreCase))
@@ -408,187 +408,187 @@ WHERE (
 
     private static Task HandlePropertyValuesAsync(IEnumerable<CommonDataModel> componentVersions)
     {
-        foreach (CommonDataModel rootversion in componentVersions)
+        foreach (CommonDataModel version in componentVersions)
         {
-            if (rootversion.GetValue("Preinstall").Equals("1", StringComparison.OrdinalIgnoreCase))
+            if (version.GetValue("Packaging Preinstall").Equals("1", StringComparison.OrdinalIgnoreCase))
             {
-                rootversion.Add("Preinstall", "Packaging Preinstall");
+                version.Add("Packaging Preinstall", "Packaging Preinstall");
             }
             else
             {
-                rootversion.Delete("Preinstall");
+                version.Delete("Packaging Preinstall");
             }
 
-            if (rootversion.GetValue("DrDvd").Equals("True", StringComparison.OrdinalIgnoreCase))
+            if (version.GetValue("DrDvd").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                rootversion.Add("DrDvd", "DRDVD");
+                version.Add("DrDvd", "DRDVD");
             }
             else
             {
-                rootversion.Delete("DrDvd");
+                version.Delete("DrDvd");
             }
 
-            if (rootversion.GetValue("Scriptpaq").Equals("True", StringComparison.OrdinalIgnoreCase))
+            if (version.GetValue("Softpaq").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                rootversion.Add("Scriptpaq", "Packaging Softpaq");
+                version.Add("Softpaq", "Packaging Softpaq");
             }
             else
             {
-                rootversion.Delete("Scriptpaq");
+                version.Delete("Softpaq");
             }
 
 
-            if (rootversion.GetValue("MsStore").Equals("True", StringComparison.OrdinalIgnoreCase))
+            if (version.GetValue("Ms Store").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                rootversion.Add("MsStore", "Ms Store");
+                version.Add("Ms Store", "Ms Store");
             }
             else
             {
-                rootversion.Delete("MsStore");
+                version.Delete("Ms Store");
             }
 
-            if (rootversion.GetValue("FloppyDisk").Equals("1", StringComparison.OrdinalIgnoreCase))
+            if (version.GetValue("Internal Tool").Equals("1", StringComparison.OrdinalIgnoreCase))
             {
-                rootversion.Add("FloppyDisk", "Internal Tool");
+                version.Add("Internal Tool", "Internal Tool");
             }
             else
             {
-                rootversion.Delete("FloppyDisk");
+                version.Delete("Internal Tool");
             }
 
-            if (rootversion.GetValue("Binary").Equals("1", StringComparison.OrdinalIgnoreCase))
+            if (version.GetValue("ROM Component Binary").Equals("1", StringComparison.OrdinalIgnoreCase))
             {
-                rootversion.Add("Binary", "ROM Component Binary");
+                version.Add("ROM Component Binary", "ROM Component Binary");
             }
             else
             {
-                rootversion.Delete("Binary");
+                version.Delete("ROM Component Binary");
             }
 
-            if (rootversion.GetValue("PreinstallROM").Equals("1", StringComparison.OrdinalIgnoreCase))
+            if (version.GetValue("ROM Component Preinstall").Equals("1", StringComparison.OrdinalIgnoreCase))
             {
-                rootversion.Add("PreinstallROM", "ROM Component Preinstall");
+                version.Add("ROM Component Preinstall", "ROM Component Preinstall");
             }
             else
             {
-                rootversion.Delete("PreinstallROM");
+                version.Delete("ROM Component Preinstall");
             }
 
-            if (rootversion.GetValue("CAB").Equals("1", StringComparison.OrdinalIgnoreCase))
+            if (version.GetValue("CAB").Equals("1", StringComparison.OrdinalIgnoreCase))
             {
-                rootversion.Add("CAB", "CAB");
+                version.Add("CAB", "CAB");
             }
             else
             {
-                rootversion.Delete("CAB");
+                version.Delete("CAB");
             }
 
-            if (rootversion.GetValue("SettingFWML").Equals("True", StringComparison.OrdinalIgnoreCase))
+            if (version.GetValue("FWML").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                rootversion.Add("SettingFWML", "FWML");
+                version.Add("FWML", "FWML");
             }
             else
             {
-                rootversion.Delete("SettingFWML");
+                version.Delete("FWML");
             }
 
-            if (rootversion.GetValue("SettingUWPCompliant").Equals("True", StringComparison.OrdinalIgnoreCase))
+            if (version.GetValue("UWP Compliant").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                rootversion.Add("SettingUWPCompliant", "UWP Compliant");
+                version.Add("UWP Compliant", "UWP Compliant");
             }
             else
             {
-                rootversion.Delete("SettingUWPCompliant");
+                version.Delete("UWP Compliant");
             }
 
-            if (rootversion.GetValue("IconDesktop").Equals("True", StringComparison.OrdinalIgnoreCase))
+            if (version.GetValue("Desktop").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                rootversion.Add("IconDesktop", "Desktop");
+                version.Add("Desktop", "Desktop");
             }
             else
             {
-                rootversion.Delete("IconDesktop");
+                version.Delete("Desktop");
             }
 
-            if (rootversion.GetValue("IconMenu").Equals("True", StringComparison.OrdinalIgnoreCase))
+            if (version.GetValue("Start Menu").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                rootversion.Add("IconMenu", "Start Menu");
+                version.Add("Start Menu", "Start Menu");
             }
             else
             {
-                rootversion.Delete("IconMenu");
+                version.Delete("Start Menu");
             }
 
-            if (rootversion.GetValue("IconTray").Equals("True", StringComparison.OrdinalIgnoreCase))
+            if (version.GetValue("System Tray").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                rootversion.Add("IconTray", "System Tray");
+                version.Add("System Tray", "System Tray");
             }
             else
             {
-                rootversion.Delete("IconTray");
+                version.Delete("System Tray");
             }
 
-            if (rootversion.GetValue("IconPanel").Equals("True", StringComparison.OrdinalIgnoreCase))
+            if (version.GetValue("Control Panel").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                rootversion.Add("IconPanel", "Control Panel");
+                version.Add("Control Panel", "Control Panel");
             }
             else
             {
-                rootversion.Delete("IconPanel");
+                version.Delete("Control Panel");
             }
 
-            if (rootversion.GetValue("IconInfoCenter").Equals("True", StringComparison.OrdinalIgnoreCase))
+            if (version.GetValue("Info Center").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                rootversion.Add("IconInfoCenter", "Info Center");
+                version.Add("Info Center", "Info Center");
             }
             else
             {
-                rootversion.Delete("IconInfoCenter");
+                version.Delete("Info Center");
             }
 
-            if (rootversion.GetValue("IconTile").Equals("True", StringComparison.OrdinalIgnoreCase))
+            if (version.GetValue("Start Menu Tile").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                rootversion.Add("IconTile", "Start Menu Tile");
+                version.Add("Start Menu Tile", "Start Menu Tile");
             }
             else
             {
-                rootversion.Delete("IconTile");
+                version.Delete("Start Menu Tile");
             }
 
-            if (rootversion.GetValue("IconTaskBarIcon").Equals("True", StringComparison.OrdinalIgnoreCase))
+            if (version.GetValue("Task Pinned Icon").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                rootversion.Add("IconTaskBarIcon", "Task Pinned Icon");
+                version.Add("Task Pinned Icon", "Task Pinned Icon");
             }
             else
             {
-                rootversion.Delete("IconTaskBarIcon");
+                version.Delete("Task Pinned Icon");
             }
 
-            if (rootversion.GetValue("IsSoftPaqInPreinstall").Equals("True", StringComparison.OrdinalIgnoreCase))
+            if (version.GetValue("SoftPaq In Preinstall").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                rootversion.Add("IsSoftPaqInPreinstall", "SoftPaq In Preinstall");
+                version.Add("SoftPaq In Preinstall", "SoftPaq In Preinstall");
             }
             else
             {
-                rootversion.Delete("IsSoftPaqInPreinstall");
+                version.Delete("SoftPaq In Preinstall");
             }
 
-            if (rootversion.GetValue("Visibility").Equals("True", StringComparison.OrdinalIgnoreCase))
+            if (version.GetValue("Visibility").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                rootversion.Add("Visibility", "Active");
+                version.Add("Visibility", "Active");
             }
             else
             {
-                rootversion.Delete("Visibility");
+                version.Delete("Visibility");
             }
 
-            if (GetCdAsync(rootversion).Equals(1))
+            if (GetCdAsync(version).Equals(1))
             {
-                rootversion.Add("CD", "CD");
+                version.Add("CD", "CD");
             }
-            rootversion.Delete("CDImage");
-            rootversion.Delete("ISOImage");
-            rootversion.Delete("AR");
+            version.Delete("CDImage");
+            version.Delete("ISOImage");
+            version.Delete("AR");
         }
 
         return Task.CompletedTask;
@@ -623,12 +623,12 @@ WHERE (
 
         if (!string.IsNullOrWhiteSpace(componentVersion.GetValue("Version")))
         {
-            componentVersion.Add("HardwareVersion", componentVersion.GetValue("Version"));
+            componentVersion.Add("Hardware Version", componentVersion.GetValue("Version"));
         }
 
         if (!string.IsNullOrWhiteSpace(componentVersion.GetValue("Revision")))
         {
-            componentVersion.Add("FirmwareVersion", componentVersion.GetValue("Revision"));
+            componentVersion.Add("Firmware Version", componentVersion.GetValue("Revision"));
         }
 
         if (!string.IsNullOrWhiteSpace(componentVersion.GetValue("Pass")))
@@ -636,40 +636,52 @@ WHERE (
             componentVersion.Add("Rev", componentVersion.GetValue("Pass"));
         }
 
+        if (!string.IsNullOrWhiteSpace(componentVersion.GetValue("Intro Date")))
+        {
+            componentVersion.Add("Mass Production", componentVersion.GetValue("Intro Date"));
+        }
+
         componentVersion.Delete("Version");
         componentVersion.Delete("Revision");
         componentVersion.Delete("Pass");
+        componentVersion.Delete("Intro Date");
 
         return componentVersion;
     }
 
     private Task HandleDifferentPropertyNameBasedOnCategoryAsync(IEnumerable<CommonDataModel> componentVersions)
     {
-        foreach (CommonDataModel rootversion in componentVersions)
+        foreach (CommonDataModel version in componentVersions)
         {
-            if (!rootversion.GetValue("ComponentType").Equals("Hardware"))
+            if (!version.GetValue("ComponentType").Equals("Hardware"))
             {
                 continue;
             }
 
-            if (!string.IsNullOrWhiteSpace(rootversion.GetValue("Version")))
+            if (!string.IsNullOrWhiteSpace(version.GetValue("Version")))
             {
-                rootversion.Add("HardwareVersion", rootversion.GetValue("Version"));
+                version.Add("Hardware Version", version.GetValue("Version"));
             }
 
-            if (!string.IsNullOrWhiteSpace(rootversion.GetValue("Revision")))
+            if (!string.IsNullOrWhiteSpace(version.GetValue("Revision")))
             {
-                rootversion.Add("FirmwareVersion", rootversion.GetValue("Revision"));
+                version.Add("Firmware Version", version.GetValue("Revision"));
             }
 
-            if (!string.IsNullOrWhiteSpace(rootversion.GetValue("Pass")))
+            if (!string.IsNullOrWhiteSpace(version.GetValue("Pass")))
             {
-                rootversion.Add("Rev", rootversion.GetValue("Pass"));
+                version.Add("Rev", version.GetValue("Pass"));
             }
 
-            rootversion.Delete("Version");
-            rootversion.Delete("Revision");
-            rootversion.Delete("Pass");
+            if (!string.IsNullOrWhiteSpace(version.GetValue("Intro Date")))
+            {
+                version.Add("Mass Production", version.GetValue("Intro Date"));
+            }
+
+            version.Delete("Version");
+            version.Delete("Revision");
+            version.Delete("Pass");
+            version.Delete("Intro Date");
         }
 
         return Task.CompletedTask;

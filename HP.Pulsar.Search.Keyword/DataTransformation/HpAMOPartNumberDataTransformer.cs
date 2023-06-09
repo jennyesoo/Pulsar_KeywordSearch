@@ -4,7 +4,12 @@ namespace HP.Pulsar.Search.Keyword.DataTransformation;
 
 internal class HpAMOPartNumberDataTransformer : IDataTransformer
 {
-    private static readonly List<string> _datePropertyList = new() { "RTPDate", "SADate", "GADate", "EMDate", "GSEOLDate", "ESDate" };
+    private static readonly List<string> _datePropertyList = new() { "RTP/MR Date",
+                                                                     "Select Availability (SA) Date",
+                                                                     "General Availability (GA) Date",
+                                                                     "End of Manufacturing (EM) Date",
+                                                                     "Global Series Planned End Date",
+                                                                     "End of Sales (ES) Date" };
 
     public IEnumerable<CommonDataModel> Transform(IEnumerable<CommonDataModel> hpPartNumber)
     {

@@ -46,9 +46,9 @@ public class FeatureReader
     private string GetFeaturesCommandText()
     {
         return @"
-SELECT F.FeatureId,
-    F.FeatureName,
-    Fc.Name AS FeatureCategory,
+SELECT F.FeatureId as 'Feature Id',
+    F.FeatureName as 'Feature Name',
+    Fc.Name AS 'Feature Category',
     CASE 
         WHEN Fc.FeatureClassID = 1
             THEN 'Documentation'
@@ -60,22 +60,22 @@ SELECT F.FeatureId,
             THEN 'Software'
         WHEN Fc.FeatureClassID = 5
             THEN 'Base Unit'
-        END AS FeatureClass,
-    Dt.Name AS DeliveryType,
-    F.CodeName,
-    F.RuleID,
-    F.ChinaGPIdentifier,
-    F.PromoteCode,
-    F.RequiresRoot,
+        END AS 'Feature Class',
+    Dt.Name AS 'Delivery Type',
+    F.CodeName as 'Code Name',
+    F.RuleID as 'Rule ID',
+    F.ChinaGPIdentifier as 'China GP Identifier',
+    F.PromoteCode as 'Promote Code',
+    F.RequiresRoot as 'Requires a Root', 
     F.Notes,
-    Fs.Name AS STATUS,
-    F.CreatedBy,
+    Fs.Name AS Status,
+    F.CreatedBy as 'Created by',
     F.Created,
-    F.UpdatedBy,
+    F.UpdatedBy as 'Updated by',
     F.Updated,
-    F.overrideReason,
-    pcc.PRLBaseUnitGroupName AS PlatformName,
-    o.Name AS LinkedOperatingSystem
+    F.overrideReason as 'Previous Reason for Override Request',
+    pcc.PRLBaseUnitGroupName AS 'Platform Name',
+    o.Name AS 'Linked Operating System'
 FROM Feature F
 LEFT JOIN FeatureCategory Fc ON Fc.FeatureCategoryID = F.FeatureCategoryID
 LEFT JOIN DeliveryType Dt ON Dt.DeliveryTypeID = F.DeliveryTypeID
@@ -129,7 +129,7 @@ WHERE (
                 feature.Add(columnName, value);
             }
             feature.Add("Target", TargetTypeValue.Feature);
-            feature.Add("Id", SearchIdName.Feature + feature.GetValue("FeatureId"));
+            feature.Add("Id", SearchIdName.Feature + feature.GetValue("Feature Id"));
         }
         return feature;
     }
@@ -174,7 +174,7 @@ WHERE (
                 feature.Add(columnName, value);
             }
             feature.Add("Target", TargetTypeValue.Feature);
-            feature.Add("Id", SearchIdName.Feature + feature.GetValue("FeatureId"));
+            feature.Add("Id", SearchIdName.Feature + feature.GetValue("Feature Id"));
             output.Add(feature);
         }
 
@@ -233,7 +233,7 @@ WHERE (
             string[] componentInitiatedLinkageList = componentInitiatedLinkage[featureId].Split(',');
             for (int i = 0; i < componentInitiatedLinkageList.Length; i++)
             {
-                feature.Add("ComponentInitiatedLinkage " + i, componentInitiatedLinkageList[i]);
+                feature.Add("Component Initiated Linkage " + i, componentInitiatedLinkageList[i]);
             }
         }
     }
@@ -274,7 +274,7 @@ WHERE (
                 string[] componentInitiatedLinkageList = componentInitiatedLinkage[featureId].Split(',');
                 for (int i = 0; i < componentInitiatedLinkageList.Length; i++)
                 {
-                    feature.Add("ComponentInitiatedLinkage " + i, componentInitiatedLinkageList[i]);
+                    feature.Add("Component Initiated Linkage " + i, componentInitiatedLinkageList[i]);
                 }
             }
         }
@@ -287,13 +287,13 @@ WHERE (
             return null;
         }
 
-        if (feature.GetValue("RequiresRoot").Equals("True", StringComparison.OrdinalIgnoreCase))
+        if (feature.GetValue("Requires a Root").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            feature.Add("RequiresRoot", "Truly Linked");
+            feature.Add("Requires a Root", "Requires a Root");
         }
         else
         {
-            feature.Delete("RequiresRoot");
+            feature.Delete("Requires a Root");
         }
 
         return feature;
@@ -308,13 +308,13 @@ WHERE (
 
         foreach (CommonDataModel feature in features)
         {
-            if (feature.GetValue("RequiresRoot").Equals("True", StringComparison.OrdinalIgnoreCase))
+            if (feature.GetValue("Requires a Root").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                feature.Add("RequiresRoot", "Truly Linked");
+                feature.Add("Requires a Root", "Requires a Root");
             }
             else
             {
-                feature.Delete("RequiresRoot");
+                feature.Delete("Requires a Root");
             }
         }
 

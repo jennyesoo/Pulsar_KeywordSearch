@@ -5,7 +5,7 @@ namespace HP.Pulsar.Search.Keyword.DataTransformation;
 
 public class ChangeRequestDataTransformer : IDataTransformer
 {
-    private static readonly List<string> _datePropertyList = new() { "DateSubmitter", "DateClosed", "TargetApprovalDate", "RTPDate", "RASDiscoDate" };
+    private static readonly List<string> _datePropertyList = new() { "Date Submitted", "Date Closed", "Target Approval Date", "RTP Date", "End of Manufacturing" , "Samples Available" };
 
     public IEnumerable<CommonDataModel> Transform(IEnumerable<CommonDataModel> changeRequests)
     {

@@ -44,7 +44,7 @@ internal class ChangeRequestReader : IKeywordSearchDataReader
     private string GetChangeRequestCommandText()
     {
         return @"
-SELECT di.id AS ChangeRequestId,
+SELECT di.id AS 'Change Request Id',
     CASE 
         WHEN di.ChangeType = 0
             THEN 'Dcr'
@@ -54,15 +54,17 @@ SELECT di.id AS ChangeRequestId,
             THEN 'Scr'
         WHEN di.ChangeType = 3
             THEN 'InfoDcr'
-        END AS ChangeType,
-    di.Submitter,
-    di.Created AS DateSubmitter,
-    di.actualDate AS DateClosed,
+        END AS 'Change Type',
+    us.FirstName + ' ' + us.LastName AS Submitter,
+    us.Email as 'Submitter Email',
+    di.Created AS 'Date Submitted',
+    di.actualDate AS 'Date Closed',
     pv.Dotsname AS Product,
-    DR.Name AS ComponentRoot,
+    DR.Name AS 'Deliverable Root',
     di.summary AS Summary,
-    AStatus.Name AS STATUS,
-    ui.FirstName + ', ' + ui.LastName AS OWNER,
+    AStatus.Name AS Status,
+    ui.FirstName + ' ' + ui.LastName AS Owner,
+    ui.Email as 'Owner Email',
     di.NA,
     di.LA,
     di.EMEA,
@@ -71,24 +73,25 @@ SELECT di.id AS ChangeRequestId,
     di.Details,
     di.Justification,
     di.Resolution,
-    di.Actions,
-    di.ZsrpRequired,
-    di.AVRequired,
-    di.QualificationRequired,
-    di.GlobalSeriesRequired,
-    di.AffectsCustomers AS CustomerImpact,
-    di.AvailableForTest AS SampleAvailable,
-    di.TargetApprovalDate,
+    di.Actions as 'Actions Needed',
+    di.ZsrpRequired as 'ZSRP Ready Date Required',
+    di.AVRequired as 'AV Required',
+    di.QualificationRequired as 'Qualification Required',
+    di.GlobalSeriesRequired as 'Global Series Required',
+    di.AffectsCustomers AS 'Customer Impact',
+    di.AvailableForTest AS 'Samples Available',
+    di.TargetApprovalDate as 'Target Approval Date',
     di.Important,
-    di.RTPDate,
-    di.RASDiscoDate,
-    di.OnStatusReport,
-    di.Notify
+    di.RTPDate as 'RTP Date',
+    di.RASDiscoDate as 'End of Manufacturing',
+    di.OnStatusReport as 'Status Report',
+    di.Notify as 'Notify on Approval'
 FROM Deliverableissues di
 LEFT JOIN DeliverableRoot DR ON DR.id = di.DeliverableRootID
 LEFT JOIN ProductVersion pv ON pv.id = di.ProductVersionID
 LEFT JOIN ActionStatus AStatus ON AStatus.id = di.STATUS
 LEFT JOIN UserInfo ui ON ui.userid = di.OwnerID
+LEFT JOIN UserInfo us ON us.userid = di.SubmitterID
 WHERE (
         @ChangeRequestId = - 1
         OR di.Id = @ChangeRequestId
@@ -157,7 +160,7 @@ GROUP BY dcr.id
                 changeRequest.Add(columnName, value);
             }
             changeRequest.Add("Target", TargetTypeValue.Dcr);
-            changeRequest.Add("Id", SearchIdName.Dcr + changeRequest.GetValue("ChangeRequestId"));
+            changeRequest.Add("Id", SearchIdName.Dcr + changeRequest.GetValue("Change Request Id"));
         }
         return changeRequest;
     }
@@ -202,7 +205,7 @@ GROUP BY dcr.id
                 changeRequest.Add(columnName, value);
             }
             changeRequest.Add("Target", TargetTypeValue.Dcr);
-            changeRequest.Add("Id", SearchIdName.Dcr + changeRequest.GetValue("ChangeRequestId"));
+            changeRequest.Add("Id", SearchIdName.Dcr + changeRequest.GetValue("Change Request Id"));
             output.Add(changeRequest);
         }
         return output;
@@ -210,58 +213,58 @@ GROUP BY dcr.id
 
     private static CommonDataModel HandlePropertyValue(CommonDataModel changeRequest)
     {
-        if (changeRequest.GetValue("ZsrpRequired").Equals("True", StringComparison.OrdinalIgnoreCase))
+        if (changeRequest.GetValue("ZSRP Ready Date Required").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            changeRequest.Add("ZsrpRequired", "ZSRP Ready Date Required");
+            changeRequest.Add("ZSRP Ready Date Required", "ZSRP Ready Date Required");
         }
         else
         {
-            changeRequest.Delete("ZsrpRequired");
+            changeRequest.Delete("ZSRP Ready Date Required");
         }
 
-        if (changeRequest.GetValue("AVRequired").Equals("True", StringComparison.OrdinalIgnoreCase))
+        if (changeRequest.GetValue("AV Required").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            changeRequest.Add("AVRequired", "AV Required");
+            changeRequest.Add("AV Required", "AV Required");
         }
         else
         {
-            changeRequest.Delete("AVRequired");
+            changeRequest.Delete("AV Required");
         }
 
-        if (changeRequest.GetValue("QualificationRequired").Equals("True", StringComparison.OrdinalIgnoreCase))
+        if (changeRequest.GetValue("Qualification Required").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            changeRequest.Add("QualificationRequired", "Qualification Required");
+            changeRequest.Add("Qualification Required", "Qualification Required");
         }
         else
         {
-            changeRequest.Delete("QualificationRequired");
+            changeRequest.Delete("Qualification Required");
         }
 
-        if (changeRequest.GetValue("GlobalSeriesRequired").Equals("True", StringComparison.OrdinalIgnoreCase))
+        if (changeRequest.GetValue("Global Series Required").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            changeRequest.Add("GlobalSeriesRequired", "Global Series Required");
+            changeRequest.Add("Global Series Required", "Global Series Required");
         }
         else
         {
-            changeRequest.Delete("GlobalSeriesRequired");
+            changeRequest.Delete("Global Series Required");
         }
 
-        if (changeRequest.GetValue("CustomerImpact").Equals("1", StringComparison.OrdinalIgnoreCase))
+        if (changeRequest.GetValue("Customer Impact").Equals("1", StringComparison.OrdinalIgnoreCase))
         {
-            changeRequest.Add("CustomerImpact", "Affects images and/or BIOS on shipping products");
+            changeRequest.Add("Customer Impact", "Affects images and/or BIOS on shipping products");
         }
         else
         {
-            changeRequest.Delete("CustomerImpact");
+            changeRequest.Delete("Customer Impact");
         }
 
-        if (changeRequest.GetValue("OnStatusReport").Equals("1", StringComparison.OrdinalIgnoreCase))
+        if (changeRequest.GetValue("Status Report").Equals("1", StringComparison.OrdinalIgnoreCase))
         {
-            changeRequest.Add("OnStatusReport", "Remove from Online Status Reports");
+            changeRequest.Add("Status Report", "Remove from Online Status Reports");
         }
         else
         {
-            changeRequest.Delete("OnStatusReport");
+            changeRequest.Delete("Status Report");
         }
 
         if (changeRequest.GetValue("Important").Equals("True", StringComparison.OrdinalIgnoreCase))
@@ -317,58 +320,58 @@ GROUP BY dcr.id
     {
         foreach (CommonDataModel dcr in changeRequests)
         {
-            if (dcr.GetValue("ZsrpRequired").Equals("True", StringComparison.OrdinalIgnoreCase))
+            if (dcr.GetValue("ZSRP Ready Date Required").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                dcr.Add("ZsrpRequired", "ZSRP Ready Date Required");
+                dcr.Add("ZSRP Ready Date Required", "ZSRP Ready Date Required");
             }
             else
             {
-                dcr.Delete("ZsrpRequired");
+                dcr.Delete("ZSRP Ready Date Required");
             }
 
-            if (dcr.GetValue("AVRequired").Equals("True", StringComparison.OrdinalIgnoreCase))
+            if (dcr.GetValue("AV Required").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                dcr.Add("AVRequired", "AV Required");
+                dcr.Add("AV Required", "AV Required");
             }
             else
             {
-                dcr.Delete("AVRequired");
+                dcr.Delete("AV Required");
             }
 
-            if (dcr.GetValue("QualificationRequired").Equals("True", StringComparison.OrdinalIgnoreCase))
+            if (dcr.GetValue("Qualification Required").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                dcr.Add("QualificationRequired", "Qualification Required");
+                dcr.Add("Qualification Required", "Qualification Required");
             }
             else
             {
-                dcr.Delete("QualificationRequired");
+                dcr.Delete("Qualification Required");
             }
 
-            if (dcr.GetValue("GlobalSeriesRequired").Equals("True", StringComparison.OrdinalIgnoreCase))
+            if (dcr.GetValue("Global Series Required").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                dcr.Add("GlobalSeriesRequired", "Global Series Required");
+                dcr.Add("Global Series Required", "Global Series Required");
             }
             else
             {
-                dcr.Delete("GlobalSeriesRequired");
+                dcr.Delete("Global Series Required");
             }
 
-            if (dcr.GetValue("CustomerImpact").Equals("1", StringComparison.OrdinalIgnoreCase))
+            if (dcr.GetValue("Customer Impact").Equals("1", StringComparison.OrdinalIgnoreCase))
             {
-                dcr.Add("CustomerImpact", "Affects images and/or BIOS on shipping products");
+                dcr.Add("Customer Impact", "Affects images and/or BIOS on shipping products");
             }
             else
             {
-                dcr.Delete("CustomerImpact");
+                dcr.Delete("Customer Impact");
             }
 
-            if (dcr.GetValue("OnStatusReport").Equals("1", StringComparison.OrdinalIgnoreCase))
+            if (dcr.GetValue("Status Report").Equals("1", StringComparison.OrdinalIgnoreCase))
             {
-                dcr.Add("OnStatusReport", "Remove from Online Status Reports");
+                dcr.Add("Status Report", "Remove from Online Status Reports");
             }
             else
             {
-                dcr.Delete("OnStatusReport");
+                dcr.Delete("Status Report");
             }
 
             if (dcr.GetValue("Important").Equals("True", StringComparison.OrdinalIgnoreCase))

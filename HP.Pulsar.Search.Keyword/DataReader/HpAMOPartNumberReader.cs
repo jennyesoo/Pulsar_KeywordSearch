@@ -32,28 +32,28 @@ internal class HpAMOPartNumberReader : IKeywordSearchDataReader
 
     private string GetHpAMOPartNumberCommandText()
     {
-        return @"SELECT hppn.AmoHpPartNumberID AS HpAMOPartNumberId,
-    hppn.HpPartNo AS HpPartNumber,
+        return @"SELECT hppn.AmoHpPartNumberID AS 'Hp AMO Part Number Id',
+    hppn.HpPartNo AS 'Hp Part Number',
     CASE 
         WHEN ISNULL(f.PMG100_AMO, '') <> ''
             THEN hppn.HPPartNo + ' - ' + trim(f.PMG100_AMO + ' ' + ISNULL(r.CountryCode, ''))
         ELSE hppn.HPPartNo + ' - ' + f.PMG100_AMO
         END AS Description,
-    bs.Name AS BusinessSegment,
-    scm.Name AS ASCMCategory,
-    pl.Name AS productLine,
-    hppn.RTPDate,
-    hppn.SADate,
-    hppn.GADate,
-    hppn.EMDate,
-    hppn.GSEOLDate,
-    hppn.ESDate,
-    amof.PreviousProduct,
+    bs.Name AS 'Business Segment',
+    scm.Name AS 'ASCM Category',
+    pl.Name AS 'Product Line',
+    hppn.RTPDate as 'RTP/MR Date',
+    hppn.SADate as 'Select Availability (SA) Date',
+    hppn.GADate as 'General Availability (GA) Date',
+    hppn.EMDate as 'End of Manufacturing (EM) Date',
+    hppn.GSEOLDate as 'Global Series Planned End Date',
+    hppn.ESDate as 'End of Sales (ES) Date',
+    amof.PreviousProduct as 'Previous Product',
     hppn.Comments,
-    amos.Name AS SKUType,
-    f.CodeName,
-    u1.firstname + ' ' + u1.lastname AS CreatedBy,
-    u2.firstname + ' ' + u2.lastname AS LastUpdatedBy
+    amos.Name AS 'SKU Type',
+    f.CodeName as 'Code Name',
+    u1.firstname + ' ' + u1.lastname AS 'Created by',
+    u2.firstname + ' ' + u2.lastname AS 'Last Updated by'
 FROM Feature f
 RIGHT JOIN AmoHpPartNo hppn ON f.FeatureID = hppn.FeatureID
 LEFT JOIN Regions r ON hppn.LocalizationId = r.ID
@@ -111,7 +111,7 @@ WHERE (
             }
 
             hpAMOPartNumber.Add("Target", TargetTypeValue.AmoPartNumber);
-            hpAMOPartNumber.Add("Id", SearchIdName.AmoPartNumber + hpAMOPartNumber.GetValue("HpAMOPartNumberId"));
+            hpAMOPartNumber.Add("Id", SearchIdName.AmoPartNumber + hpAMOPartNumber.GetValue("Hp AMO Part Number Id"));
         }
 
         return hpAMOPartNumber;
@@ -159,7 +159,7 @@ WHERE (
             }
 
             hpAMOPartNumber.Add("Target", TargetTypeValue.AmoPartNumber);
-            hpAMOPartNumber.Add("Id", SearchIdName.AmoPartNumber + hpAMOPartNumber.GetValue("HpAMOPartNumberId"));
+            hpAMOPartNumber.Add("Id", SearchIdName.AmoPartNumber + hpAMOPartNumber.GetValue("Hp AMO Part Number Id"));
             output.Add(hpAMOPartNumber);
         }
 
