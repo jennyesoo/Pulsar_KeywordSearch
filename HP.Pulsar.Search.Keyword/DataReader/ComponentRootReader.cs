@@ -131,7 +131,7 @@ internal class ComponentRootReader : IKeywordSearchDataReader
     root.AR,
     root.FloppyDisk as 'Internal Tool',
     root.IsSoftPaqInPreinstall as 'SoftPaq In Preinstall',
-    root.IconMenu as ""Start Menu"",
+    root.IconMenu as 'Start Menu',
     root.RootFilename AS 'ROM Family',
     root.Rompaq as 'Rompaq Binary',
     root.PreinstallROM as 'ROM Components Preinstall',
