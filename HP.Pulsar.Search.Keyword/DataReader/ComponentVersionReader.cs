@@ -616,7 +616,7 @@ WHERE (
 
     private CommonDataModel HandleDifferentPropertyNameBasedOnCategory(CommonDataModel componentVersion)
     {
-        if (!componentVersion.GetValue("ComponentType").Equals("Hardware"))
+        if (!componentVersion.GetValue("Component Type").Equals("Hardware"))
         {
             return componentVersion;
         }
@@ -653,7 +653,7 @@ WHERE (
     {
         foreach (CommonDataModel version in componentVersions)
         {
-            if (!version.GetValue("ComponentType").Equals("Hardware"))
+            if (!version.GetValue("Component Type").Equals("Hardware"))
             {
                 continue;
             }

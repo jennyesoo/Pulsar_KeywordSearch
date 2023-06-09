@@ -456,7 +456,7 @@ and v2.id = v.referenceid
 
     private async Task FillEndOfProductionDateAsync(CommonDataModel product)
     {
-        if (int.TryParse(product.GetValue("ProductId"), out int productId)
+        if (int.TryParse(product.GetValue("Product Id"), out int productId)
             && int.TryParse(product.GetValue("TypeId"), out int typeId))
         {
             using SqlConnection connection = new(_info.DatabaseConnectionString);
@@ -554,7 +554,7 @@ and v2.id = v.referenceid
         foreach (CommonDataModel product in products)
         {
             if (!int.TryParse(product.GetValue("TypeId"), out int typeId)
-                || !int.TryParse(product.GetValue("ProductId"), out int productId))
+                || !int.TryParse(product.GetValue("Product Id"), out int productId))
             {
                 continue;
             }
@@ -596,7 +596,7 @@ and v2.id = v.referenceid
 
     private async Task FillProductGroupAsync(CommonDataModel product)
     {
-        if (!int.TryParse(product.GetValue("ProductId"), out int productId))
+        if (!int.TryParse(product.GetValue("Product Id"), out int productId))
         {
             return;
         }
@@ -662,7 +662,7 @@ and v2.id = v.referenceid
 
         foreach (CommonDataModel product in products)
         {
-            if (int.TryParse(product.GetValue("ProductId"), out int productId)
+            if (int.TryParse(product.GetValue("Product Id"), out int productId)
                 && productGroups.ContainsKey(productId))
             {
                 product.Add("Product Groups", string.Join(" ", productGroups[productId]));
@@ -672,7 +672,7 @@ and v2.id = v.referenceid
 
     private async Task FillLeadProductAsync(CommonDataModel product)
     {
-        if (!int.TryParse(product.GetValue("ProductId"), out int productId))
+        if (!int.TryParse(product.GetValue("Product Id"), out int productId))
         {
             return;
         }
@@ -745,7 +745,7 @@ and v2.id = v.referenceid
 
         foreach (CommonDataModel product in products)
         {
-            if (int.TryParse(product.GetValue("ProductId"), out int productId)
+            if (int.TryParse(product.GetValue("Product Id"), out int productId)
                && leadProducts.ContainsKey(productId))
             {
                 product.Add("Lead Product", string.Join(", ", leadProducts[productId]));
@@ -755,7 +755,7 @@ and v2.id = v.referenceid
 
     private async Task FillChipsetAsync(CommonDataModel product)
     {
-        if (!int.TryParse(product.GetValue("ProductId"), out int productId))
+        if (!int.TryParse(product.GetValue("Product Id"), out int productId))
         {
             return;
         }
@@ -820,7 +820,7 @@ and v2.id = v.referenceid
 
         foreach (CommonDataModel product in products)
         {
-            if (int.TryParse(product.GetValue("ProductId"), out int productId)
+            if (int.TryParse(product.GetValue("Product Id"), out int productId)
               && chipsets.ContainsKey(productId))
             {
                 product.Add("Chipsets", string.Join(" ", chipsets[productId]));
@@ -830,7 +830,7 @@ and v2.id = v.referenceid
 
     private async Task FillCurrentBiosVersionAsync(CommonDataModel product)
     {
-        if (!int.TryParse(product.GetValue("ProductId"), out int productId))
+        if (!int.TryParse(product.GetValue("Product Id"), out int productId))
         {
             return;
         }
@@ -863,7 +863,7 @@ and v2.id = v.referenceid
 
         foreach (CommonDataModel product in products)
         {
-            if (!int.TryParse(product.GetValue("ProductId"), out int productId))
+            if (!int.TryParse(product.GetValue("Product Id"), out int productId))
             {
                 continue;
             }
@@ -1000,7 +1000,7 @@ and v2.id = v.referenceid
 
     private async Task FillAvDetailAsync(CommonDataModel product)
     {
-        if (int.TryParse(product.GetValue("ProductId"), out int productId))
+        if (int.TryParse(product.GetValue("Product Id"), out int productId))
         {
             using SqlConnection connection = new(_info.DatabaseConnectionString);
             await connection.OpenAsync();
@@ -1068,7 +1068,7 @@ and v2.id = v.referenceid
 
         foreach (CommonDataModel product in products)
         {
-            if (int.TryParse(product.GetValue("ProductId"), out int productId)
+            if (int.TryParse(product.GetValue("Product Id"), out int productId)
                 && avDetail.ContainsKey(productId))
             {
                 for (int i = 0; i < avDetail[productId].Count(); i++)
@@ -1081,7 +1081,7 @@ and v2.id = v.referenceid
 
     private async Task FillFactoryNameAsync(CommonDataModel product)
     {
-        if (!int.TryParse(product.GetValue("ProductId"), out int productId))
+        if (!int.TryParse(product.GetValue("Product Id"), out int productId))
         {
             return;
         }
@@ -1149,7 +1149,7 @@ and v2.id = v.referenceid
 
         foreach (CommonDataModel product in products)
         {
-            if (int.TryParse(product.GetValue("ProductId"), out int productId)
+            if (int.TryParse(product.GetValue("Product Id"), out int productId)
               && factoryName.ContainsKey(productId))
             {
                 for (int i = 0; i < factoryName[productId].Count; i++)
@@ -1162,7 +1162,7 @@ and v2.id = v.referenceid
 
     private async Task FillReferencePlatformAsync(CommonDataModel product)
     {
-        if (!int.TryParse(product.GetValue("ProductId"), out int productId))
+        if (!int.TryParse(product.GetValue("Product Id"), out int productId))
         {
             return;
         }
@@ -1211,7 +1211,7 @@ and v2.id = v.referenceid
 
         foreach (CommonDataModel product in products)
         {
-            if (int.TryParse(product.GetValue("ProductId"), out int productId)
+            if (int.TryParse(product.GetValue("Product Id"), out int productId)
               && referencePlatform.ContainsKey(productId))
             {
                 product.Add("Reference Platform", referencePlatform[productId]);

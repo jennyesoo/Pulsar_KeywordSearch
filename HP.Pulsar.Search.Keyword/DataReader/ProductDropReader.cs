@@ -244,7 +244,7 @@ GROUP BY ml2.ProductDropId
 
     private async Task FillOwnerbyAsync(CommonDataModel productDrop)
     {
-        if (!int.TryParse(productDrop.GetValue("ProductDropID"), out int productDropId))
+        if (!int.TryParse(productDrop.GetValue("Product Drop Id"), out int productDropId))
         {
             return;
         }
@@ -259,7 +259,7 @@ GROUP BY ml2.ProductDropId
 
         if (await reader.ReadAsync())
         {
-            if (int.TryParse(reader["ProductDropID"].ToString(), out int dbProductDropId)
+            if (int.TryParse(reader["ProductDropId"].ToString(), out int dbProductDropId)
                 && !string.IsNullOrWhiteSpace(reader["Ownerby"].ToString()))
             {
                 ownerBy[dbProductDropId] = reader["Ownerby"].ToString();
@@ -289,7 +289,7 @@ GROUP BY ml2.ProductDropId
 
         while (await reader.ReadAsync())
         {
-            if (int.TryParse(reader["ProductDropID"].ToString(), out int productDropID)
+            if (int.TryParse(reader["ProductDropId"].ToString(), out int productDropID)
                 && !string.IsNullOrWhiteSpace(reader["Ownerby"].ToString()))
             {
                 ownerBy[productDropID] = reader["Ownerby"].ToString();
@@ -298,7 +298,7 @@ GROUP BY ml2.ProductDropId
 
         foreach (CommonDataModel pd in productDrop)
         {
-            if (int.TryParse(pd.GetValue("ProductDropID"), out int productDropID)
+            if (int.TryParse(pd.GetValue("Product Drop Id"), out int productDropID)
             && ownerBy.ContainsKey(productDropID))
             {
                 string[] ownerByList = ownerBy[productDropID].Split(',');
@@ -312,7 +312,7 @@ GROUP BY ml2.ProductDropId
 
     private async Task FillMlNameAsync(CommonDataModel productDrop)
     {
-        if (!int.TryParse(productDrop.GetValue("ProductDropID"), out int productDropId))
+        if (!int.TryParse(productDrop.GetValue("ProductDropId"), out int productDropId))
         {
             return;
         }
@@ -327,7 +327,7 @@ GROUP BY ml2.ProductDropId
 
         if (await reader.ReadAsync())
         {
-            if (int.TryParse(reader["ProductDropID"].ToString(), out int dbProductDropId)
+            if (int.TryParse(reader["ProductDropId"].ToString(), out int dbProductDropId)
                 && !string.IsNullOrWhiteSpace(reader["MLName"].ToString()))
             {
                 mlName[dbProductDropId] = reader["MLName"].ToString();
@@ -357,7 +357,7 @@ GROUP BY ml2.ProductDropId
 
         while (await reader.ReadAsync())
         {
-            if (int.TryParse(reader["ProductDropID"].ToString(), out int productDropID)
+            if (int.TryParse(reader["ProductDropId"].ToString(), out int productDropID)
                 && !string.IsNullOrWhiteSpace(reader["MLName"].ToString()))
             {
                 mlName[productDropID] = reader["MLName"].ToString();
@@ -366,7 +366,7 @@ GROUP BY ml2.ProductDropId
 
         foreach (CommonDataModel pd in productDrop)
         {
-            if (int.TryParse(pd.GetValue("ProductDropID"), out int productDropID)
+            if (int.TryParse(pd.GetValue("Product Drop Id"), out int productDropID)
             && mlName.ContainsKey(productDropID))
             {
                 string[] mlNameList = mlName[productDropID].Split(',');

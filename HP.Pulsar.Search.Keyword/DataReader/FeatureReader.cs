@@ -199,7 +199,7 @@ WHERE (
     private async Task FillComponentInitiatedLinkageAsync(CommonDataModel feature)
     {
         if (!feature.GetElements().Any()
-            || !int.TryParse(feature.GetValue("FeatureId"), out int featureId))
+            || !int.TryParse(feature.GetValue("Feature Id"), out int featureId))
         {
             return;
         }
@@ -268,7 +268,7 @@ WHERE (
 
         foreach (CommonDataModel feature in features)
         {
-            if (int.TryParse(feature.GetValue("FeatureId"), out int featureId)
+            if (int.TryParse(feature.GetValue("Feature Id"), out int featureId)
                 && componentInitiatedLinkage.ContainsKey(featureId))
             {
                 string[] componentInitiatedLinkageList = componentInitiatedLinkage[featureId].Split(',');

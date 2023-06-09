@@ -338,7 +338,7 @@ GROUP BY DR.Id
 
     private async Task FillProductListAsync(CommonDataModel componentRoot)
     {
-        if (!int.TryParse(componentRoot.GetValue("ComponentRootId"), out int componentRootId))
+        if (!int.TryParse(componentRoot.GetValue("Component Root Id"), out int componentRootId))
         {
             return;
         }
@@ -386,7 +386,7 @@ GROUP BY DR.Id
 
         foreach (CommonDataModel root in componentRoots)
         {
-            if (int.TryParse(root.GetValue("ComponentRootId"), out int componentRootId)
+            if (int.TryParse(root.GetValue("Component Root Id"), out int componentRootId)
             && productList.ContainsKey(componentRootId))
             {
                 root.Add("Product List", productList[componentRootId]);
@@ -910,7 +910,7 @@ GROUP BY DR.Id
 
     private async Task FillTrulyLinkedFeatureAsync(CommonDataModel componentRoot)
     {
-        if (!int.TryParse(componentRoot.GetValue("ComponentRootId"), out int componentRootId))
+        if (!int.TryParse(componentRoot.GetValue("Component Root Id"), out int componentRootId))
         {
             return;
         }
@@ -979,7 +979,7 @@ GROUP BY DR.Id
 
         foreach (CommonDataModel root in roots)
         {
-            if (int.TryParse(root.GetValue("ComponentRootId"), out int componentRootId)
+            if (int.TryParse(root.GetValue("Component Root Id"), out int componentRootId)
               && trulyLinkedFeatures.ContainsKey(componentRootId))
             {
                 for (int i = 0; i < trulyLinkedFeatures[componentRootId].Count; i++)
@@ -994,7 +994,7 @@ GROUP BY DR.Id
 
     private async Task FillLinkedFeatureAsync(CommonDataModel componentRoot)
     {
-        if (!int.TryParse(componentRoot.GetValue("ComponentRootId"), out int componentRootId))
+        if (!int.TryParse(componentRoot.GetValue("Component Root Id"), out int componentRootId))
         {
             return;
         }
@@ -1063,7 +1063,7 @@ GROUP BY DR.Id
 
         foreach (CommonDataModel root in roots)
         {
-            if (int.TryParse(root.GetValue("ComponentRootId"), out int componentRootId)
+            if (int.TryParse(root.GetValue("Component Root Id"), out int componentRootId)
               && linkedFeatures.ContainsKey(componentRootId))
             {
                 for (int i = 0; i < linkedFeatures[componentRootId].Count; i++)
@@ -1077,7 +1077,7 @@ GROUP BY DR.Id
 
     private async Task FillComponentInitiatedLinkageAsync(CommonDataModel componentRoot)
     {
-        if (!int.TryParse(componentRoot.GetValue("ComponentRootId"), out int componentRootId))
+        if (!int.TryParse(componentRoot.GetValue("Component Root Id"), out int componentRootId))
         {
             return;
         }
@@ -1146,7 +1146,7 @@ GROUP BY DR.Id
 
         foreach (CommonDataModel root in roots)
         {
-            if (int.TryParse(root.GetValue("ComponentRootId"), out int componentRootId)
+            if (int.TryParse(root.GetValue("Component Root Id"), out int componentRootId)
               && componentInitiatedLinkage.ContainsKey(componentRootId))
             {
                 for (int i = 0; i < componentInitiatedLinkage[componentRootId].Count; i++)

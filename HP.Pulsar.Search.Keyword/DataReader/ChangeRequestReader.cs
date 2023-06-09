@@ -451,7 +451,7 @@ GROUP BY dcr.id
             string[] approverList = approvers[changeRequestId].Split('{');
             for (int i = 0; i < approverList.Length; i++)
             {
-                changeRequest.Add("Approvals " + i, approverList[i]);
+                changeRequest.Add("Approvers " + i, approverList[i]);
             }
         }
 
@@ -479,13 +479,13 @@ GROUP BY dcr.id
 
         foreach (CommonDataModel dcr in changeRequests)
         {
-            if (int.TryParse(dcr.GetValue("ChangeRequestId"), out int changeRequestId)
+            if (int.TryParse(dcr.GetValue("Change Request Id"), out int changeRequestId)
             && approvers.ContainsKey(changeRequestId))
             {
                 string[] approverList = approvers[changeRequestId].Split('{');
                 for (int i = 0; i < approverList.Length; i++)
                 {
-                    dcr.Add("Approvals " + i, approverList[i]);
+                    dcr.Add("Approvers " + i, approverList[i]);
                 }
             }
         }
