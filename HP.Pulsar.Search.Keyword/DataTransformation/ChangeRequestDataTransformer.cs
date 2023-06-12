@@ -6,6 +6,7 @@ namespace HP.Pulsar.Search.Keyword.DataTransformation;
 public class ChangeRequestDataTransformer : IDataTransformer
 {
     private static readonly List<string> _datePropertyList = new() { "Date Submitted", "Date Closed", "Target Approval Date", "RTP Date", "End of Manufacturing" , "Samples Available" };
+    private static readonly List<string> _userNamePropertyList = new() { "Approvers" };
 
     public IEnumerable<CommonDataModel> Transform(IEnumerable<CommonDataModel> changeRequests)
     {
@@ -18,7 +19,7 @@ public class ChangeRequestDataTransformer : IDataTransformer
         {
             foreach (string key in dcr.GetKeys())
             {
-                string propertyValue = CommonDataTransformer.DataProcessingInitializationCombination(_datePropertyList, dcr.GetValue(key), key);
+                string propertyValue = CommonDataTransformer.DataProcessingInitializationCombination(_datePropertyList, _userNamePropertyList, dcr.GetValue(key), key);
 
                 if (!string.IsNullOrWhiteSpace(propertyValue)
                     && !string.Equals(propertyValue, dcr.GetValue(key)))
@@ -44,7 +45,7 @@ public class ChangeRequestDataTransformer : IDataTransformer
 
         foreach (string key in changeRequest.GetKeys())
         {
-            string propertyValue = CommonDataTransformer.DataProcessingInitializationCombination(_datePropertyList, changeRequest.GetValue(key), key);
+            string propertyValue = CommonDataTransformer.DataProcessingInitializationCombination(_datePropertyList, _userNamePropertyList, changeRequest.GetValue(key), key);
 
             if (!string.IsNullOrWhiteSpace(propertyValue)
                 && !string.Equals(propertyValue, changeRequest.GetValue(key)))

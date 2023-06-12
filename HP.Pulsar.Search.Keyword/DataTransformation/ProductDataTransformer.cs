@@ -5,6 +5,7 @@ namespace HP.Pulsar.Search.Keyword.DataTransformation;
 public class ProductDataTransformer : IDataTransformer
 {
     private static readonly List<string> _datePropertyList = new() { "End Of Sales", "created date", "latest update date", "End Of Production" , "End Of Service" };
+    private static readonly List<string> _userNamePropertyList = new();
 
     public IEnumerable<CommonDataModel> Transform(IEnumerable<CommonDataModel> products)
     {
@@ -17,7 +18,7 @@ public class ProductDataTransformer : IDataTransformer
         {
             foreach (string key in product.GetKeys())
             {
-                string propertyValue = CommonDataTransformer.DataProcessingInitializationCombination(_datePropertyList, product.GetValue(key), key);
+                string propertyValue = CommonDataTransformer.DataProcessingInitializationCombination(_datePropertyList, _userNamePropertyList, product.GetValue(key), key);
 
                 if (!string.IsNullOrWhiteSpace(propertyValue)
                     && !string.Equals(propertyValue, product.GetValue(key)))
@@ -43,7 +44,7 @@ public class ProductDataTransformer : IDataTransformer
 
         foreach (string key in product.GetKeys())
         {
-            string propertyValue = CommonDataTransformer.DataProcessingInitializationCombination(_datePropertyList, product.GetValue(key), key);
+            string propertyValue = CommonDataTransformer.DataProcessingInitializationCombination(_datePropertyList, _userNamePropertyList, product.GetValue(key), key);
 
             if (!string.IsNullOrWhiteSpace(propertyValue)
                 && !string.Equals(propertyValue, product.GetValue(key)))

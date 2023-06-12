@@ -6,6 +6,7 @@ namespace HP.Pulsar.Search.Keyword.DataTransformation;
 public class FeatureDataTransformer
 {
     private static readonly List<string> _datePropertyList = new() { "created", "updated" };
+    private static readonly List<string> _userNamePropertyList = new() { "Created by", "Updated by" };
 
     public IEnumerable<CommonDataModel> Transform(IEnumerable<CommonDataModel> features)
     {
@@ -18,7 +19,7 @@ public class FeatureDataTransformer
         {
             foreach (string key in feature.GetKeys())
             {
-                string propertyValue = CommonDataTransformer.DataProcessingInitializationCombination(_datePropertyList, feature.GetValue(key), key);
+                string propertyValue = CommonDataTransformer.DataProcessingInitializationCombination(_datePropertyList, _userNamePropertyList, feature.GetValue(key), key);
 
                 if (!string.IsNullOrWhiteSpace(propertyValue)
                     && !string.Equals(propertyValue, feature.GetValue(key)))
@@ -44,7 +45,7 @@ public class FeatureDataTransformer
 
         foreach (string key in feature.GetKeys())
         {
-            string propertyValue = CommonDataTransformer.DataProcessingInitializationCombination(_datePropertyList, feature.GetValue(key), key);
+            string propertyValue = CommonDataTransformer.DataProcessingInitializationCombination(_datePropertyList, _userNamePropertyList, feature.GetValue(key), key);
 
             if (!string.IsNullOrWhiteSpace(propertyValue)
                 && !string.Equals(propertyValue, feature.GetValue(key)))
