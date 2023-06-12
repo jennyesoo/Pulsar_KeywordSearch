@@ -510,8 +510,8 @@ and v2.id = v.referenceid
                     product.Add("End Of Sales", GetEndOfSalesDate(eopDates2[productId]));
                 }
             }
-            product.Delete("TypeId");
         }
+        product.Delete("TypeId");
     }
 
     private async Task FillEndOfProductionDatesAsync(IEnumerable<CommonDataModel> products)
@@ -556,6 +556,7 @@ and v2.id = v.referenceid
             if (!int.TryParse(product.GetValue("TypeId"), out int typeId)
                 || !int.TryParse(product.GetValue("Product Id"), out int productId))
             {
+                product.Delete("TypeId");
                 continue;
             }
 
