@@ -582,7 +582,7 @@ and v2.id = v.referenceid
 
     private static string GetEndOfSalesDate(DateTime date)
     {
-        return GetLastDateOfMonth(date.AddMonths(3)).ToString("yyyy/MM/dd/");
+        return GetLastDateOfMonth(date.AddMonths(3)).ToString("yyyy/MM/dd");
     }
 
     private static DateTime GetFirstDateOfMonth(DateTime date)
@@ -1116,7 +1116,7 @@ and v2.id = v.referenceid
         {
             for (int i = 0; i < factoryName[productId].Count; i++)
             {
-                product.Add("Factory" + i, factoryName[productId][i]);
+                product.Add("Factory " + i, factoryName[productId][i]);
             }
         }
     }
@@ -1155,7 +1155,7 @@ and v2.id = v.referenceid
             {
                 for (int i = 0; i < factoryName[productId].Count; i++)
                 {
-                    product.Add("Factory" + i, factoryName[productId][i]);
+                    product.Add("Factory " + i, factoryName[productId][i]);
                 }
             }
         }

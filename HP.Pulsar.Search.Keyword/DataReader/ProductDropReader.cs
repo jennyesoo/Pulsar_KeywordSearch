@@ -416,13 +416,13 @@ GROUP BY ml2.ProductDropId
             productDrop.Delete("Component Replacement Product Drop auto selected");
         }
 
-        if (productDrop.GetValue("Feed SW Componenets to SI").Equals("True", StringComparison.OrdinalIgnoreCase))
+        if (productDrop.GetValue("Feed SW Components to SI").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            productDrop.Add("Feed SW Componenets to SI", "Feed SW Componenets to SI");
+            productDrop.Add("Feed SW Components to SI", "Feed SW Components to SI");
         }
         else
         {
-            productDrop.Delete("Feed SW Componenets to SI");
+            productDrop.Delete("Feed SW Components to SI");
         }
 
         if (productDrop.GetValue("ODM R&D Sites can only View").Equals("True", StringComparison.OrdinalIgnoreCase))
@@ -477,13 +477,13 @@ GROUP BY ml2.ProductDropId
                 pd.Delete("Component Replacement Product Drop auto selected");
             }
 
-            if (pd.GetValue("Feed SW Componenets to SI").Equals("True", StringComparison.OrdinalIgnoreCase))
+            if (pd.GetValue("Feed SW Components to SI").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                pd.Add("Feed SW Componenets to SI", "Feed SW Componenets to SI");
+                pd.Add("Feed SW Components to SI", "Feed SW Components to SI");
             }
             else
             {
-                pd.Delete("Feed SW Componenets to SI");
+                pd.Delete("Feed SW Components to SI");
             }
             if (pd.GetValue("ODM R&D Sites can only View").Equals("True", StringComparison.OrdinalIgnoreCase))
             {

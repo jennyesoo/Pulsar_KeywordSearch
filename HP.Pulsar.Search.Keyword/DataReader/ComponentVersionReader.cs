@@ -204,7 +204,7 @@ public class ComponentVersionReader : IKeywordSearchDataReader
             THEN 'Softpaq'
         WHEN root.TypeID = 8
             THEN 'Factory'
-        END AS ComponentType
+        END AS 'Component Type'
 FROM DeliverableVersion Dv
 LEFT JOIN ComponentPrismSWType CPSW ON CPSW.PRISMTypeID = Dv.PrismSWType
 LEFT JOIN userinfo user1 ON user1.userid = Dv.DeveloperID

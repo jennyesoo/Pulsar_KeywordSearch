@@ -84,10 +84,9 @@ internal class ComponentRootReader : IKeywordSearchDataReader
     root.ISOImage,
     root.CAB,
     root.BINARY,
-    root.FloppyDisk,
     root.CertRequired AS 'WHQL Certification Require',
     root.ScriptPaq AS 'Packaging Softpaq',
-    Sc.name AS SoftpaqCategory,
+    Sc.name AS 'Softpaq Category',
     root.Created,
     root.IconDesktop as 'Desktop',
     root.IconMenu as 'Start Menu',
@@ -112,7 +111,7 @@ internal class ComponentRootReader : IKeywordSearchDataReader
     user4.FirstName + ' ' + user4.LastName AS 'SIO Approver',
     root.KoreanCertificationRequired as 'Korean Certification Required',
     root.SubmissionPath as 'Submission Path',
-    root.IRSBasePartNumber,
+    root.IRSBasePartNumber as 'IRS Base Part Number',
     CPSW.Description AS 'Prism SW Type',
     root.LimitFuncTestGroupVisability as 'Limit Partner Visibility ',
     root.IconTile as 'Start Menu Tile',
@@ -944,8 +943,8 @@ GROUP BY DR.Id
         {
             for (int i = 0; i < trulyLinkedFeatures[componentRootId].Count; i++)
             {
-                componentRoot.Add("Truly Linked Features Id" + i, trulyLinkedFeatures[componentRootId][i].Item1);
-                componentRoot.Add("Truly Linked Features Name" + i, trulyLinkedFeatures[componentRootId][i].Item2);
+                componentRoot.Add("Truly Linked Features Id " + i, trulyLinkedFeatures[componentRootId][i].Item1);
+                componentRoot.Add("Truly Linked Features Name " + i, trulyLinkedFeatures[componentRootId][i].Item2);
             }
         }
     }
@@ -984,8 +983,8 @@ GROUP BY DR.Id
             {
                 for (int i = 0; i < trulyLinkedFeatures[componentRootId].Count; i++)
                 {
-                    root.Add("Truly Linked Features Id" + i, trulyLinkedFeatures[componentRootId][i].Item1);
-                    root.Add("Truly Linked Features Name" + i, trulyLinkedFeatures[componentRootId][i].Item2);
+                    root.Add("Truly Linked Features Id " + i, trulyLinkedFeatures[componentRootId][i].Item1);
+                    root.Add("Truly Linked Features Name " + i, trulyLinkedFeatures[componentRootId][i].Item2);
 
                 }
             }
@@ -1028,8 +1027,8 @@ GROUP BY DR.Id
         {
             for (int i = 0; i < linkedFeatures[componentRootId].Count; i++)
             {
-                componentRoot.Add("Linked Features Id" + i, linkedFeatures[componentRootId][i].Item1);
-                componentRoot.Add("Linked Features Name" + i, linkedFeatures[componentRootId][i].Item2);
+                componentRoot.Add("Linked Features Id " + i, linkedFeatures[componentRootId][i].Item1);
+                componentRoot.Add("Linked Features Name " + i, linkedFeatures[componentRootId][i].Item2);
             }
         }
     }
@@ -1068,8 +1067,8 @@ GROUP BY DR.Id
             {
                 for (int i = 0; i < linkedFeatures[componentRootId].Count; i++)
                 {
-                    root.Add("Linked Features Id" + i, linkedFeatures[componentRootId][i].Item1);
-                    root.Add("Linked Features Name" + i, linkedFeatures[componentRootId][i].Item2);
+                    root.Add("Linked Features Id " + i, linkedFeatures[componentRootId][i].Item1);
+                    root.Add("Linked Features Name " + i, linkedFeatures[componentRootId][i].Item2);
                 }
             }  
         }
@@ -1111,8 +1110,8 @@ GROUP BY DR.Id
         {
             for (int i = 0; i < componentInitiatedLinkage[componentRootId].Count; i++)
             {
-                componentRoot.Add("Component Initiated Linkage Id" + i, componentInitiatedLinkage[componentRootId][i].Item1);
-                componentRoot.Add("Component Initiated Linkage Name" + i, componentInitiatedLinkage[componentRootId][i].Item2);
+                componentRoot.Add("Component Initiated Linkage Id " + i, componentInitiatedLinkage[componentRootId][i].Item1);
+                componentRoot.Add("Component Initiated Linkage Name " + i, componentInitiatedLinkage[componentRootId][i].Item2);
             }
         }
     }
@@ -1151,8 +1150,8 @@ GROUP BY DR.Id
             {
                 for (int i = 0; i < componentInitiatedLinkage[componentRootId].Count; i++)
                 {
-                    root.Add("Component Initiated Linkage Id" + i, componentInitiatedLinkage[componentRootId][i].Item1);
-                    root.Add("Component Initiated Linkage Name" + i, componentInitiatedLinkage[componentRootId][i].Item2);
+                    root.Add("Component Initiated Linkage Id " + i, componentInitiatedLinkage[componentRootId][i].Item1);
+                    root.Add("Component Initiated Linkage Name " + i, componentInitiatedLinkage[componentRootId][i].Item2);
                 }
             }
         }
