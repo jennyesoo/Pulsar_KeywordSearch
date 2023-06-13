@@ -31,11 +31,6 @@ internal class FeatureOrchestrator : IInitializationOrchestrator
 
         // write to meiliesearch
         MeiliSearchClient writer = new(KeywordSearchInfo.SearchEngineUrl, IndexTypeValue.Feature);
-        //await _writer.SendIndexDeletionAsync(); //for test
-        await writer.SendIndexCreationAsync();
-        await writer.SendUpdateSettingAsync();
-        await writer.SendUpdatePaginationAsync();
-        await writer.SendElementsCreationAsync(features);
-        await writer.UpdateSearchableAttributesAsync(elementKeyContainer.Get());
+        await writer.InitialStepsOfIndexCreationAsync(features, elementKeyContainer.Get());
     }
 }
