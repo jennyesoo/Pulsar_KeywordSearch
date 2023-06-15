@@ -65,7 +65,7 @@ internal class ComponentRootReader : IKeywordSearchDataReader
     user1.Email AS 'Component PM Email',
     user2.FirstName + ' ' + user2.LastName AS Developer,
     user2.Email AS 'Developer Email',
-    user3.FirstName + ' ' + user3.LastName AS TestLead,
+    user3.FirstName + ' ' + user3.LastName AS 'Test Lead',
     user3.Email AS 'Test Lead Email',
     coreteam.Name AS 'SI Core Team',
     CASE 
