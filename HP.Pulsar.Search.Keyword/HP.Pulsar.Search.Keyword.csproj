@@ -23,8 +23,8 @@
 
     <PropertyGroup>
         <PackageId>wooly905.keywordsearch</PackageId>
-        <PackageVersion>1.0.0-alpha.2</PackageVersion>
-        <Version>1.0.0-alpha.2</Version>
+        <PackageVersion>1.0.0-alpha.3</PackageVersion>
+        <Version>1.0.0-alpha.3</Version>
         <Authors>na</Authors>
         <Company>na</Company>
         <Product>na</Product>
