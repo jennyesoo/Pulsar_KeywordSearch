@@ -215,40 +215,52 @@ GROUP BY dcr.id
     {
         if (changeRequest.GetValue("ZSRP Ready Date Required").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            changeRequest.Add("ZSRP Ready Date Required", "ZSRP Ready Date Required");
+            if (string.IsNullOrEmpty(changeRequest.GetValue("Additional Options")))
+            {
+                changeRequest.Add("Additional Options", "ZSRP Ready Date Required");
+            }
+            else
+            {
+                changeRequest.Add("Additional Options", changeRequest.GetValue("Additional Options") + ", ZSRP Ready Date Required");
+            }
         }
-        else
-        {
-            changeRequest.Delete("ZSRP Ready Date Required");
-        }
-
+        
         if (changeRequest.GetValue("AV Required").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            changeRequest.Add("AV Required", "AV Required");
+            if (string.IsNullOrEmpty(changeRequest.GetValue("Additional Options")))
+            {
+                changeRequest.Add("Additional Options", "AV Required");
+            }
+            else
+            {
+                changeRequest.Add("Additional Options", changeRequest.GetValue("Additional Options") + ", AV Required");
+            }
         }
-        else
-        {
-            changeRequest.Delete("AV Required");
-        }
-
+        
         if (changeRequest.GetValue("Qualification Required").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            changeRequest.Add("Qualification Required", "Qualification Required");
+            if (string.IsNullOrEmpty(changeRequest.GetValue("Additional Options")))
+            {
+                changeRequest.Add("Additional Options", "Qualification Required");
+            }
+            else
+            {
+                changeRequest.Add("Additional Options", changeRequest.GetValue("Additional Options") + ", Qualification Required");
+            }
         }
-        else
-        {
-            changeRequest.Delete("Qualification Required");
-        }
-
+        
         if (changeRequest.GetValue("Global Series Required").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            changeRequest.Add("Global Series Required", "Global Series Required");
+            if (string.IsNullOrEmpty(changeRequest.GetValue("Additional Options")))
+            {
+                changeRequest.Add("Additional Options", "Global Series Required");
+            }
+            else
+            {
+                changeRequest.Add("Additional Options", changeRequest.GetValue("Additional Options") + ", Global Series Required");
+            }
         }
-        else
-        {
-            changeRequest.Delete("Global Series Required");
-        }
-
+        
         if (changeRequest.GetValue("Customer Impact").Equals("1", StringComparison.OrdinalIgnoreCase))
         {
             changeRequest.Add("Customer Impact", "Affects images and/or BIOS on shipping products");
@@ -278,39 +290,59 @@ GROUP BY dcr.id
 
         if (changeRequest.GetValue("NA").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            changeRequest.Add("NA", "NA");
+            if (string.IsNullOrEmpty(changeRequest.GetValue("Regions")))
+            {
+                changeRequest.Add("Regions", "NA");
+            }
+            else
+            {
+                changeRequest.Add("Regions", changeRequest.GetValue("Regions") + ", NA");
+            }
         }
-        else
-        {
-            changeRequest.Delete("NA");
-        }
-
+        
         if (changeRequest.GetValue("LA").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            changeRequest.Add("LA", "LA");
+            if (string.IsNullOrEmpty(changeRequest.GetValue("Regions")))
+            {
+                changeRequest.Add("Regions", "LA");
+            }
+            else
+            {
+                changeRequest.Add("Regions", changeRequest.GetValue("Regions") + ", LA");
+            }
         }
-        else
-        {
-            changeRequest.Delete("LA");
-        }
-
+        
         if (changeRequest.GetValue("EMEA").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            changeRequest.Add("EMEA", "EMEA");
-        }
-        else
-        {
-            changeRequest.Delete("EMEA");
+            if (string.IsNullOrEmpty(changeRequest.GetValue("Regions")))
+            {
+                changeRequest.Add("Regions", "EMEA");
+            }
+            else
+            {
+                changeRequest.Add("Regions", changeRequest.GetValue("Regions") + ", EMEA");
+            }
         }
 
         if (changeRequest.GetValue("APJ").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            changeRequest.Add("APJ", "APJ");
+            if (string.IsNullOrEmpty(changeRequest.GetValue("Regions")))
+            {
+                changeRequest.Add("Regions", "APJ");
+            }
+            else
+            {
+                changeRequest.Add("Regions", changeRequest.GetValue("Regions") + ", APJ");
+            }
         }
-        else
-        {
-            changeRequest.Delete("APJ");
-        }
+        changeRequest.Delete("ZSRP Ready Date Required");
+        changeRequest.Delete("AV Required");
+        changeRequest.Delete("Qualification Required");
+        changeRequest.Delete("Global Series Required");
+        changeRequest.Delete("NA");
+        changeRequest.Delete("LA");
+        changeRequest.Delete("EMEA");
+        changeRequest.Delete("APJ");
 
         return changeRequest;
 
@@ -322,38 +354,50 @@ GROUP BY dcr.id
         {
             if (dcr.GetValue("ZSRP Ready Date Required").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                dcr.Add("ZSRP Ready Date Required", "ZSRP Ready Date Required");
-            }
-            else
-            {
-                dcr.Delete("ZSRP Ready Date Required");
+                if (string.IsNullOrEmpty(dcr.GetValue("Additional Options")))
+                {
+                    dcr.Add("Additional Options", "ZSRP Ready Date Required");
+                }
+                else
+                {
+                    dcr.Add("Additional Options", dcr.GetValue("Additional Options") + ", ZSRP Ready Date Required");
+                }
             }
 
             if (dcr.GetValue("AV Required").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                dcr.Add("AV Required", "AV Required");
-            }
-            else
-            {
-                dcr.Delete("AV Required");
+                if (string.IsNullOrEmpty(dcr.GetValue("Additional Options")))
+                {
+                    dcr.Add("Additional Options", "AV Required");
+                }
+                else
+                {
+                    dcr.Add("Additional Options", dcr.GetValue("Additional Options") + ", AV Required");
+                }
             }
 
             if (dcr.GetValue("Qualification Required").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                dcr.Add("Qualification Required", "Qualification Required");
-            }
-            else
-            {
-                dcr.Delete("Qualification Required");
+                if (string.IsNullOrEmpty(dcr.GetValue("Additional Options")))
+                {
+                    dcr.Add("Additional Options", "Qualification Required");
+                }
+                else
+                {
+                    dcr.Add("Additional Options", dcr.GetValue("Additional Options") + ", Qualification Required");
+                }
             }
 
             if (dcr.GetValue("Global Series Required").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                dcr.Add("Global Series Required", "Global Series Required");
-            }
-            else
-            {
-                dcr.Delete("Global Series Required");
+                if (string.IsNullOrEmpty(dcr.GetValue("Additional Options")))
+                {
+                    dcr.Add("Additional Options", "Global Series Required");
+                }
+                else
+                {
+                    dcr.Add("Additional Options", dcr.GetValue("Additional Options") + ", Global Series Required");
+                }
             }
 
             if (dcr.GetValue("Customer Impact").Equals("1", StringComparison.OrdinalIgnoreCase))
@@ -385,39 +429,59 @@ GROUP BY dcr.id
 
             if (dcr.GetValue("NA").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                dcr.Add("NA", "NA");
-            }
-            else
-            {
-                dcr.Delete("NA");
+                if (string.IsNullOrEmpty(dcr.GetValue("Regions")))
+                {
+                    dcr.Add("Regions", "NA");
+                }
+                else
+                {
+                    dcr.Add("Regions", dcr.GetValue("Regions") + ", NA");
+                }
             }
 
             if (dcr.GetValue("LA").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                dcr.Add("LA", "LA");
-            }
-            else
-            {
-                dcr.Delete("LA");
+                if (string.IsNullOrEmpty(dcr.GetValue("Regions")))
+                {
+                    dcr.Add("Regions", "LA");
+                }
+                else
+                {
+                    dcr.Add("Regions", dcr.GetValue("Regions") + ", LA");
+                }
             }
 
             if (dcr.GetValue("EMEA").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                dcr.Add("EMEA", "EMEA");
-            }
-            else
-            {
-                dcr.Delete("EMEA");
+                if (string.IsNullOrEmpty(dcr.GetValue("Regions")))
+                {
+                    dcr.Add("Regions", "EMEA");
+                }
+                else
+                {
+                    dcr.Add("Regions", dcr.GetValue("Regions") + ", EMEA");
+                }
             }
 
             if (dcr.GetValue("APJ").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                dcr.Add("APJ", "APJ");
+                if (string.IsNullOrEmpty(dcr.GetValue("Regions")))
+                {
+                    dcr.Add("Regions", "APJ");
+                }
+                else
+                {
+                    dcr.Add("Regions", dcr.GetValue("Regions") + ", APJ");
+                }
             }
-            else
-            {
-                dcr.Delete("APJ");
-            }
+            dcr.Delete("ZSRP Ready Date Required");
+            dcr.Delete("AV Required");
+            dcr.Delete("Qualification Required");
+            dcr.Delete("Global Series Required");
+            dcr.Delete("NA");
+            dcr.Delete("LA");
+            dcr.Delete("EMEA");
+            dcr.Delete("APJ");
         }
 
         return Task.CompletedTask;

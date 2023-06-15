@@ -80,7 +80,8 @@ public static class CommonDataTransformer
             || string.Equals(propertyValue, "dbo", StringComparison.OrdinalIgnoreCase)
             || string.Equals(propertyValue, ".", StringComparison.OrdinalIgnoreCase))
         {
-            return string.Empty;
+            propertyValue = string.Empty;
+            return propertyValue;
         }
 
         if (propertyName.IndexOf("email", StringComparison.OrdinalIgnoreCase) >= 0
