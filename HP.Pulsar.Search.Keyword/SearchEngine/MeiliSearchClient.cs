@@ -33,7 +33,7 @@ internal class MeiliSearchClient
     /// </summary>
     /// <returns></returns>
     /// <exception cref="ArgumentException"></exception>
-    public async Task InitialStepsOfIndexCreationAsync(IEnumerable<CommonDataModel> allDocuments, ISet<string> allProperty)
+    public async Task InitializeIndexCreationStepsAsync(IEnumerable<CommonDataModel> allDocuments, ISet<string> allProperty)
     {
         //await SendIndexDeletionAsync(); //for test
         await SendIndexCreationAsync();

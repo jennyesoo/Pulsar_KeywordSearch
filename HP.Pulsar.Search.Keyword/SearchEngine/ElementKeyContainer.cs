@@ -34,15 +34,8 @@ public class ElementKeyContainer
         }
     }
 
-    public ISet<string> Get()
+    public IReadOnlyCollection<string> Get()
     {
-        HashSet<string> hashSet = new();
-
-        foreach (string item in _hashSet)
-        {
-            hashSet.Add(item);
-        }
-
-        return hashSet;
+        return _hashSet;
     }
 }

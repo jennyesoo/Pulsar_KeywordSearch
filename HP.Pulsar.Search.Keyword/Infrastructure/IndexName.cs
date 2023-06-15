@@ -4,7 +4,7 @@ using System.Text;
 
 namespace HP.Pulsar.Search.Keyword.Infrastructure;
 
-internal static class IndexTypeValue
+internal static class IndexName
 {
     public static string AmoPartNumber => "AmoPartNumberIndex";
     public static string Dcr => "ChangeRequestIndex";

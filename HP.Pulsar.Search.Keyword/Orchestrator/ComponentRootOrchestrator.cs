@@ -8,17 +8,17 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator;
 
 internal class ComponentRootOrchestrator : IInitializationOrchestrator
 {
-    private KeywordSearchInfo KeywordSearchInfo { get; }
+    private KeywordSearchInfo _keywordSearchInfo { get; }
 
     public ComponentRootOrchestrator(KeywordSearchInfo keywordSearchInfo)
     {
-        KeywordSearchInfo = keywordSearchInfo;
+        _keywordSearchInfo = keywordSearchInfo;
     }
 
     public async Task InitializeAsync()
     {
         // read roots from database
-        ComponentRootReader reader = new(KeywordSearchInfo);
+        ComponentRootReader reader = new(_keywordSearchInfo);
         IEnumerable<CommonDataModel> roots = await reader.GetDataAsync();
 
         // data processing
@@ -30,7 +30,7 @@ internal class ComponentRootOrchestrator : IInitializationOrchestrator
         elementKeyContainer.Add(roots.SelectMany(p => p.GetKeys()).Distinct<string>());
 
         // write to meiliesearch
-        MeiliSearchClient writer = new(KeywordSearchInfo.SearchEngineUrl, IndexTypeValue.ComponentRoot);
-        await writer.InitialStepsOfIndexCreationAsync(roots, elementKeyContainer.Get());
+        MeiliSearchClient writer = new(_keywordSearchInfo.SearchEngineUrl, IndexName.ComponentRoot);
+        await writer.InitializeIndexCreationStepsAsync(roots, elementKeyContainer.Get());
     }
 }
