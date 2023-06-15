@@ -204,7 +204,8 @@ public class ComponentVersionReader : IKeywordSearchDataReader
             THEN 'Softpaq'
         WHEN root.TypeID = 8
             THEN 'Factory'
-        END AS 'Component Type'
+        END AS 'Component Type',
+    root.Softpaq As 'Rom Components Softpaq'
 FROM DeliverableVersion Dv
 LEFT JOIN ComponentPrismSWType CPSW ON CPSW.PRISMTypeID = Dv.PrismSWType
 LEFT JOIN userinfo user1 ON user1.userid = Dv.DeveloperID
@@ -226,165 +227,230 @@ WHERE (
     {
         if (componentVersion.GetValue("Packaging Preinstall").Equals("1", StringComparison.OrdinalIgnoreCase))
         {
-            componentVersion.Add("Packaging Preinstall", "Packaging Preinstall");
-        }
-        else
-        {
-            componentVersion.Delete("Packaging Preinstall");
+            if (string.IsNullOrEmpty(componentVersion.GetValue("Packaging")))
+            {
+                componentVersion.Add("Packagings", "Preinstall");
+            }
+            else
+            {
+                componentVersion.Add("Packaging", componentVersion.GetValue("Packaging") + ", Preinstall");
+            }
         }
 
         if (componentVersion.GetValue("DrDvd").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            componentVersion.Add("DrDvd", "DRDVD");
-        }
-        else
-        {
-            componentVersion.Delete("DrDvd");
+            if (string.IsNullOrEmpty(componentVersion.GetValue("Packaging")))
+            {
+                componentVersion.Add("Packagings", "DRDVD");
+            }
+            else
+            {
+                componentVersion.Add("Packaging", componentVersion.GetValue("Packaging") + ", DRDVD");
+            }
         }
 
         if (componentVersion.GetValue("Softpaq").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            componentVersion.Add("Softpaq", "Packaging Softpaq");
+            if (string.IsNullOrEmpty(componentVersion.GetValue("Packaging")))
+            {
+                componentVersion.Add("Packagings", "Softpaq");
+            }
+            else
+            {
+                componentVersion.Add("Packaging", componentVersion.GetValue("Packaging") + ", Softpaq");
+            }
         }
-        else
-        {
-            componentVersion.Delete("Softpaq");
-        }
-
 
         if (componentVersion.GetValue("Ms Store").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            componentVersion.Add("Ms Store", "Ms Store");
-        }
-        else
-        {
-            componentVersion.Delete("Ms Store");
+            if (string.IsNullOrEmpty(componentVersion.GetValue("Packaging")))
+            {
+                componentVersion.Add("Packagings", "Ms Store");
+            }
+            else
+            {
+                componentVersion.Add("Packaging", componentVersion.GetValue("Packaging") + ", Ms Store");
+            }
         }
 
         if (componentVersion.GetValue("Internal Tool").Equals("1", StringComparison.OrdinalIgnoreCase))
         {
-            componentVersion.Add("Internal Tool", "Internal Tool");
-        }
-        else
-        {
-            componentVersion.Delete("Internal Tool");
+            if (string.IsNullOrEmpty(componentVersion.GetValue("Packaging")))
+            {
+                componentVersion.Add("Packagings", "Internal Tool");
+            }
+            else
+            {
+                componentVersion.Add("Packaging", componentVersion.GetValue("Packaging") + ", Internal Tool");
+            }
         }
 
         if (componentVersion.GetValue("ROM Component Binary").Equals("1", StringComparison.OrdinalIgnoreCase))
         {
-            componentVersion.Add("ROM Component Binary", "ROM Component Binary");
-        }
-        else
-        {
-            componentVersion.Delete("ROM Component Binary");
+            if (string.IsNullOrEmpty(componentVersion.GetValue("ROM components")))
+            {
+                componentVersion.Add("ROM components", "Binary");
+            }
+            else
+            {
+                componentVersion.Add("ROM components", componentVersion.GetValue("ROM components") + ", Binary");
+            }
         }
 
         if (componentVersion.GetValue("ROM Component Preinstall").Equals("1", StringComparison.OrdinalIgnoreCase))
         {
-            componentVersion.Add("ROM Component Preinstall", "ROM Component Preinstall");
+            if (string.IsNullOrEmpty(componentVersion.GetValue("ROM components")))
+            {
+                componentVersion.Add("ROM components", "Preinstall");
+            }
+            else
+            {
+                componentVersion.Add("ROM components", componentVersion.GetValue("ROM components") + ", Preinstall");
+            }
         }
-        else
+
+        if (componentVersion.GetValue("Rom Components Softpaq").Equals("1", StringComparison.OrdinalIgnoreCase))
         {
-            componentVersion.Delete("ROM Component Preinstall");
+            if (string.IsNullOrEmpty(componentVersion.GetValue("ROM components")))
+            {
+                componentVersion.Add("ROM components", "Softpaq");
+            }
+            else
+            {
+                componentVersion.Add("ROM components", componentVersion.GetValue("ROM components") + ", Softpaq");
+            }
         }
 
         if (componentVersion.GetValue("CAB").Equals("1", StringComparison.OrdinalIgnoreCase))
         {
-            componentVersion.Add("CAB", "CAB");
-        }
-        else
-        {
-            componentVersion.Delete("CAB");
+            if (string.IsNullOrEmpty(componentVersion.GetValue("ROM components")))
+            {
+                componentVersion.Add("ROM components", "CAB");
+            }
+            else
+            {
+                componentVersion.Add("ROM components", componentVersion.GetValue("ROM components") + ", CAB");
+            }
         }
 
         if (componentVersion.GetValue("FWML").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            componentVersion.Add("FWML", "FWML");
-        }
-        else
-        {
-            componentVersion.Delete("FWML");
+            if (string.IsNullOrEmpty(componentVersion.GetValue("Other Setting")))
+            {
+                componentVersion.Add("Other Setting", "FWML");
+            }
+            else
+            {
+                componentVersion.Add("Other Settings", componentVersion.GetValue("Other Setting") + ", FWML");
+            }
         }
 
         if (componentVersion.GetValue("UWP Compliant").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            componentVersion.Add("UWP Compliant", "UWP Compliant");
-        }
-        else
-        {
-            componentVersion.Delete("UWP Compliant");
+            if (string.IsNullOrEmpty(componentVersion.GetValue("Other Setting")))
+            {
+                componentVersion.Add("Other Setting", "UWP Compliant");
+            }
+            else
+            {
+                componentVersion.Add("Other Settings", componentVersion.GetValue("Other Setting") + ", UWP Compliant");
+            }
         }
 
         if (componentVersion.GetValue("Desktop").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            componentVersion.Add("Desktop", "Desktop");
-        }
-        else
-        {
-            componentVersion.Delete("Desktop");
+            if (string.IsNullOrEmpty(componentVersion.GetValue("Touch Points")))
+            {
+                componentVersion.Add("Touch Points", "Desktop");
+            }
+            else
+            {
+                componentVersion.Add("Touch Points", componentVersion.GetValue("Touch Points") + ", Desktop");
+            }
         }
 
         if (componentVersion.GetValue("Start Menu").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            componentVersion.Add("Start Menu", "Start Menu");
-        }
-        else
-        {
-            componentVersion.Delete("Start Menu");
+            if (string.IsNullOrEmpty(componentVersion.GetValue("Touch Points")))
+            {
+                componentVersion.Add("Touch Points", "Start Menu");
+            }
+            else
+            {
+                componentVersion.Add("Touch Points", componentVersion.GetValue("Touch Points") + ", Start Menu");
+            }
         }
 
         if (componentVersion.GetValue("System Tray").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            componentVersion.Add("System Tray", "System Tray");
-        }
-        else
-        {
-            componentVersion.Delete("System Tray");
+            if (string.IsNullOrEmpty(componentVersion.GetValue("Touch Points")))
+            {
+                componentVersion.Add("Touch Points", "System Tray");
+            }
+            else
+            {
+                componentVersion.Add("Touch Points", componentVersion.GetValue("Touch Points") + ", System Tray");
+            }
         }
 
         if (componentVersion.GetValue("Control Panel").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            componentVersion.Add("Control Panel", "Control Panel");
-        }
-        else
-        {
-            componentVersion.Delete("Control Panel");
+            if (string.IsNullOrEmpty(componentVersion.GetValue("Touch Points")))
+            {
+                componentVersion.Add("Touch Points", "Control Panel");
+            }
+            else
+            {
+                componentVersion.Add("Touch Points", componentVersion.GetValue("Touch Points") + ", Control Panel");
+            }
         }
 
         if (componentVersion.GetValue("Info Center").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            componentVersion.Add("Info Center", "Info Center");
-        }
-        else
-        {
-            componentVersion.Delete("Info Center");
+            if (string.IsNullOrEmpty(componentVersion.GetValue("Touch Points")))
+            {
+                componentVersion.Add("Touch Points", "Info Center");
+            }
+            else
+            {
+                componentVersion.Add("Touch Points", componentVersion.GetValue("Touch Points") + ", Info Center");
+            }
         }
 
         if (componentVersion.GetValue("Start Menu Tile").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            componentVersion.Add("Start Menu Tile", "Start Menu Tile");
-        }
-        else
-        {
-            componentVersion.Delete("Start Menu Tile");
+            if (string.IsNullOrEmpty(componentVersion.GetValue("Touch Points")))
+            {
+                componentVersion.Add("Touch Points", "Start Menu Tile");
+            }
+            else
+            {
+                componentVersion.Add("Touch Points", componentVersion.GetValue("Touch Points") + ", Start Menu Tile");
+            }
         }
 
         if (componentVersion.GetValue("Task Pinned Icon").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            componentVersion.Add("Task Pinned Icon", "Task Pinned Icon");
-        }
-        else
-        {
-            componentVersion.Delete("Task Pinned Icon");
+            if (string.IsNullOrEmpty(componentVersion.GetValue("Touch Points")))
+            {
+                componentVersion.Add("Touch Points", "Taskbar Pinned Icon");
+            }
+            else
+            {
+                componentVersion.Add("Touch Points", componentVersion.GetValue("Touch Points") + ", Taskbar Pinned Icon");
+            }
         }
 
         if (componentVersion.GetValue("SoftPaq In Preinstall").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            componentVersion.Add("SoftPaq In Preinstall", "SoftPaq In Preinstall");
-        }
-        else
-        {
-            componentVersion.Delete("SoftPaq In Preinstall");
+            if (string.IsNullOrEmpty(componentVersion.GetValue("Packaging")))
+            {
+                componentVersion.Add("Packagings", "SoftPaq In Preinstall");
+            }
+            else
+            {
+                componentVersion.Add("Packaging", componentVersion.GetValue("Packaging") + ", SoftPaq In Preinstall");
+            }
         }
 
         if (componentVersion.GetValue("Visibility").Equals("True", StringComparison.OrdinalIgnoreCase))
@@ -398,11 +464,37 @@ WHERE (
 
         if (GetCdAsync(componentVersion).Equals(1))
         {
-            componentVersion.Add("CD", "CD");
+            if (string.IsNullOrEmpty(componentVersion.GetValue("Packaging")))
+            {
+                componentVersion.Add("Packagings", "CD");
+            }
+            else
+            {
+                componentVersion.Add("Packaging", componentVersion.GetValue("Packaging") + ", CD");
+            }
         }
         componentVersion.Delete("CDImage");
         componentVersion.Delete("ISOImage");
         componentVersion.Delete("AR");
+        componentVersion.Delete("Packaging Preinstall");
+        componentVersion.Delete("DrDvd");
+        componentVersion.Delete("Softpaq");
+        componentVersion.Delete("Ms Store");
+        componentVersion.Delete("Internal Tool");
+        componentVersion.Delete("ROM Component Binary");
+        componentVersion.Delete("ROM Component Preinstall");
+        componentVersion.Delete("CAB");
+        componentVersion.Delete("FWML");
+        componentVersion.Delete("UWP Compliant");
+        componentVersion.Delete("Desktop");
+        componentVersion.Delete("Start Menu");
+        componentVersion.Delete("System Tray");
+        componentVersion.Delete("Control Panel");
+        componentVersion.Delete("Info Center");
+        componentVersion.Delete("Start Menu Tile");
+        componentVersion.Delete("Task Pinned Icon");
+        componentVersion.Delete("SoftPaq In Preinstall");
+        componentVersion.Delete("Rom Components Softpaq");
         return componentVersion;
     }
 
@@ -412,165 +504,230 @@ WHERE (
         {
             if (version.GetValue("Packaging Preinstall").Equals("1", StringComparison.OrdinalIgnoreCase))
             {
-                version.Add("Packaging Preinstall", "Packaging Preinstall");
-            }
-            else
-            {
-                version.Delete("Packaging Preinstall");
+                if (string.IsNullOrEmpty(version.GetValue("Packaging")))
+                {
+                    version.Add("Packagings", "Preinstall");
+                }
+                else
+                {
+                    version.Add("Packaging", version.GetValue("Packaging") + ", Preinstall");
+                }
             }
 
             if (version.GetValue("DrDvd").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                version.Add("DrDvd", "DRDVD");
-            }
-            else
-            {
-                version.Delete("DrDvd");
+                if (string.IsNullOrEmpty(version.GetValue("Packaging")))
+                {
+                    version.Add("Packagings", "DRDVD");
+                }
+                else
+                {
+                    version.Add("Packaging", version.GetValue("Packaging") + ", DRDVD");
+                }
             }
 
             if (version.GetValue("Softpaq").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                version.Add("Softpaq", "Packaging Softpaq");
+                if (string.IsNullOrEmpty(version.GetValue("Packaging")))
+                {
+                    version.Add("Packagings", "Softpaq");
+                }
+                else
+                {
+                    version.Add("Packaging", version.GetValue("Packaging") + ", Softpaq");
+                }
             }
-            else
-            {
-                version.Delete("Softpaq");
-            }
-
 
             if (version.GetValue("Ms Store").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                version.Add("Ms Store", "Ms Store");
-            }
-            else
-            {
-                version.Delete("Ms Store");
+                if (string.IsNullOrEmpty(version.GetValue("Packaging")))
+                {
+                    version.Add("Packagings", "Ms Store");
+                }
+                else
+                {
+                    version.Add("Packaging", version.GetValue("Packaging") + ", Ms Store");
+                }
             }
 
             if (version.GetValue("Internal Tool").Equals("1", StringComparison.OrdinalIgnoreCase))
             {
-                version.Add("Internal Tool", "Internal Tool");
-            }
-            else
-            {
-                version.Delete("Internal Tool");
+                if (string.IsNullOrEmpty(version.GetValue("Packaging")))
+                {
+                    version.Add("Packagings", "Internal Tool");
+                }
+                else
+                {
+                    version.Add("Packaging", version.GetValue("Packaging") + ", Internal Tool");
+                }
             }
 
             if (version.GetValue("ROM Component Binary").Equals("1", StringComparison.OrdinalIgnoreCase))
             {
-                version.Add("ROM Component Binary", "ROM Component Binary");
-            }
-            else
-            {
-                version.Delete("ROM Component Binary");
+                if (string.IsNullOrEmpty(version.GetValue("ROM components")))
+                {
+                    version.Add("ROM components", "Binary");
+                }
+                else
+                {
+                    version.Add("ROM components", version.GetValue("ROM components") + ", Binary");
+                }
             }
 
             if (version.GetValue("ROM Component Preinstall").Equals("1", StringComparison.OrdinalIgnoreCase))
             {
-                version.Add("ROM Component Preinstall", "ROM Component Preinstall");
-            }
-            else
-            {
-                version.Delete("ROM Component Preinstall");
+                if (string.IsNullOrEmpty(version.GetValue("ROM components")))
+                {
+                    version.Add("ROM components", "Preinstall");
+                }
+                else
+                {
+                    version.Add("ROM components", version.GetValue("ROM components") + ", Preinstall");
+                }
             }
 
             if (version.GetValue("CAB").Equals("1", StringComparison.OrdinalIgnoreCase))
             {
-                version.Add("CAB", "CAB");
+                if (string.IsNullOrEmpty(version.GetValue("ROM components")))
+                {
+                    version.Add("ROM components", "CAB");
+                }
+                else
+                {
+                    version.Add("ROM components", version.GetValue("ROM components") + ", CAB");
+                }
             }
-            else
+
+            if (version.GetValue("Rom Components Softpaq").Equals("1", StringComparison.OrdinalIgnoreCase))
             {
-                version.Delete("CAB");
+                if (string.IsNullOrEmpty(version.GetValue("ROM components")))
+                {
+                    version.Add("ROM components", "Softpaq");
+                }
+                else
+                {
+                    version.Add("ROM components", version.GetValue("ROM components") + ", Softpaq");
+                }
             }
 
             if (version.GetValue("FWML").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                version.Add("FWML", "FWML");
-            }
-            else
-            {
-                version.Delete("FWML");
+                if (string.IsNullOrEmpty(version.GetValue("Other Setting")))
+                {
+                    version.Add("Other Setting", "FWML");
+                }
+                else
+                {
+                    version.Add("Other Settings", version.GetValue("Other Setting") + ", FWML");
+                }
             }
 
             if (version.GetValue("UWP Compliant").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                version.Add("UWP Compliant", "UWP Compliant");
-            }
-            else
-            {
-                version.Delete("UWP Compliant");
+                if (string.IsNullOrEmpty(version.GetValue("Other Setting")))
+                {
+                    version.Add("Other Setting", "UWP Compliant");
+                }
+                else
+                {
+                    version.Add("Other Settings", version.GetValue("Other Setting") + ", UWP Compliant");
+                }
             }
 
             if (version.GetValue("Desktop").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                version.Add("Desktop", "Desktop");
-            }
-            else
-            {
-                version.Delete("Desktop");
+                if (string.IsNullOrEmpty(version.GetValue("Touch Points")))
+                {
+                    version.Add("Touch Points", "Desktop");
+                }
+                else
+                {
+                    version.Add("Touch Points", version.GetValue("Touch Points") + ", Desktop");
+                }
             }
 
             if (version.GetValue("Start Menu").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                version.Add("Start Menu", "Start Menu");
-            }
-            else
-            {
-                version.Delete("Start Menu");
+                if (string.IsNullOrEmpty(version.GetValue("Touch Points")))
+                {
+                    version.Add("Touch Points", "Start Menu");
+                }
+                else
+                {
+                    version.Add("Touch Points", version.GetValue("Touch Points") + ", Start Menu");
+                }
             }
 
             if (version.GetValue("System Tray").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                version.Add("System Tray", "System Tray");
-            }
-            else
-            {
-                version.Delete("System Tray");
+                if (string.IsNullOrEmpty(version.GetValue("Touch Points")))
+                {
+                    version.Add("Touch Points", "System Tray");
+                }
+                else
+                {
+                    version.Add("Touch Points", version.GetValue("Touch Points") + ", System Tray");
+                }
             }
 
             if (version.GetValue("Control Panel").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                version.Add("Control Panel", "Control Panel");
-            }
-            else
-            {
-                version.Delete("Control Panel");
+                if (string.IsNullOrEmpty(version.GetValue("Touch Points")))
+                {
+                    version.Add("Touch Points", "Control Panel");
+                }
+                else
+                {
+                    version.Add("Touch Points", version.GetValue("Touch Points") + ", Control Panel");
+                }
             }
 
             if (version.GetValue("Info Center").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                version.Add("Info Center", "Info Center");
-            }
-            else
-            {
-                version.Delete("Info Center");
+                if (string.IsNullOrEmpty(version.GetValue("Touch Points")))
+                {
+                    version.Add("Touch Points", "Info Center");
+                }
+                else
+                {
+                    version.Add("Touch Points", version.GetValue("Touch Points") + ", Info Center");
+                }
             }
 
             if (version.GetValue("Start Menu Tile").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                version.Add("Start Menu Tile", "Start Menu Tile");
-            }
-            else
-            {
-                version.Delete("Start Menu Tile");
+                if (string.IsNullOrEmpty(version.GetValue("Touch Points")))
+                {
+                    version.Add("Touch Points", "Start Menu Tile");
+                }
+                else
+                {
+                    version.Add("Touch Points", version.GetValue("Touch Points") + ", Start Menu Tile");
+                }
             }
 
-            if (version.GetValue("Task Pinned Icon").Equals("True", StringComparison.OrdinalIgnoreCase))
+            if (version.GetValue("Taskbar Pinned Icon").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                version.Add("Task Pinned Icon", "Task Pinned Icon");
-            }
-            else
-            {
-                version.Delete("Task Pinned Icon");
+                if (string.IsNullOrEmpty(version.GetValue("Touch Points")))
+                {
+                    version.Add("Touch Points", "Taskbar Pinned Icon");
+                }
+                else
+                {
+                    version.Add("Touch Points", version.GetValue("Touch Points") + ", Taskbar Pinned Icon");
+                }
             }
 
             if (version.GetValue("SoftPaq In Preinstall").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                version.Add("SoftPaq In Preinstall", "SoftPaq In Preinstall");
-            }
-            else
-            {
-                version.Delete("SoftPaq In Preinstall");
+                if (string.IsNullOrEmpty(version.GetValue("Packaging")))
+                {
+                    version.Add("Packagings", "SoftPaq In Preinstall");
+                }
+                else
+                {
+                    version.Add("Packaging", version.GetValue("Packaging") + ", SoftPaq In Preinstall");
+                }
             }
 
             if (version.GetValue("Visibility").Equals("True", StringComparison.OrdinalIgnoreCase))
@@ -584,11 +741,37 @@ WHERE (
 
             if (GetCdAsync(version).Equals(1))
             {
-                version.Add("CD", "CD");
+                if (string.IsNullOrEmpty(version.GetValue("Packaging")))
+                {
+                    version.Add("Packagings", "CD");
+                }
+                else
+                {
+                    version.Add("Packaging", version.GetValue("Packaging") + ", CD");
+                }
             }
             version.Delete("CDImage");
             version.Delete("ISOImage");
             version.Delete("AR");
+            version.Delete("Packaging Preinstall");
+            version.Delete("DrDvd");
+            version.Delete("Softpaq");
+            version.Delete("Ms Store");
+            version.Delete("Internal Tool");
+            version.Delete("ROM Component Binary");
+            version.Delete("ROM Component Preinstall");
+            version.Delete("CAB");
+            version.Delete("FWML");
+            version.Delete("UWP Compliant");
+            version.Delete("Desktop");
+            version.Delete("Start Menu");
+            version.Delete("System Tray");
+            version.Delete("Control Panel");
+            version.Delete("Info Center");
+            version.Delete("Start Menu Tile");
+            version.Delete("Taskbar Pinned Icon");
+            version.Delete("SoftPaq In Preinstall");
+            version.Delete("Rom Components Softpaq");
         }
 
         return Task.CompletedTask;
