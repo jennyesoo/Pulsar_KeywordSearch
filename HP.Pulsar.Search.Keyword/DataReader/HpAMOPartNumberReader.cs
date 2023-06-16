@@ -53,7 +53,8 @@ internal class HpAMOPartNumberReader : IKeywordSearchDataReader
     amos.Name AS 'SKU Type',
     f.CodeName as 'Code Name',
     u1.firstname + ' ' + u1.lastname AS 'Created by',
-    u2.firstname + ' ' + u2.lastname AS 'Last Updated by'
+    u2.firstname + ' ' + u2.lastname AS 'Last Updated by',
+    f.featureid AS 'Feature Id'
 FROM Feature f
 RIGHT JOIN AmoHpPartNo hppn ON f.FeatureID = hppn.FeatureID
 LEFT JOIN Regions r ON hppn.LocalizationId = r.ID
