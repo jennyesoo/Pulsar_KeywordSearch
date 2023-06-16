@@ -133,7 +133,8 @@ internal class ComponentRootReader : IKeywordSearchDataReader
     root.Rompaq as 'Rompaq Binary',
     root.PreinstallROM as 'ROM Components Preinstall',
     root.CAB,
-    root.Softpaq AS 'ROM component Softpaq'
+    root.Softpaq AS 'ROM component Softpaq',
+    ns.name AS 'Naming Standard'
 FROM DeliverableRoot root
 LEFT JOIN vendor ON root.vendorid = vendor.id
 LEFT JOIN componentCategory cate ON cate.CategoryId = root.categoryid
@@ -147,6 +148,7 @@ LEFT JOIN SWSetupCategory sws ON sws.ID = root.SWSetupCategoryID
 LEFT JOIN ComponentTransferServer cts ON cts.Id = root.TransferServerId
 LEFT JOIN SoftpaqCategory Sc ON Sc.id = root.SoftpaqCategoryID
 LEFT JOIN OTSFVTOrganizations og ON root.OTSFVTOrganizationID = og.id
+LEFT JOIN NamingStandard ns ON ns.NamingStandardID = root.NamingStandardId
 WHERE (
         @ComponentRootId = - 1
         OR root.id = @ComponentRootId
