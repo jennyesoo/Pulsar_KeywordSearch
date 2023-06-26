@@ -36,7 +36,8 @@ public class ProductReader : IKeywordSearchDataReader
             FillFactoryNameAsync(product),
             FillReferencePlatformAsync(product),
             FillMarketingNamesAndPHWebNamesAsync(product),
-            FillKMATAsync(product)
+            FillKMATAsync(product),
+            FillOperatingSystemAsync(product)
         };
 
         await Task.WhenAll(tasks);
@@ -59,7 +60,8 @@ public class ProductReader : IKeywordSearchDataReader
             FillFactoryNamesAsync(products),
             FillReferencePlatformAsync(products),
             FillMarketingNamesAndPHWebNamesAsync(products),
-            FillKMATAsync(products)
+            FillKMATAsync(products),
+            FillOperatingSystemAsync(products)
         };
 
         await Task.WhenAll(tasks);
@@ -572,6 +574,24 @@ WHERE (
             WHERE ProductBrandID = p.ID 
             ) > 0 
         ) 
+";
+    }
+
+    private string GetOperatingSystemText()
+    {
+        return @"
+select po.productversionid as ProductId, 
+    o.Name as ShortName,
+    po.Preinstall,
+    po.Web 
+from product_os po with (NOLOCK),
+     oslookup o with (NOLOCK) 
+where po.osid = o.id 
+    and o.id <> 16 
+    and (
+        @ProductId = - 1
+        OR po.productversionid = @ProductId
+        )
 ";
     }
 
@@ -1504,11 +1524,6 @@ WHERE (
 
             product.Delete("AllowFollowMarketingName");
             product.Delete("FusionRequirements");
-
-            if (productId == 2020)
-            {
-                Console.WriteLine("yes");
-            }
         }
     }
 
@@ -1906,6 +1921,145 @@ WHERE (
                         product.Add("Last SCM Publish " + i, kmat[productId][i].Item2);
                     }
                 }
+            }
+        }
+    }
+
+    private async Task<(Dictionary<int, string>, Dictionary<int, string>)> GetOperatingSystemAsync(int productId)
+    {
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetOperatingSystemText(), connection);
+        SqlParameter parameter = new("ProductId", productId);
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, string> operatingSystemPreinstall = new();
+        Dictionary<int, string> operatingSystemWeb = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["ProductId"].ToString(), out int dbProductId))
+            {
+                continue;
+            }
+
+            if (operatingSystemPreinstall.ContainsKey(dbProductId)
+                && string.Equals(reader["Preinstall"].ToString(), "True", StringComparison.OrdinalIgnoreCase))
+            {
+                operatingSystemPreinstall[dbProductId] += " , " + reader["ShortName"].ToString();
+            }
+            else if (!operatingSystemPreinstall.ContainsKey(dbProductId)
+                    && string.Equals(reader["Preinstall"].ToString(), "True", StringComparison.OrdinalIgnoreCase))
+            {
+                operatingSystemPreinstall[dbProductId] = reader["ShortName"].ToString();
+            }
+
+            if (operatingSystemWeb.ContainsKey(dbProductId)
+                && string.Equals(reader["Web"].ToString(), "True", StringComparison.OrdinalIgnoreCase))
+            {
+                operatingSystemWeb[dbProductId] += " , " + reader["ShortName"].ToString();
+            }
+            else if (!operatingSystemWeb.ContainsKey(dbProductId)
+                    && string.Equals(reader["Web"].ToString(), "True", StringComparison.OrdinalIgnoreCase))
+            {
+                operatingSystemWeb[dbProductId] = reader["ShortName"].ToString();
+            }
+
+        }
+        return (operatingSystemPreinstall, operatingSystemWeb);
+    }
+
+    private async Task FillOperatingSystemAsync(CommonDataModel product)
+    {
+        if (!int.TryParse(product.GetValue("Product Id"), out int productId))
+        {
+            return;
+        }
+
+        (Dictionary<int, string> preinstall, Dictionary<int, string> web) = await GetOperatingSystemAsync(productId);
+
+        if (preinstall.ContainsKey(productId)
+            && !string.IsNullOrEmpty(preinstall[productId])
+                && !string.IsNullOrWhiteSpace(preinstall[productId]))
+        {
+            product.Add("Operating System - Preinstall ", preinstall[productId]);
+        }
+
+        if (web.ContainsKey(productId)
+            && !string.IsNullOrEmpty(web[productId])
+                && !string.IsNullOrWhiteSpace(web[productId]))
+        {
+            product.Add("Operating System - Web ", web[productId]);
+        }
+    }
+
+    private async Task<(Dictionary<int, string>, Dictionary<int, string>)> GetOperatingSystemAsync()
+    {
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetOperatingSystemText(), connection);
+        SqlParameter parameter = new("ProductId", "-1");
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, string> operatingSystemPreinstall = new();
+        Dictionary<int, string> operatingSystemWeb = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["ProductId"].ToString(), out int productId))
+            {
+                continue;
+            }
+
+            if (operatingSystemPreinstall.ContainsKey(productId)
+                && string.Equals(reader["Preinstall"].ToString(), "True", StringComparison.OrdinalIgnoreCase))
+            {
+                operatingSystemPreinstall[productId] += " , " + reader["ShortName"].ToString();
+            }
+            else if (!operatingSystemPreinstall.ContainsKey(productId)
+                    && string.Equals(reader["Preinstall"].ToString(), "True", StringComparison.OrdinalIgnoreCase))
+            {
+                operatingSystemPreinstall[productId] = reader["ShortName"].ToString();
+            }
+
+            if (operatingSystemWeb.ContainsKey(productId)
+                && string.Equals(reader["Web"].ToString(), "True", StringComparison.OrdinalIgnoreCase))
+            {
+                operatingSystemWeb[productId] += " , " + reader["ShortName"].ToString();
+            }
+            else if (!operatingSystemWeb.ContainsKey(productId)
+                    && string.Equals(reader["Web"].ToString(), "True", StringComparison.OrdinalIgnoreCase))
+            {
+                operatingSystemWeb[productId] = reader["ShortName"].ToString();
+            }
+
+        }
+        return (operatingSystemPreinstall, operatingSystemWeb);
+    }
+
+    private async Task FillOperatingSystemAsync(IEnumerable<CommonDataModel> products)
+    {
+        (Dictionary<int, string> preinstall, Dictionary<int, string> web) = await GetOperatingSystemAsync();
+
+        foreach (CommonDataModel product in products)
+        {
+            if (!int.TryParse(product.GetValue("Product Id"), out int productId))
+            {
+                continue;
+            }
+
+            if (preinstall.ContainsKey(productId)
+                && !string.IsNullOrEmpty(preinstall[productId])
+                    && !string.IsNullOrWhiteSpace(preinstall[productId]))
+            {
+                product.Add("Operating System - Preinstall ", preinstall[productId]);
+            }
+
+            if (web.ContainsKey(productId)
+                && !string.IsNullOrEmpty(web[productId])
+                    && !string.IsNullOrWhiteSpace(web[productId]))
+            {
+                product.Add("Operating System - Web ", web[productId]);
             }
         }
     }
