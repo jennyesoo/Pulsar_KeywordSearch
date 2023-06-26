@@ -1,4 +1,6 @@
 ﻿using System.Reflection.Metadata;
+using System.Text;
+using System.Xml.Linq;
 using HP.Pulsar.Search.Keyword.CommonDataStructure;
 using HP.Pulsar.Search.Keyword.Infrastructure;
 using Microsoft.Data.SqlClient;
@@ -32,7 +34,9 @@ public class ProductReader : IKeywordSearchDataReader
             FillCurrentBiosVersionAsync(product),
             FillAvDetailAsync(product),
             FillFactoryNameAsync(product),
-            FillReferencePlatformAsync(product)
+            FillReferencePlatformAsync(product),
+            FillMarketingNamesAndPHWebNamesAsync(product),
+            FillKMATAsync(product)
         };
 
         await Task.WhenAll(tasks);
@@ -53,7 +57,9 @@ public class ProductReader : IKeywordSearchDataReader
             FillCurrentBiosVersionsAsync(products),
             FillAvDetailsAsync(products),
             FillFactoryNamesAsync(products),
-            FillReferencePlatformAsync(products)
+            FillReferencePlatformAsync(products),
+            FillMarketingNamesAndPHWebNamesAsync(products),
+            FillKMATAsync(products)
         };
 
         await Task.WhenAll(tasks);
@@ -162,7 +168,10 @@ SELECT p.id AS 'Product Id',
     p.MachinePNPID AS 'Machine PNP ID',
     p.RCTOSites as 'RCTO Sites',
     p.IsNdaProduct as 'Is Nda Product',
-    p.TypeId
+    p.TypeId,
+    p.ImagePO AS 'Current Image Part Number',
+    p.AllowFollowMarketingName,
+    FusionRequirements = isnull(FusionRequirements, 0)
 FROM ProductVersion p
 LEFT JOIN ProductFamily pf ON p.ProductFamilyId = pf.id
 LEFT JOIN Partner partner ON partner.id = p.PartnerId
@@ -451,6 +460,118 @@ and v2.id = v.referenceid
         @ProductId = - 1
         OR v.id = @ProductId
         )
+";
+    }
+
+    private string GetKMATText()
+    {
+        return @"
+SELECT p.ProductVersionID AS 'ProductId',
+    isnull(p.KMAT, '') AS 'KMAT', 
+    p.LastPublishDt AS 'Last SCM Publish'
+FROM Product_Brand p WITH (NOLOCK) 
+left join ProductVersion pv on pv.ProductVersionID = p.ProductVersionID 
+where pv.AllowFollowMarketingName =1
+    AND(
+        @ProductId = - 1
+        OR p.ProductVersionID = @ProductId
+        )
+";
+    }
+
+    private string GetMarketingNamesAndPHWebNamesText()
+    {
+        return @"
+SELECT p.ProductVersionId AS 'ProductId', 
+    l.ID, 
+    l.Name, 
+    l.StreetName, 
+    l.StreetName2, 
+    l.StreetName3,
+    l.Suffix, 
+    l.RASSegment, 
+    v.version AS 'ProductVersion', 
+    v.productname AS 'ProductFamily',  
+    p.ID AS 'ProductBrandID', 
+    v.dotsname AS 'ProductName', 
+    p.LastPublishDt, 
+    l.ShowSeriesNumberInLogoBadge, 
+    l.ShowSeriesNumberInBrandname, 
+    l.SplitSeriesForLogoAndBrand,  
+    l.ShowSeriesNumberInShortName,  
+    isnull(p.KMAT, '') AS 'KMAT', 
+    isnull(p.ServiceTag, '') AS 'ServiceTag', 
+    isnull(p.BIOSBranding, '') AS 'BIOSBranding', 
+    isnull(p.LogoBadge, '') AS 'LogoBadge', 
+    isnull(p.LongName, '') AS 'LongName',  
+    isnull(p.ShortName, '') AS 'ShortName', 
+    isnull(p.FamilyName, '') AS 'FamilyName', 
+    isnull(p.BrandName, '') AS 'BrandName', 
+    '' AS 'SeriesName', 
+    0 AS 'SeriesID', 
+    isnull(p.MasterLabel, '') AS 'MasterLabel', 
+    isnull(p.CTOModelNumber, '') AS 'CTOModelNumber' 
+FROM product_brand p WITH (NOLOCK) 
+INNER JOIN Brand l WITH (NOLOCK) ON p.BrandID = l.ID 
+INNER JOIN productversion v WITH (NOLOCK) ON v.id = p.ProductVersionID 
+LEFT OUTER JOIN Series s WITH (NOLOCK) ON p.ID = s.ProductBrandId 
+WHERE (
+        @ProductId = - 1
+        OR p.ProductVersionID = @ProductId
+        ) 
+    AND 
+        ( 
+            SELECT count(1) 
+            FROM Series WITH (NOLOCK) 
+            WHERE ProductBrandID = p.ID 
+            ) = 0 
+            
+UNION 
+    
+SELECT p.ProductVersionId, 
+    l.ID, 
+    Name = l.Name, 
+    l.StreetName, 
+    l.StreetName2, 
+    l.StreetName3, 
+    l.Suffix, 
+    l.RASSegment, 
+    v.version AS 'ProductVersion', 
+    v.productname AS 'ProductFamily', 
+    p.ID AS 'ProductBrandID', 
+    v.dotsname AS 'Product', 
+    p.LastPublishDt, 
+    l.ShowSeriesNumberInLogoBadge, 
+    l.ShowSeriesNumberInBrandname, 
+    l.SplitSeriesForLogoAndBrand, 
+    l.ShowSeriesNumberInShortName, 
+    isnull(p.KMAT, '') AS 'KMAT',
+    isnull(p.ServiceTag, '') AS 'ServiceTag', 
+    isnull(Series.BIOSBranding, '') AS 'BIOSBranding', 
+    isnull(Series.LogoBadge, '') AS 'LogoBadge', 
+    isnull(Series.LongName, '') AS 'LongName', 
+    isnull(Series.ShortName, '') AS 'ShortName', 
+    isnull(Series.FamilyName, '') AS 'FamilyName', 
+    isnull(Series.BrandName, '') AS 'BrandName', 
+    isnull(Series.Name, '') AS 'SeriesName', 
+    Series.ID AS 'SeriesID', 
+    isnull(Series.MasterLabel, '') AS 'MasterLabel', 
+    isnull(Series.CTOModelNumber, '') AS 'CTOModelNumber'
+FROM product_brand p WITH (NOLOCK) 
+INNER JOIN Brand l WITH (NOLOCK) ON p.BrandID = l.ID 
+INNER JOIN productversion v WITH (NOLOCK) ON v.id = p.ProductVersionID 
+LEFT OUTER JOIN Series WITH (NOLOCK) ON p.ID = Series.ProductBrandID 
+WHERE (
+        @ProductId = - 1
+        OR p.ProductVersionID = @ProductId
+        ) 
+    AND ( 
+        ( 
+            SELECT count(1) 
+            FROM Series WITH (NOLOCK) 
+            WHERE ProductBrandID = p.ID 
+            ) > 0 
+        ) 
 ";
     }
 
@@ -1216,6 +1337,575 @@ and v2.id = v.referenceid
               && referencePlatform.ContainsKey(productId))
             {
                 product.Add("Reference Platform", referencePlatform[productId]);
+            }
+        }
+    }
+
+    private async Task<Dictionary<int, List<CommonDataModel>>> GetMarketingNamesAndPHWebNamesAsync(int productId)
+    {
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetMarketingNamesAndPHWebNamesText(), connection);
+        SqlParameter parameter = new("ProductId", productId);
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, List<CommonDataModel>> marketingNamesAndPHWebNames = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["ProductId"].ToString(), out int dbProductId))
+            {
+                continue;
+            }
+
+            CommonDataModel dataModel = new();
+            int fieldCount = reader.FieldCount;
+
+            for (int i = 0; i < fieldCount; i++)
+            {
+                if (await reader.IsDBNullAsync(i))
+                {
+                    continue;
+                }
+
+                string columnName = reader.GetName(i);
+                string value = reader[i].ToString().Trim();
+
+                if (string.IsNullOrWhiteSpace(value)
+                    || string.Equals(value, "None")
+                    || columnName.Equals("ProductId", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                dataModel.Add(columnName, value);
+            }
+
+            if (!marketingNamesAndPHWebNames.ContainsKey(dbProductId))
+            {
+                marketingNamesAndPHWebNames[dbProductId] = new List<CommonDataModel> { dataModel };
+            }
+            else
+            {
+                marketingNamesAndPHWebNames[dbProductId].Add(dataModel);
+            }
+        }
+        return marketingNamesAndPHWebNames;
+    }
+
+    private async Task<Dictionary<int, List<CommonDataModel>>> GetMarketingNamesAndPHWebNamesAsync()
+    {
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetMarketingNamesAndPHWebNamesText(), connection);
+        SqlParameter parameter = new("ProductId", "-1");
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, List<CommonDataModel>> marketingNamesAndPHWebNames = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["ProductId"].ToString(), out int productId))
+            {
+                continue;
+            }
+
+            CommonDataModel dataModel = new();
+            int fieldCount = reader.FieldCount;
+
+            for (int i = 0; i < fieldCount; i++)
+            {
+                if (await reader.IsDBNullAsync(i))
+                {
+                    continue;
+                }
+
+                string columnName = reader.GetName(i);
+                string value = reader[i].ToString().Trim();
+
+                if (string.IsNullOrWhiteSpace(value)
+                    || string.Equals(value, "None")
+                    || columnName.Equals("ProductId", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                dataModel.Add(columnName, value);
+            }
+
+            if (!marketingNamesAndPHWebNames.ContainsKey(productId))
+            {
+                marketingNamesAndPHWebNames[productId] = new List<CommonDataModel> { dataModel };
+            }
+            else
+            {
+                marketingNamesAndPHWebNames[productId].Add(dataModel);
+            }
+        }
+        return marketingNamesAndPHWebNames;
+    }
+
+    private async Task FillMarketingNamesAndPHWebNamesAsync(CommonDataModel product)
+    {
+        if (!int.TryParse(product.GetValue("Product Id"), out int productId))
+        {
+            return;
+        }
+
+        Dictionary<int, List<CommonDataModel>> marketingNamesAndPHWebNames = await GetMarketingNamesAndPHWebNamesAsync(productId);
+
+        if (!marketingNamesAndPHWebNames.ContainsKey(productId)
+            || !bool.TryParse(product.GetValue("FusionRequirements"), out bool isPulsarProduct))
+        {
+            return;
+        }
+
+        List<CommonDataModel> documents = marketingNamesAndPHWebNames[productId];
+
+        for (int i = 0; i < documents.Count; i++)
+        {
+            if (!string.IsNullOrWhiteSpace(documents[i].GetValue("KMAT")))
+            {
+                await GetPHWebNamesAsync(product, documents[i], i);
+            }
+
+            await GetMarketingNamesAsync(product, documents[i], i, isPulsarProduct);
+        }
+
+        product.Delete("AllowFollowMarketingName");
+        product.Delete("FusionRequirements");
+
+    }
+
+    private async Task FillMarketingNamesAndPHWebNamesAsync(IEnumerable<CommonDataModel> products)
+    {
+        Dictionary<int, List<CommonDataModel>> marketingNamesAndPHWebNames = await GetMarketingNamesAndPHWebNamesAsync();
+
+        foreach (CommonDataModel product in products)
+        {
+            if (!int.TryParse(product.GetValue("Product Id"), out int productId)
+              || !marketingNamesAndPHWebNames.ContainsKey(productId)
+              || !bool.TryParse(product.GetValue("FusionRequirements"), out bool isPulsarProduct))
+            {
+                continue;
+            }
+
+            List<CommonDataModel> documents = marketingNamesAndPHWebNames[productId];
+
+            for (int i = 0; i < documents.Count; i++)
+            {
+                if (!string.IsNullOrWhiteSpace(documents[i].GetValue("KMAT")))
+                {
+                    await GetPHWebNamesAsync(product, documents[i], i);
+                }
+
+                await GetMarketingNamesAsync(product, documents[i], i, isPulsarProduct);
+            }
+
+            product.Delete("AllowFollowMarketingName");
+            product.Delete("FusionRequirements");
+
+            if (productId == 2020)
+            {
+                Console.WriteLine("yes");
+            }
+        }
+    }
+
+    private async Task<CommonDataModel> GetMarketingNamesAsync(CommonDataModel product, CommonDataModel marketingNamesAndPHWebNamesDocuments, int docNumber, bool isPulsarProduct)
+    {
+        if (GetLongName(marketingNamesAndPHWebNamesDocuments, out string longName))
+        {
+            product.Add("Long Name " + docNumber, longName);
+        }
+
+        if (GetShortName(marketingNamesAndPHWebNamesDocuments, out string shortName))
+        {
+            product.Add("Short Name " + docNumber, shortName);
+        }
+
+        if (GetLogoName(marketingNamesAndPHWebNamesDocuments, marketingNamesAndPHWebNamesDocuments.GetValue("LogoBadge"), isPulsarProduct, out string logoBadge))
+        {
+            product.Add("Logo Badge C Cover " + docNumber, logoBadge);
+        }
+
+        if (GetMarketingNameValue(marketingNamesAndPHWebNamesDocuments.GetValue("ServiceTag"), out string serviceTag))
+        {
+            product.Add("HP Brand Name (Service Tag up) " + docNumber, serviceTag);
+        }
+
+        if (GetMarketingNameValue(marketingNamesAndPHWebNamesDocuments.GetValue("BIOSBranding"), out string biosBranding))
+        {
+            product.Add("BIOS Branding " + docNumber, biosBranding);
+        }
+
+        if (GetMarketingNameValue(marketingNamesAndPHWebNamesDocuments.GetValue("MasterLabel"), out string modelNumber))
+        {
+            product.Add("Model Number (Service Tag down) " + docNumber, modelNumber);
+        }
+
+        if (GetMarketingNameValue(marketingNamesAndPHWebNamesDocuments.GetValue("CTOModelNumber"), out string ctoModel))
+        {
+            product.Add("CTO Model Number " + docNumber, ctoModel);
+        }
+
+        return product;
+    }
+
+    private static bool GetLogoName(CommonDataModel item, string logoBadge, bool isPulsarProduct, out string resultValue)
+    {
+        resultValue = string.Empty;
+        string logoNameInnerValue = $"{item.GetValue("StreetName3")}";
+
+        if (item.GetValue("ShowSeriesNumberInLogoBadge").Equals("True", StringComparison.OrdinalIgnoreCase)
+            && item.GetValue("SplitSeriesForLogoAndBrand").Equals("True", StringComparison.OrdinalIgnoreCase))
+        {
+            logoNameInnerValue += $" {GetIntPrefix(item.GetValue("SeriesName"))}";
+        }
+        else if (item.GetValue("ShowSeriesNumberInLogoBadge").Equals("True", StringComparison.OrdinalIgnoreCase))
+        {
+            logoNameInnerValue += $"{item.GetValue("SeriesName")}";
+        }
+
+        StringBuilder stringBuilder = new StringBuilder();
+        if (string.IsNullOrEmpty(logoBadge))
+        {
+            logoNameInnerValue = $"{item.GetValue("StreetName3")}";
+
+            if (item.GetValue("ShowSeriesNumberInLogoBadge").Equals("True", StringComparison.OrdinalIgnoreCase))
+            {
+                if (item.GetValue("SplitSeriesForLogoAndBrand").Equals("True", StringComparison.OrdinalIgnoreCase))
+                {
+                    logoNameInnerValue += $" {GetIntPrefix(item.GetValue("SeriesName"))}";
+                }
+                else
+                {
+                    stringBuilder.Append(GetIntPrefix(item.GetValue("SeriesName")));
+                }
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(logoBadge) && !string.IsNullOrEmpty(logoNameInnerValue))
+        {
+            if (!isPulsarProduct)
+            {
+                resultValue = stringBuilder.Append($"{logoBadge.Trim()}").ToString();
+                return true;
+            }
+
+            resultValue = stringBuilder.Append(logoBadge.Trim()).ToString();
+            return true;
+        }
+        else if (!string.IsNullOrEmpty(logoNameInnerValue))
+        {
+            if (!isPulsarProduct)
+            {
+                resultValue = stringBuilder.Append($"{logoNameInnerValue.Trim()}").ToString();
+                return true;
+            }
+
+            resultValue = stringBuilder.Append(logoNameInnerValue.Trim()).ToString();
+            return true;
+        }
+        else if (!isPulsarProduct)
+        {
+            resultValue = stringBuilder.ToString();
+            if (!string.IsNullOrEmpty(resultValue))
+            {
+                return true;
+            }
+            return false;
+        }
+
+        resultValue = stringBuilder.Append(logoBadge).ToString();
+        return true;
+    }
+
+    public static int GetIntPrefix(string text)
+    {
+        if (!string.IsNullOrWhiteSpace(text))
+        {
+            text = text.TrimStart();
+            for (int size = text.Length; size > 0; size--)
+            {
+                if (int.TryParse(text.Substring(0, size), out int result))
+                {
+                    return result;
+                }
+            }
+        }
+
+        return 0;
+    }
+
+    private static bool GetShortName(CommonDataModel item, out string resultValue)
+    {
+        string shortNameInnerValue = string.Empty;
+
+        if (!string.IsNullOrEmpty(item.GetValue("ShortName")))
+        {
+            shortNameInnerValue = item.GetValue("ShortName");
+        }
+        else
+        {
+            shortNameInnerValue += $"{item.GetValue("StreetName2")} ";
+
+            //TODO - test item.GetValue("ShowSeriesNumberInShortName") value?
+            if (item.GetValue("ShowSeriesNumberInShortName").Equals("True", StringComparison.OrdinalIgnoreCase))
+            {
+                shortNameInnerValue += item.GetValue("SeriesName");
+            }
+        }
+        bool result = GetMarketingNameValue(shortNameInnerValue, out string markingNameResult);
+        resultValue = markingNameResult;
+        return result;
+    }
+
+    private static bool GetMarketingNameValue(string marketingName, out string resultValue)
+    {
+        resultValue = string.Empty;
+
+        if (!string.IsNullOrEmpty(marketingName))
+        {
+            resultValue = marketingName.Trim();
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool GetLongName(CommonDataModel item, out string longName)
+    {
+        longName = string.Empty;
+
+        if (!string.IsNullOrEmpty(item.GetValue("LongName")))
+        {
+            longName = item.GetValue("LongName");
+            return true;
+        }
+
+        if (!string.IsNullOrEmpty(item.GetValue("StreetName")))
+        {
+            longName = $"{item.GetValue("StreetName")} {item.GetValue("SeriesName")}";
+
+            if (!string.IsNullOrEmpty(item.GetValue("Suffix")))
+            {
+                longName += $" {item.GetValue("Suffix")}";
+            }
+        }
+
+        if (string.IsNullOrEmpty(longName))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private async Task<CommonDataModel> GetPHWebNamesAsync(CommonDataModel product, CommonDataModel marketingNamesAndPHWebNamesDocuments, int docNumber)
+    {
+        if (GetBrandName(marketingNamesAndPHWebNamesDocuments, out string brandName))
+        {
+            product.Add("Brand Name " + docNumber, brandName);
+        }
+
+        if (GetFamilyName(marketingNamesAndPHWebNamesDocuments, out string familyName))
+        {
+            product.Add("Family Name " + docNumber, familyName);
+        }
+
+        if (!string.IsNullOrEmpty(marketingNamesAndPHWebNamesDocuments.GetValue("KMAT")))
+        {
+            product.Add("KMAT " + docNumber, marketingNamesAndPHWebNamesDocuments.GetValue("KMAT"));
+        }
+
+        if (!string.IsNullOrEmpty(marketingNamesAndPHWebNamesDocuments.GetValue("LastPublishDt")))
+        {
+            product.Add("Last SCM Publish " + docNumber, marketingNamesAndPHWebNamesDocuments.GetValue("LastPublishDt"));
+        }
+
+        return product;
+    }
+
+    private static bool GetBrandName(CommonDataModel item, out string brandName)
+    {
+        if (string.IsNullOrEmpty(item.GetValue("BrandName")))
+        {
+            brandName = $"{item.GetValue("streetname")} {item.GetValue("SeriesName")}";
+
+            if (!string.IsNullOrEmpty(brandName))
+            {
+                return true;
+            }
+
+            return false;
+        }
+        else
+        {
+            brandName = item.GetValue("BrandName");
+            return true;
+        }
+    }
+
+    private static bool GetFamilyName(CommonDataModel item, out string familyName)
+    {
+        if (!string.IsNullOrEmpty(item.GetValue("FamilyName")))
+        {
+            familyName = item.GetValue("FamilyName");
+            return true;
+        }
+
+        if (string.IsNullOrEmpty(item.GetValue("ProductVersion")))
+        {
+            familyName = $"{item.GetValue("ProductName")} {item.GetValue("RASSegment")}-{item.GetValue("StreetName")} {item.GetValue("SeriesName")}";
+
+            if (!string.IsNullOrEmpty(familyName))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        if (item.GetValue("ProductFamily").Equals("davos", StringComparison.OrdinalIgnoreCase) && item.GetValue("ProductVersion").Substring(item.GetValue("ProductVersion").Length - 3, 3).Equals("1.0"))
+        {
+            familyName = $"{item.GetValue("ProductName")}X - {item.GetValue("StreetName")}";
+
+            if (!string.IsNullOrEmpty(familyName))
+            {
+                return true;
+            }
+
+            return false;
+        }
+        else if (int.TryParse(item.GetValue("ProductVersion").Substring(item.GetValue("ProductVersion").Length - 1, 1), out int number))
+        {
+            familyName = $"{item.GetValue("ProductName").Substring(0, item.GetValue("ProductName").Length - item.GetValue("ProductVersion").Length)} {item.GetValue("RASSegment")} {item.GetValue("ProductVersion").Substring(0, item.GetValue("ProductVersion").Length - 1)} X - {item.GetValue("StreetName")}";
+
+            if (!string.IsNullOrEmpty(familyName))
+            {
+                return true;
+            }
+
+            return false;
+        }
+        else if (item.GetValue("ProductVersion").Length > 1)
+        {
+            familyName = $"{item.GetValue("ProductName").Substring(0, item.GetValue("ProductName").Length - item.GetValue("ProductVersion").Length)} {item.GetValue("RASSegment")} {item.GetValue("ProductVersion").Substring(0, item.GetValue("ProductVersion").Length - 2)} X - {item.GetValue("StreetName")}";
+
+            if (!string.IsNullOrEmpty(familyName))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        familyName = $"{item.GetValue("ProductName").Substring(0, item.GetValue("ProductName").Length - item.GetValue("ProductVersion").Length)} {item.GetValue("RASSegment")} {item.GetValue("ProductVersion")} X - {item.GetValue("StreetName")}";
+
+        if (!string.IsNullOrEmpty(familyName))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private async Task FillKMATAsync(CommonDataModel product)
+    {
+        if (!int.TryParse(product.GetValue("Product Id"), out int productId))
+        {
+            return;
+        }
+
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetKMATText(), connection);
+        SqlParameter parameter = new("ProductId", productId);
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, List<(string, string)>> kmat = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["ProductId"].ToString(), out int dbProductId))
+            {
+                continue;
+            }
+
+            if (!kmat.ContainsKey(dbProductId))
+            {
+                kmat[dbProductId] = new List<(string, string)>() { (reader["KMAT"].ToString(), reader["Last SCM Publish"].ToString()) };
+            }
+            else
+            {
+                kmat[dbProductId].Add((reader["KMAT"].ToString(), reader["Last SCM Publish"].ToString()));
+            }
+        }
+
+        if (kmat.ContainsKey(productId))
+        {
+            for (int i = 0; i < kmat[productId].Count; i++)
+            {
+                if (!string.IsNullOrEmpty(kmat[productId][i].Item1))
+                {
+                    product.Add("KMAT " + i, kmat[productId][i].Item1);
+                }
+
+                if (!string.IsNullOrEmpty(kmat[productId][i].Item2))
+                {
+                    product.Add("Last SCM Publish " + i, kmat[productId][i].Item2);
+                }
+            }
+        }
+    }
+
+    private async Task FillKMATAsync(IEnumerable<CommonDataModel> products)
+    {
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetKMATText(), connection);
+        SqlParameter parameter = new("ProductId", "-1");
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, List<(string, string)>> kmat = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["ProductId"].ToString(), out int productId))
+            {
+                continue;
+            }
+
+            if (!kmat.ContainsKey(productId))
+            {
+                kmat[productId] = new List<(string, string)>() { (reader["KMAT"].ToString(), reader["Last SCM Publish"].ToString()) };
+            }
+            else
+            {
+                kmat[productId].Add((reader["KMAT"].ToString(), reader["Last SCM Publish"].ToString()));
+            }
+        }
+
+        foreach (CommonDataModel product in products)
+        {
+            if (int.TryParse(product.GetValue("Product Id"), out int productId)
+              && kmat.ContainsKey(productId))
+            {
+                for (int i = 0; i < kmat[productId].Count; i++)
+                {
+                    if (!string.IsNullOrEmpty(kmat[productId][i].Item1)
+                        && !string.IsNullOrWhiteSpace(kmat[productId][i].Item1))
+                    {
+                        product.Add("KMAT " + i, kmat[productId][i].Item1);
+                    }
+
+                    if (!string.IsNullOrEmpty(kmat[productId][i].Item2)
+                        && !string.IsNullOrWhiteSpace(kmat[productId][i].Item2))
+                    {
+                        product.Add("Last SCM Publish " + i, kmat[productId][i].Item2);
+                    }
+                }
             }
         }
     }
