@@ -85,13 +85,20 @@ SELECT di.id AS 'Change Request Id',
     di.RTPDate as 'RTP Date',
     di.RASDiscoDate as 'End of Manufacturing',
     di.OnStatusReport as 'Status Report',
-    di.Notify as 'Notify on Approval'
+    di.Notify as 'Notify on Approval',
+    ui2.FullName + ' ' + ui2.LastName AS 'BIOS PM',
+    di.Attachment1 AS 'Attachment 1',
+    di.Attachment2 AS 'Attachment 2',
+    di.Attachment3 AS 'Attachment 3',
+    di.Attachment4 AS 'Attachment 4',
+    di.Attachment5 AS 'Attachment 5'
 FROM Deliverableissues di
 LEFT JOIN DeliverableRoot DR ON DR.id = di.DeliverableRootID
 LEFT JOIN ProductVersion pv ON pv.id = di.ProductVersionID
 LEFT JOIN ActionStatus AStatus ON AStatus.id = di.STATUS
 LEFT JOIN UserInfo ui ON ui.userid = di.OwnerID
 LEFT JOIN UserInfo us ON us.userid = di.SubmitterID
+LEFT JOIN UserInfo ui2 on ui2.userid = di.BiosPmId
 WHERE (
         @ChangeRequestId = - 1
         OR di.Id = @ChangeRequestId

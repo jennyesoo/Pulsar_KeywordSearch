@@ -31,6 +31,11 @@ public static class CommonDataTransformer
         {
             propertyValue = date.ToString("yyyy/MM/dd");
         }
+        else if (datePropertyList.Any(element => propertyName.IndexOf(element, StringComparison.OrdinalIgnoreCase) >= 0)
+            && TryParseDate(propertyValue, out DateTime date1))
+        {
+            propertyValue = date1.ToString("yyyy/MM/dd");
+        }
 
         return propertyValue;
     }

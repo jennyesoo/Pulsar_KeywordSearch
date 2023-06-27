@@ -205,7 +205,27 @@ public class ComponentVersionReader : IKeywordSearchDataReader
         WHEN root.TypeID = 8
             THEN 'Factory'
         END AS 'Component Type',
-    root.Softpaq As 'Rom Components Softpaq'
+    root.Softpaq As 'Rom Components Softpaq',
+    CASE WHEN dv.IntroConfidence = 0 
+            THEN ''
+         WHEN dv.IntroConfidence = 1 
+            THEN 'High'
+         WHEN dv.IntroConfidence = 2 
+            THEN 'Medium'
+         WHEN dv.IntroConfidence = 3 
+            THEN 'Low'
+         END AS 'Confidence',
+    CASE WHEN dv.SamplesConfidence = 0 
+            THEN ''
+         WHEN dv.SamplesConfidence = 1 
+            THEN 'High'
+         WHEN dv.SamplesConfidence = 2 
+            THEN 'Medium'
+         WHEN dv.SamplesConfidence = 3 
+            THEN 'Low'
+         END AS 'Samples Confidence',
+    Dv.CVASubPath AS 'CVA Path',
+    Dv.ServiceEOADate AS 'Service Team - Available Until'
 FROM DeliverableVersion Dv
 LEFT JOIN ComponentPrismSWType CPSW ON CPSW.PRISMTypeID = Dv.PrismSWType
 LEFT JOIN userinfo user1 ON user1.userid = Dv.DeveloperID

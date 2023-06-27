@@ -27,7 +27,6 @@ internal class ComponentRootReader : IKeywordSearchDataReader
 
         List<Task> tasks = new()
         {
-            FillProductListAsync(componentRoot),
             FillTrulyLinkedFeatureAsync(componentRoot),
             FillLinkedFeatureAsync(componentRoot),
             FillComponentInitiatedLinkageAsync(componentRoot)
@@ -44,7 +43,6 @@ internal class ComponentRootReader : IKeywordSearchDataReader
         List<Task> tasks = new()
         {
             HandlePropertyValueAsync(componentRoot),
-            FillProductListAsync(componentRoot),
             FillTrulyLinkedFeaturesAsync(componentRoot),
             FillLinkedFeaturesAsync(componentRoot),
             FillComponentInitiatedLinkageAsync(componentRoot)
@@ -135,7 +133,8 @@ internal class ComponentRootReader : IKeywordSearchDataReader
     root.Rompaq as 'Rompaq Binary',
     root.PreinstallROM as 'ROM Components Preinstall',
     root.CAB,
-    root.Softpaq AS 'ROM component Softpaq'
+    root.Softpaq AS 'ROM component Softpaq',
+    ns.name AS 'Naming Standard'
 FROM DeliverableRoot root
 LEFT JOIN vendor ON root.vendorid = vendor.id
 LEFT JOIN componentCategory cate ON cate.CategoryId = root.categoryid
@@ -149,6 +148,7 @@ LEFT JOIN SWSetupCategory sws ON sws.ID = root.SWSetupCategoryID
 LEFT JOIN ComponentTransferServer cts ON cts.Id = root.TransferServerId
 LEFT JOIN SoftpaqCategory Sc ON Sc.id = root.SoftpaqCategoryID
 LEFT JOIN OTSFVTOrganizations og ON root.OTSFVTOrganizationID = og.id
+LEFT JOIN NamingStandard ns ON ns.NamingStandardID = root.NamingStandardId
 WHERE (
         @ComponentRootId = - 1
         OR root.id = @ComponentRootId
@@ -209,39 +209,6 @@ WHERE (
         OR fril.ComponentRootId = @ComponentRootId
         )
 ";
-    }
-
-    private string GetTSQLProductListCommandText()
-    {
-        return @"SELECT DR.Id AS ComponentRootId,
-    stuff((
-            SELECT ' , ' + (CONVERT(VARCHAR, p.Id) + ' ' + p.DOTSName)
-            FROM ProductVersion p
-            LEFT JOIN ProductStatus ps ON ps.id = p.ProductStatusID
-            LEFT JOIN Product_DelRoot pr ON pr.ProductVersionId = p.id
-            LEFT JOIN DeliverableRoot root ON root.Id = pr.DeliverableRootId
-            WHERE root.Id = DR.Id
-                AND ps.Name <> 'Inactive'
-                AND p.FusionRequirements = 1
-            ORDER BY root.Id
-            FOR XML path('')
-            ), 1, 3, '') AS ProductList
-FROM DeliverableRoot DR
-WHERE (
-        @ComponentRootId = - 1
-        OR DR.Id = @ComponentRootId
-        )
-GROUP BY DR.Id
-";
-
-        //SELECT p.dotsname, r.Name
-        //FROM DeliverableRoot root
-        //join Product_DelRoot pr on root.Id = pr.DeliverableRootId
-        //join ProductVersion p on pr.ProductVersionID = p.id
-        //join ProductVersion_Release pr2 on pr2.ProductVersionID = p.Id
-        //join ProductVersionRelease r on r.Id = pr2.ReleaseId
-        //where root.id = 36886
-        //order by p.dotsname
     }
 
     private async Task<CommonDataModel> GetComponentRootAsync(int componentRootId)
@@ -333,64 +300,6 @@ GROUP BY DR.Id
             output.Add(root);
         }
         return output;
-    }
-
-    private async Task FillProductListAsync(CommonDataModel componentRoot)
-    {
-        if (!int.TryParse(componentRoot.GetValue("Component Root Id"), out int componentRootId))
-        {
-            return;
-        }
-        using SqlConnection connection = new(_info.DatabaseConnectionString);
-        await connection.OpenAsync();
-        SqlCommand command = new(GetTSQLProductListCommandText(), connection);
-        SqlParameter parameter = new("ComponentRootId", componentRootId);
-        command.Parameters.Add(parameter);
-        using SqlDataReader reader = command.ExecuteReader();
-        Dictionary<int, string> productList = new();
-
-        if (!await reader.ReadAsync())
-        {
-            return;
-        }
-
-        if (int.TryParse(reader["ComponentRootId"].ToString(), out int dbComponentRootId))
-        {
-            productList[dbComponentRootId] = reader["ProductList"].ToString();
-        }
-
-        if (productList.ContainsKey(componentRootId))
-        {
-            componentRoot.Add("Product List", productList[componentRootId]);
-        }
-    }
-
-    private async Task FillProductListAsync(IEnumerable<CommonDataModel> componentRoots)
-    {
-        using SqlConnection connection = new(_info.DatabaseConnectionString);
-        await connection.OpenAsync();
-        SqlCommand command = new(GetTSQLProductListCommandText(), connection);
-        SqlParameter parameter = new("ComponentRootId", "-1");
-        command.Parameters.Add(parameter);
-        using SqlDataReader reader = command.ExecuteReader();
-        Dictionary<int, string> productList = new();
-
-        while (await reader.ReadAsync())
-        {
-            if (int.TryParse(reader["ComponentRootId"].ToString(), out int componentRootId))
-            {
-                productList[componentRootId] = reader["ProductList"].ToString();
-            }
-        }
-
-        foreach (CommonDataModel root in componentRoots)
-        {
-            if (int.TryParse(root.GetValue("Component Root Id"), out int componentRootId)
-            && productList.ContainsKey(componentRootId))
-            {
-                root.Add("Product List", productList[componentRootId]);
-            }
-        }
     }
 
     private static CommonDataModel HandlePropertyValue(CommonDataModel componentRoot)

@@ -75,13 +75,30 @@ SELECT F.FeatureId as 'Feature Id',
     F.Updated,
     F.overrideReason as 'Previous Reason for Override Request',
     pcc.PRLBaseUnitGroupName AS 'Platform Name',
-    o.Name AS 'Linked Operating System'
+    o.Name AS 'Linked Operating System',
+    ns.name AS 'Naming Standard',
+    F.GPGPHweb40_NB As 'GPG-PHweb(40c AV) for NB',
+    F.GPSy40_NB AS 'GPSy (40c AV) for NB',
+    F.PMG100_NB AS 'PMG (100c AV) for NB',
+    F.PMG250_NB AS 'PMG (250c AV) for NB',
+    F.GPGPHweb40_DT AS 'GPG-PHweb (40c AV) for DT',
+    F.GPSy40_DT AS 'GPSy (40c AV) for DT',
+    F.PMG100_DT AS 'PMG (100c AV) for DT',
+    F.PMG250_DT AS 'PMG (250c AV) for DT',
+    F.SpecControl AS 'Marketing Tech Spec Terminology',
+    F.FeatureValue AS 'Feature Value (40c AV)',
+    F.MS4Attribute AS 'MS4 Attribute',
+    F.GPGPHweb40_AMO AS 'GPG-PHweb (40c) for AMO',
+    F.GPSy40_AMO AS 'GPSy (40c) for AMO',
+    F.PMG100_AMO AS 'PMG (100c) for AMO',
+    F.PMG250_AMO AS 'PMG (250c) for AMO'
 FROM Feature F
 LEFT JOIN FeatureCategory Fc ON Fc.FeatureCategoryID = F.FeatureCategoryID
 LEFT JOIN DeliveryType Dt ON Dt.DeliveryTypeID = F.DeliveryTypeID
 LEFT JOIN FeatureStatus Fs ON Fs.StatusID = F.StatusID
 LEFT JOIN PlatformChassisCategory pcc ON pcc.PlatformID = f.PlatformID
 LEFT JOIN OSLookup o ON o.id = F.osid
+LEFT JOIN NamingStandard ns on ns.NamingStandardID = F.NamingStandardId
 WHERE (
         @FeatureId = - 1
         OR F.FeatureId = @FeatureId
