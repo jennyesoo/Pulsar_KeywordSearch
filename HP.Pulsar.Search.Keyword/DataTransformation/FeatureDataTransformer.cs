@@ -12,7 +12,7 @@ public class FeatureDataTransformer
     {
         if (!features.Any())
         {
-            return null;
+            return features;
         }
 
         foreach (CommonDataModel feature in features)
@@ -40,7 +40,7 @@ public class FeatureDataTransformer
     {
         if (!feature.GetElements().Any())
         {
-            return null;
+            return feature;
         }
 
         foreach (string key in feature.GetKeys())

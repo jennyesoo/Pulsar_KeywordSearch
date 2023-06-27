@@ -1,5 +1,4 @@
-﻿using HP.Pulsar.Search.Keyword.SearchEngine;
-using HP.Pulsar.Search.Keyword.Infrastructure;
+﻿using HP.Pulsar.Search.Keyword.Infrastructure;
 
 namespace HP.Pulsar.Search.Keyword.Orchestrator;
 
@@ -23,13 +22,9 @@ public class InitializationClient
 
     public async Task InitAsync()
     {
-        List<Task> tasks = new();
-
         foreach (IInitializationOrchestrator item in _orchestrators)
         {
-            tasks.Add(item.InitializeAsync());
+            await item.InitializeAsync();
         }
-
-        await Task.WhenAll(tasks);
     }
 }

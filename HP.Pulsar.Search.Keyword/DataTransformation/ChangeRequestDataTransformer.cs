@@ -1,18 +1,17 @@
-﻿using System.Globalization;
-using HP.Pulsar.Search.Keyword.CommonDataStructure;
+﻿using HP.Pulsar.Search.Keyword.CommonDataStructure;
 
 namespace HP.Pulsar.Search.Keyword.DataTransformation;
 
 public class ChangeRequestDataTransformer : IDataTransformer
 {
-    private static readonly List<string> _datePropertyList = new() { "Date Submitted", "Date Closed", "Target Approval Date", "RTP Date", "End of Manufacturing" , "Samples Available" };
+    private static readonly List<string> _datePropertyList = new() { "Date Submitted", "Date Closed", "Target Approval Date", "RTP Date", "End of Manufacturing", "Samples Available" };
     private static readonly List<string> _userNamePropertyList = new() { "Approvers" };
 
     public IEnumerable<CommonDataModel> Transform(IEnumerable<CommonDataModel> changeRequests)
     {
         if (!changeRequests.Any())
         {
-            return null;
+            return changeRequests;
         }
 
         foreach (CommonDataModel dcr in changeRequests)
@@ -40,7 +39,7 @@ public class ChangeRequestDataTransformer : IDataTransformer
     {
         if (!changeRequest.GetElements().Any())
         {
-            return null;
+            return changeRequest;
         }
 
         foreach (string key in changeRequest.GetKeys())

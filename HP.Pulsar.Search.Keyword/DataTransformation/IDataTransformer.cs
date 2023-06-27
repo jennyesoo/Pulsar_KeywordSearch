@@ -6,5 +6,4 @@ internal interface IDataTransformer
 {
     IEnumerable<CommonDataModel> Transform(IEnumerable<CommonDataModel> models);
     CommonDataModel Transform(CommonDataModel model);
-
 }

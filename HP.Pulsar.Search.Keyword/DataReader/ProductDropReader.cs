@@ -23,7 +23,7 @@ internal class ProductDropReader : IKeywordSearchDataReader
         }
 
         HandlePropertyValue(productDrop);
-        
+
         List<Task> tasks = new()
         {
             FillOwnerbyAsync(productDrop),

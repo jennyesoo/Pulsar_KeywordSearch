@@ -11,7 +11,7 @@ internal class ComponentRootTransformer : IDataTransformer
     {
         if (!componentRoots.Any())
         {
-            return null;
+            return componentRoots;
         }
 
         foreach (CommonDataModel root in componentRoots)
@@ -39,7 +39,7 @@ internal class ComponentRootTransformer : IDataTransformer
     {
         if (!componentRoot.GetElements().Any())
         {
-            return null;
+            return componentRoot;
         }
 
         foreach (string key in componentRoot.GetKeys())

@@ -16,23 +16,25 @@ internal class Program
         KeywordSearchInfo info = new()
         {
             DatabaseConnectionString = "server=TdcPulsarItgDb.tpc.rd.hpicorp.net;initial catalog=PRS;integrated security=SSPI",
-            SearchEngineUrl = "http://15.36.147.177:7700/",
-            SearchEngineIndexName = "pulsar"
+            SearchEngineUrl = "http://15.36.147.177:7702/"
         };
 
         // init
         //InitializationClient init = new(info);
         //await init.InitAsync();
 
-        //// search
-        SearchClient searchClient = new SearchClient(info);
-        IReadOnlyDictionary<SearchType, List<SingleOutputModel>> models = await searchClient.SearchAsync("Lee Jovi");
+        // search
+        SearchClient searchClient = new(info);
+        IReadOnlyDictionary<SearchType, IEnumerable<SingleOutputModel>> models = await searchClient.SearchAsync("Lee Jovi");
 
-        //DateTime end = DateTime.Now;
-        //Console.WriteLine("total seconds = " + (end - start).TotalSeconds);
+        DateTime end = DateTime.Now;
+        Console.WriteLine("total seconds = " + (end - start).TotalSeconds);
 
         //update
         //UpdateClient updateClient = new UpdateClient(info);
         //await updateClient.UpdateAsync(SearchType.Version, 2018);
+
+        Console.WriteLine("Press any key to exit...");
+        Console.Read();
     }
 }

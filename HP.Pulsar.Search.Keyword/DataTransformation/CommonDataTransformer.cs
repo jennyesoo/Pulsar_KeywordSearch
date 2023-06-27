@@ -40,7 +40,6 @@ public static class CommonDataTransformer
         return propertyValue;
     }
 
-
     private static string AdjustUserName(List<string> userNamePropertyList, ref string propertyValue, string propertyName)
     {
         if (string.IsNullOrWhiteSpace(propertyValue)
@@ -54,8 +53,8 @@ public static class CommonDataTransformer
             && propertyValue.Contains(","))
         {
             string[] temp = propertyValue.Split(',');
-            
-            if (temp.Length != 2) 
+
+            if (temp.Length != 2)
             {
                 return propertyValue;
             }

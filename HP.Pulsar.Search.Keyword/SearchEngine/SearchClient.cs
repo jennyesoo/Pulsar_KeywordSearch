@@ -7,48 +7,60 @@ namespace HP.Pulsar.Search.Keyword.SearchEngine;
 
 public class SearchClient
 {
-    private readonly MeiliSearchClient _client;
+    private readonly MeiliSearchClient _productClient;
+    private readonly MeiliSearchClient _rootClient;
+    private readonly MeiliSearchClient _versionClient;
+    private readonly MeiliSearchClient _dcrClient;
+    private readonly MeiliSearchClient _productDropClient;
+    private readonly MeiliSearchClient _featureClient;
+    private readonly MeiliSearchClient _amoPartNumberClient;
 
     private static readonly List<Regex> _pattern = new()
         {
-            //This pattern accepts special character in Avdetial
+            //This pattern accepts special character in Av detial
             new Regex(@"[A-Za-z0-9]{4}[0-9]{1}[A-Za-z]{2}", RegexOptions.IgnoreCase),
-            //This pattern accepts special character in Avdetial
+            //This pattern accepts special character in Av detial
             new Regex(@"[A-Za-z0-9]{5}[A-Za-z]{1}[A-Za-z0-9]{1}#[A-Za-z0-9]{1}", RegexOptions.IgnoreCase),
-            //This pattern accepts special character in Avdetial
+            //This pattern accepts special character in Av detial
             new Regex(@"[A-Za-z0-9]{3}[0-9]{2}AV#[A-Za-z0-9]{3}", RegexOptions.IgnoreCase),
-            //This pattern accepts special character in PartNumber
+            //This pattern accepts special character in Part Number
             new Regex(@"[A-Za-z0-9]{1}[0-9]{2}[A-Za-z0-9]{3}\-[A-Za-z0-9]{3}", RegexOptions.IgnoreCase),
-            //This pattern accepts special character in PartNumber
+            //This pattern accepts special character in Part Number
             new Regex(@"[A-Za-z]{3}[0-9]{2}[A-Za-z]{2}[A-Za-z0-9\#]{6}", RegexOptions.IgnoreCase),
-            //This pattern accepts special character in PartNumber
+            //This pattern accepts special character in Part Number
             new Regex(@"[A-Za-z]{3}[0-9]{4}[A-Za-z]{5}[A-Za-z0-9]{1}", RegexOptions.IgnoreCase),
-            //This pattern accepts special character in PartNumber
+            //This pattern accepts special character in Part Number
             new Regex(@"[A-Za-z]{3}[0-9]{2}[A-Za-z]{2}[A-Za-z0-9]{7}", RegexOptions.IgnoreCase),
-            //This pattern accepts special character in PartNumber
+            //This pattern accepts special character in Part Number
             new Regex(@"[A-Za-z]{3}[0-9]{4}[A-Za-z]{4}[A-Za-z0-9]{3}", RegexOptions.IgnoreCase),
-            //This pattern accepts special character in PartNumber
+            //This pattern accepts special character in Part Number
             new Regex(@"IRS[A-Za-z]{6}[0-9]{6}", RegexOptions.IgnoreCase),
-            //This pattern accepts special character in PartNumber
+            //This pattern accepts special character in Part Number
             new Regex(@"[A-Za-z]{3}[0-9]{2}[A-Za-z]{2}[A-Za-z0-9]{8}", RegexOptions.IgnoreCase),
-            //This pattern accepts special character in MLName
+            //This pattern accepts special character in ML Name
             new Regex(@"[0-9]{2}[A-Za-z]{2}[A-Za-z0-9]{3}[A-Za-z]{1}[A-Za-z0-9]{3}", RegexOptions.IgnoreCase),
-            //This pattern accepts special character in MLName
+            //This pattern accepts special character in ML Name
             new Regex(@"[0-9]{2}[A-Za-z0-9]{2}[A-Za-z]{3}[A-Za-z0-9\#]{3}", RegexOptions.IgnoreCase),
-            //This pattern accepts special character with english word and number
+            //This pattern accepts special character with English word and number
             new Regex(@".*(([A-Za-z]+[0-9]+)+|([0-9]+[A-Za-z]+)+).*", RegexOptions.IgnoreCase)
         };
 
     public SearchClient(KeywordSearchInfo info)
     {
-        _client = new MeiliSearchClient(info.SearchEngineUrl, info.SearchEngineIndexName);
+        _productClient = new MeiliSearchClient(info.SearchEngineUrl, IndexName.Product);
+        _rootClient = new MeiliSearchClient(info.SearchEngineUrl, IndexName.ComponentRoot);
+        _versionClient = new MeiliSearchClient(info.SearchEngineUrl, IndexName.ComponentVersion);
+        _dcrClient = new MeiliSearchClient(info.SearchEngineUrl, IndexName.Dcr);
+        _productDropClient = new MeiliSearchClient(info.SearchEngineUrl, IndexName.ProductDrop);
+        _featureClient = new MeiliSearchClient(info.SearchEngineUrl, IndexName.Feature);
+        _amoPartNumberClient = new MeiliSearchClient(info.SearchEngineUrl, IndexName.AmoPartNumber);
     }
 
-    public async Task<IReadOnlyDictionary<SearchType, List<SingleOutputModel>>> SearchAsync(string input)
+    public async Task<IReadOnlyDictionary<SearchType, IEnumerable<SingleOutputModel>>> SearchAsync(string input)
     {
         if (string.IsNullOrWhiteSpace(input))
         {
-            return new Dictionary<SearchType, List<SingleOutputModel>>();
+            return new Dictionary<SearchType, IEnumerable<SingleOutputModel>>();
         }
 
         //pre-process
@@ -59,9 +71,27 @@ public class SearchClient
             Q = string.Join(" ", handledInput)
         };
 
-        IReadOnlyDictionary<SearchType, List<SingleOutputModel>> models = await _client.SearchAsync(searchQuery);
+        Task<IEnumerable<SingleOutputModel>>[] tasks = new Task<IEnumerable<SingleOutputModel>>[7];
+        tasks[0] = _productClient.SearchAsync(searchQuery);
+        tasks[1] = _rootClient.SearchAsync(searchQuery);
+        tasks[2] = _versionClient.SearchAsync(searchQuery);
+        tasks[3] = _dcrClient.SearchAsync(searchQuery);
+        tasks[4] = _productDropClient.SearchAsync(searchQuery);
+        tasks[5] = _featureClient.SearchAsync(searchQuery);
+        tasks[6] = _amoPartNumberClient.SearchAsync(searchQuery);
+
+        await Task.WhenAll(tasks);
 
         // TODO - post-process 
+
+        Dictionary<SearchType, IEnumerable<SingleOutputModel>> models = new();
+        models[SearchType.Product] = tasks[0].Result;
+        models[SearchType.Root] = tasks[1].Result;
+        models[SearchType.Version] = tasks[2].Result;
+        models[SearchType.DCR] = tasks[3].Result;
+        models[SearchType.ProductDrop] = tasks[4].Result;
+        models[SearchType.Feature] = tasks[5].Result;
+        models[SearchType.AmoPartNumber] = tasks[6].Result;
 
         return models;
     }

@@ -4,14 +4,14 @@ namespace HP.Pulsar.Search.Keyword.DataTransformation;
 
 public class ProductDataTransformer : IDataTransformer
 {
-    private static readonly List<string> _datePropertyList = new() { "End Of Sales", "created date", "latest update date", "End Of Production" , "End Of Service" , "Last SCM Publish" };
+    private static readonly List<string> _datePropertyList = new() { "End Of Sales", "created date", "latest update date", "End Of Production", "End Of Service", "Last SCM Publish" };
     private static readonly List<string> _userNamePropertyList = new();
 
     public IEnumerable<CommonDataModel> Transform(IEnumerable<CommonDataModel> products)
     {
         if (!products.Any())
         {
-            return null;
+            return products;
         }
 
         foreach (CommonDataModel product in products)
@@ -39,7 +39,7 @@ public class ProductDataTransformer : IDataTransformer
     {
         if (!product.GetElements().Any())
         {
-            return null;
+            return product;
         }
 
         foreach (string key in product.GetKeys())

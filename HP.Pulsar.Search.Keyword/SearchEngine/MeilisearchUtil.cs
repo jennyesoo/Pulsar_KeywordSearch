@@ -6,9 +6,9 @@ namespace HP.Pulsar.Search.Keyword.SearchEngine;
 
 internal static class MeilisearchUtil
 {
-    public static IReadOnlyDictionary<SearchType, List<SingleOutputModel>> ConvertOutput(string json)
+    public static IEnumerable<SingleOutputModel> ConvertOutput(string json)
     {
-        Dictionary<SearchType, List<SingleOutputModel>> dict = new();
+        List<SingleOutputModel> output = new();
 
         try
         {
@@ -59,23 +59,14 @@ internal static class MeilisearchUtil
                     pairs.Add(new KeyValuePair<string, string>(item.Name, item.Value.ToString()));
                 }
 
-                SingleOutputModel model = new(searchType, id, name, pairs, hitProperties);
-
-                if (dict.ContainsKey(searchType))
-                {
-                    dict[searchType].Add(model);
-                }
-                else
-                {
-                    dict.Add(searchType, new List<SingleOutputModel> { model });
-                }
+                output.Add(new SingleOutputModel(searchType, id, name, pairs, hitProperties));
             }
         }
         catch
         {
         }
 
-        return dict;
+        return output;
     }
 
     private static bool TryGetId(string input, out int id)

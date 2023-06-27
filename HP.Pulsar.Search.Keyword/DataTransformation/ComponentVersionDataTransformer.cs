@@ -4,14 +4,14 @@ namespace HP.Pulsar.Search.Keyword.DataTransformation;
 
 public class ComponentVersionDataTransformer : IDataTransformer
 {
-    private static readonly List<string> _datePropertyList = new() { "Intro Date", "MassProduction", "End Of Life Date", "Samples Available" , "Service Team - Available Until" };
+    private static readonly List<string> _datePropertyList = new() { "Intro Date", "MassProduction", "End Of Life Date", "Samples Available", "Service Team - Available Until" };
     private static readonly List<string> _userNamePropertyList = new();
 
     public IEnumerable<CommonDataModel> Transform(IEnumerable<CommonDataModel> componentVersions)
     {
         if (!componentVersions.Any())
         {
-            return null;
+            return componentVersions;
         }
 
         foreach (CommonDataModel version in componentVersions)
@@ -39,7 +39,7 @@ public class ComponentVersionDataTransformer : IDataTransformer
     {
         if (!version.GetElements().Any())
         {
-            return null;
+            return version;
         }
 
         foreach (string key in version.GetKeys())

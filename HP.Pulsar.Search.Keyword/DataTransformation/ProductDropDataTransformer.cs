@@ -11,7 +11,7 @@ public class ProductDropDataTransformer : IDataTransformer
     {
         if (!productDrop.Any())
         {
-            return null;
+            return productDrop;
         }
 
         foreach (CommonDataModel dcr in productDrop)
@@ -34,7 +34,7 @@ public class ProductDropDataTransformer : IDataTransformer
     {
         if (!productDrop.GetElements().Any())
         {
-            return null;
+            return productDrop;
         }
 
         foreach (string key in productDrop.GetKeys())

@@ -982,19 +982,19 @@ where po.osid = o.id
 
         if (currentROM.ContainsKey(productId))
         {
-            product.Add("Current BIOS Versions", await GetTargetedVersionsAsync(productId,
-                                                                                product.GetValue("ProductStatus"),
-                                                                                currentROM[productId].Item1,
-                                                                                currentROM[productId].Item2,
-                                                                                biosVersion));
+            product.Add("Current BIOS Versions", GetTargetedVersions(productId,
+                                                                     product.GetValue("ProductStatus"),
+                                                                     currentROM[productId].Item1,
+                                                                     currentROM[productId].Item2,
+                                                                     biosVersion));
         }
         else
         {
-            product.Add("Current BIOS Versions", await GetTargetedVersionsAsync(productId,
-                                                                                product.GetValue("ProductStatus"),
-                                                                                string.Empty,
-                                                                                string.Empty,
-                                                                                biosVersion));
+            product.Add("Current BIOS Versions", GetTargetedVersions(productId,
+                                                                     product.GetValue("ProductStatus"),
+                                                                     string.Empty,
+                                                                     string.Empty,
+                                                                     biosVersion));
         }
     }
 
@@ -1012,40 +1012,44 @@ where po.osid = o.id
 
             if (currentROM.ContainsKey(productId))
             {
-                product.Add("Current BIOS Versions", await GetTargetedVersionsAsync(productId,
-                                                                                    product.GetValue("ProductStatus"),
-                                                                                    currentROM[productId].Item1,
-                                                                                    currentROM[productId].Item2,
-                                                                                    biosVersion));
+                product.Add("Current BIOS Versions", GetTargetedVersions(productId,
+                                                                         product.GetValue("ProductStatus"),
+                                                                         currentROM[productId].Item1,
+                                                                         currentROM[productId].Item2,
+                                                                         biosVersion));
             }
             else
             {
-                product.Add("Current BIOS Versions", await GetTargetedVersionsAsync(productId,
-                                                                                    product.GetValue("ProductStatus"),
-                                                                                    string.Empty,
-                                                                                    string.Empty,
-                                                                                    biosVersion));
+                product.Add("Current BIOS Versions", GetTargetedVersions(productId,
+                                                                         product.GetValue("ProductStatus"),
+                                                                         string.Empty,
+                                                                         string.Empty,
+                                                                         biosVersion));
             }
         }
     }
 
-    private async Task<string> GetTargetedVersionsAsync(int productId, string statusName, string currentROM, string currentWebROM, Dictionary<int, string> biosVersion)
+    private string GetTargetedVersions(int productId,
+                                       string statusName,
+                                       string currentROM,
+                                       string currentWebROM,
+                                       Dictionary<int, string> biosVersion)
     {
-        statusName = statusName ?? string.Empty;
-
-        if (string.IsNullOrEmpty(currentROM) && (statusName.Equals("Development", StringComparison.OrdinalIgnoreCase) || statusName.Equals("Definition", StringComparison.OrdinalIgnoreCase)))
+        if (string.IsNullOrEmpty(currentROM)
+            && (string.Equals(statusName, "Development", StringComparison.OrdinalIgnoreCase) || string.Equals(statusName, "Definition", StringComparison.OrdinalIgnoreCase)))
         {
             string value = string.Empty;
             if (biosVersion.ContainsKey(productId))
             {
                 value = biosVersion[productId];
             }
-            currentROM = $"Targeted: {value}";
 
+            currentROM = $"Targeted: {value}";
         }
-        else if (!statusName.Equals("Development", StringComparison.OrdinalIgnoreCase) && !statusName.Equals("Definition", StringComparison.OrdinalIgnoreCase))
+        else if (!string.Equals(statusName, "Development", StringComparison.OrdinalIgnoreCase)
+                 && !string.Equals(statusName, "Definition", StringComparison.OrdinalIgnoreCase))
         {
-            currentROM = string.IsNullOrEmpty(currentROM) ? $"Factory: {currentROM}" : $"Factory: UnKnown";
+            currentROM = string.IsNullOrEmpty(currentROM) ? $"Factory: {currentROM}" : "Factory: UnKnown";
         }
 
         if (!string.IsNullOrEmpty(currentROM) && !string.IsNullOrEmpty(currentWebROM))
@@ -1486,10 +1490,10 @@ where po.osid = o.id
         {
             if (!string.IsNullOrWhiteSpace(documents[i].GetValue("KMAT")))
             {
-                await GetPHWebNamesAsync(product, documents[i], i);
+                FillPHWebNames(product, documents[i], i);
             }
 
-            await GetMarketingNamesAsync(product, documents[i], i, isPulsarProduct);
+            FillMarketingNames(product, documents[i], i, isPulsarProduct);
         }
 
         product.Delete("AllowFollowMarketingName");
@@ -1516,10 +1520,10 @@ where po.osid = o.id
             {
                 if (!string.IsNullOrWhiteSpace(documents[i].GetValue("KMAT")))
                 {
-                    await GetPHWebNamesAsync(product, documents[i], i);
+                    FillPHWebNames(product, documents[i], i);
                 }
 
-                await GetMarketingNamesAsync(product, documents[i], i, isPulsarProduct);
+                FillMarketingNames(product, documents[i], i, isPulsarProduct);
             }
 
             product.Delete("AllowFollowMarketingName");
@@ -1527,7 +1531,10 @@ where po.osid = o.id
         }
     }
 
-    private async Task<CommonDataModel> GetMarketingNamesAsync(CommonDataModel product, CommonDataModel marketingNamesAndPHWebNamesDocuments, int docNumber, bool isPulsarProduct)
+    private void FillMarketingNames(CommonDataModel product,
+                                    CommonDataModel marketingNamesAndPHWebNamesDocuments,
+                                    int docNumber,
+                                    bool isPulsarProduct)
     {
         if (GetLongName(marketingNamesAndPHWebNamesDocuments, out string longName))
         {
@@ -1563,8 +1570,6 @@ where po.osid = o.id
         {
             product.Add("CTO Model Number " + docNumber, ctoModel);
         }
-
-        return product;
     }
 
     private static bool GetLogoName(CommonDataModel item, string logoBadge, bool isPulsarProduct, out string resultValue)
@@ -1717,7 +1722,7 @@ where po.osid = o.id
         return true;
     }
 
-    private async Task<CommonDataModel> GetPHWebNamesAsync(CommonDataModel product, CommonDataModel marketingNamesAndPHWebNamesDocuments, int docNumber)
+    private void FillPHWebNames(CommonDataModel product, CommonDataModel marketingNamesAndPHWebNamesDocuments, int docNumber)
     {
         if (GetBrandName(marketingNamesAndPHWebNamesDocuments, out string brandName))
         {
@@ -1738,8 +1743,6 @@ where po.osid = o.id
         {
             product.Add("Last SCM Publish " + docNumber, marketingNamesAndPHWebNamesDocuments.GetValue("LastPublishDt"));
         }
-
-        return product;
     }
 
     private static bool GetBrandName(CommonDataModel item, out string brandName)

@@ -41,7 +41,7 @@ internal class MeiliSearchClient
     /// <exception cref="ArgumentException"></exception>
     public async Task InitializeIndexCreationStepsAsync(IEnumerable<CommonDataModel> allDocuments, IReadOnlyCollection<string> allProperty)
     {
-        await SendIndexDeletionAsync(); //for test
+        await SendIndexDeletionAsync();
         await SendIndexCreationAsync();
         await SendUpdateSettingAsync();
         await SendUpdatePaginationAsync();
@@ -167,20 +167,19 @@ internal class MeiliSearchClient
         await _client.Index(_indexName).UpdateSearchableAttributesAsync(searchableAttributes);
     }
 
-    public async Task<IReadOnlyDictionary<SearchType, List<SingleOutputModel>>> SearchAsync(SearchParameters parameters)
+    public async Task<IEnumerable<SingleOutputModel>> SearchAsync(SearchParameters parameters)
     {
-        IReadOnlyDictionary<SearchType, List<SingleOutputModel>> output = await TempSearchAsync(JsonSerializer.Serialize(parameters));
+        IEnumerable<SingleOutputModel> output = await TempSearchAsync(JsonSerializer.Serialize(parameters));
 
         return output;
     }
 
     private string GetSearchUrl() => $"{_meilisearchEngineUrl}/indexes/{_indexName}/search";
 
-    private async Task<IReadOnlyDictionary<SearchType, List<SingleOutputModel>>> TempSearchAsync(string json)
+    private async Task<IEnumerable<SingleOutputModel>> TempSearchAsync(string json)
     {
-        // TODO - This is a temp solution for alpha only. Need to work on HttpClientFactory in library
+        // TODO - This is a temp solution. Need to work on HttpClientFactory in library
         using HttpClient client = new();
-        //using HttpRequestMessage msg = new(HttpMethod.Post, GetSearchUrl());
 
         StringContent content = new(json, Encoding.UTF8, "application/json");
 

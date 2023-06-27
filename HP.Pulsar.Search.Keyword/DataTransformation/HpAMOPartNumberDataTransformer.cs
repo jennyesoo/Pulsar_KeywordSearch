@@ -16,7 +16,7 @@ internal class HpAMOPartNumberDataTransformer : IDataTransformer
     {
         if (!hpPartNumber.Any())
         {
-            return null;
+            return hpPartNumber;
         }
 
         foreach (CommonDataModel partNumber in hpPartNumber)
@@ -44,7 +44,7 @@ internal class HpAMOPartNumberDataTransformer : IDataTransformer
     {
         if (!partNumber.GetElements().Any())
         {
-            return null;
+            return partNumber;
         }
 
         foreach (string key in partNumber.GetKeys())
