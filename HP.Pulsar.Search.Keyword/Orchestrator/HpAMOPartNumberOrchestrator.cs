@@ -34,4 +34,3 @@ internal class HpAMOPartNumberOrchestrator : IInitializationOrchestrator
         await MeiliSearchClient.SendElementsCreationAsync(hpAMOPartNumber);
     }
 }
-

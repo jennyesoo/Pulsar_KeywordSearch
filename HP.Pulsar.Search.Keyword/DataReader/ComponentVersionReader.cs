@@ -224,7 +224,8 @@ public class ComponentVersionReader : IKeywordSearchDataReader
          WHEN dv.SamplesConfidence = 3 
             THEN 'Low'
          END AS 'Samples Confidence',
-    Dv.CVASubPath AS 'CVA Path'
+    Dv.CVASubPath AS 'CVA Path',
+    Dv.ServiceEOADate AS 'Service Team - Available Until'
 FROM DeliverableVersion Dv
 LEFT JOIN ComponentPrismSWType CPSW ON CPSW.PRISMTypeID = Dv.PrismSWType
 LEFT JOIN userinfo user1 ON user1.userid = Dv.DeveloperID
