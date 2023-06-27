@@ -8,19 +8,17 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator;
 
 internal class ChangeRequestOrchestrator : IInitializationOrchestrator
 {
-    private KeywordSearchInfo KeywordSearchInfo { get; }
-    private MeiliSearchClient MeiliSearchClient { get; }
+    private KeywordSearchInfo _keywordSearchInfo { get; }
 
-    public ChangeRequestOrchestrator(KeywordSearchInfo keywordSearchInfo, MeiliSearchClient meiliSearchClient)
+    public ChangeRequestOrchestrator(KeywordSearchInfo keywordSearchInfo)
     {
-        KeywordSearchInfo = keywordSearchInfo;
-        MeiliSearchClient = meiliSearchClient;
+        _keywordSearchInfo = keywordSearchInfo;
     }
 
     public async Task InitializeAsync()
     {
         // read changeRequests from database
-        ChangeRequestReader reader = new(KeywordSearchInfo);
+        ChangeRequestReader reader = new(_keywordSearchInfo);
         IEnumerable<CommonDataModel> changeRequests = await reader.GetDataAsync();
 
         // data processing
@@ -28,9 +26,11 @@ internal class ChangeRequestOrchestrator : IInitializationOrchestrator
         changeRequests = tranformer.Transform(changeRequests);
 
         // summary property
-        ElementKeyContainer.Add(changeRequests.SelectMany(p => p.GetKeys()).Distinct<string>());
+        ElementKeyContainer elementKeyContainer = new();
+        elementKeyContainer.Add(changeRequests.SelectMany(p => p.GetKeys()).Distinct<string>());
 
         // write to meiliesearch
-        await MeiliSearchClient.SendElementsCreationAsync(changeRequests);
+        MeiliSearchClient writer = new(_keywordSearchInfo.SearchEngineUrl, IndexName.Dcr);
+        await writer.InitializeIndexCreationStepsAsync(changeRequests, elementKeyContainer.Get());
     }
 }

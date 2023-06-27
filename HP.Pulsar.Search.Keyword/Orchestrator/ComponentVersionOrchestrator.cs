@@ -8,19 +8,17 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator;
 
 internal class ComponentVersionOrchestrator : IInitializationOrchestrator
 {
-    private KeywordSearchInfo KeywordSearchInfo { get; }
-    private MeiliSearchClient MeiliSearchClient { get; }
+    private KeywordSearchInfo _keywordSearchInfo { get; }
 
-    public ComponentVersionOrchestrator(KeywordSearchInfo keywordSearchInfo, MeiliSearchClient meiliSearchClient)
+    public ComponentVersionOrchestrator(KeywordSearchInfo keywordSearchInfo)
     {
-        KeywordSearchInfo = keywordSearchInfo;
-        MeiliSearchClient = meiliSearchClient;
+        _keywordSearchInfo = keywordSearchInfo;
     }
 
     public async Task InitializeAsync()
     {
         // read componentversion from database
-        ComponentVersionReader reader = new(KeywordSearchInfo);
+        ComponentVersionReader reader = new(_keywordSearchInfo);
         IEnumerable<CommonDataModel> versions = await reader.GetDataAsync();
 
         // data processing
@@ -28,9 +26,11 @@ internal class ComponentVersionOrchestrator : IInitializationOrchestrator
         versions = tranformer.Transform(versions);
 
         // summary property
-        ElementKeyContainer.Add(versions.SelectMany(p => p.GetKeys()).Distinct<string>());
+        ElementKeyContainer elementKeyContainer = new();
+        elementKeyContainer.Add(versions.SelectMany(p => p.GetKeys()).Distinct<string>());
 
         // write to meiliesearch
-        await MeiliSearchClient.SendElementsCreationAsync(versions);
+        MeiliSearchClient writer = new(_keywordSearchInfo.SearchEngineUrl, IndexName.ComponentVersion);
+        await writer.InitializeIndexCreationStepsAsync(versions, elementKeyContainer.Get());
     }
 }

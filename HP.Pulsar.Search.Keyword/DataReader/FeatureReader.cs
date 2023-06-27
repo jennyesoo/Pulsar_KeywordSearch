@@ -46,9 +46,9 @@ public class FeatureReader
     private string GetFeaturesCommandText()
     {
         return @"
-SELECT F.FeatureId,
-    F.FeatureName,
-    Fc.Name AS FeatureCategory,
+SELECT F.FeatureId as 'Feature Id',
+    F.FeatureName as 'Feature Name',
+    Fc.Name AS 'Feature Category',
     CASE 
         WHEN Fc.FeatureClassID = 1
             THEN 'Documentation'
@@ -60,28 +60,45 @@ SELECT F.FeatureId,
             THEN 'Software'
         WHEN Fc.FeatureClassID = 5
             THEN 'Base Unit'
-        END AS FeatureClass,
-    Dt.Name AS DeliveryType,
-    F.CodeName,
-    F.RuleID,
-    F.ChinaGPIdentifier,
-    F.PromoteCode,
-    F.RequiresRoot,
+        END AS 'Feature Class',
+    Dt.Name AS 'Delivery Type',
+    F.CodeName as 'Code Name',
+    F.RuleID as 'Rule ID',
+    F.ChinaGPIdentifier as 'China GP Identifier',
+    F.PromoteCode as 'Promote Code',
+    F.RequiresRoot as 'Requires a Root', 
     F.Notes,
-    Fs.Name AS STATUS,
-    F.CreatedBy,
+    Fs.Name AS Status,
+    F.CreatedBy as 'Created by',
     F.Created,
-    F.UpdatedBy,
+    F.UpdatedBy as 'Updated by',
     F.Updated,
-    F.overrideReason,
-    pcc.PRLBaseUnitGroupName AS PlatformName,
-    o.Name AS LinkedOperatingSystem
+    F.overrideReason as 'Previous Reason for Override Request',
+    pcc.PRLBaseUnitGroupName AS 'Platform Name',
+    o.Name AS 'Linked Operating System',
+    ns.name AS 'Naming Standard',
+    F.GPGPHweb40_NB As 'GPG-PHweb(40c AV) for NB',
+    F.GPSy40_NB AS 'GPSy (40c AV) for NB',
+    F.PMG100_NB AS 'PMG (100c AV) for NB',
+    F.PMG250_NB AS 'PMG (250c AV) for NB',
+    F.GPGPHweb40_DT AS 'GPG-PHweb (40c AV) for DT',
+    F.GPSy40_DT AS 'GPSy (40c AV) for DT',
+    F.PMG100_DT AS 'PMG (100c AV) for DT',
+    F.PMG250_DT AS 'PMG (250c AV) for DT',
+    F.SpecControl AS 'Marketing Tech Spec Terminology',
+    F.FeatureValue AS 'Feature Value (40c AV)',
+    F.MS4Attribute AS 'MS4 Attribute',
+    F.GPGPHweb40_AMO AS 'GPG-PHweb (40c) for AMO',
+    F.GPSy40_AMO AS 'GPSy (40c) for AMO',
+    F.PMG100_AMO AS 'PMG (100c) for AMO',
+    F.PMG250_AMO AS 'PMG (250c) for AMO'
 FROM Feature F
 LEFT JOIN FeatureCategory Fc ON Fc.FeatureCategoryID = F.FeatureCategoryID
 LEFT JOIN DeliveryType Dt ON Dt.DeliveryTypeID = F.DeliveryTypeID
 LEFT JOIN FeatureStatus Fs ON Fs.StatusID = F.StatusID
 LEFT JOIN PlatformChassisCategory pcc ON pcc.PlatformID = f.PlatformID
 LEFT JOIN OSLookup o ON o.id = F.osid
+LEFT JOIN NamingStandard ns on ns.NamingStandardID = F.NamingStandardId
 WHERE (
         @FeatureId = - 1
         OR F.FeatureId = @FeatureId
@@ -129,7 +146,7 @@ WHERE (
                 feature.Add(columnName, value);
             }
             feature.Add("Target", TargetTypeValue.Feature);
-            feature.Add("Id", SearchIdName.Feature + feature.GetValue("FeatureId"));
+            feature.Add("Id", SearchIdName.Feature + feature.GetValue("Feature Id"));
         }
         return feature;
     }
@@ -174,7 +191,7 @@ WHERE (
                 feature.Add(columnName, value);
             }
             feature.Add("Target", TargetTypeValue.Feature);
-            feature.Add("Id", SearchIdName.Feature + feature.GetValue("FeatureId"));
+            feature.Add("Id", SearchIdName.Feature + feature.GetValue("Feature Id"));
             output.Add(feature);
         }
 
@@ -199,7 +216,7 @@ WHERE (
     private async Task FillComponentInitiatedLinkageAsync(CommonDataModel feature)
     {
         if (!feature.GetElements().Any()
-            || !int.TryParse(feature.GetValue("FeatureId"), out int featureId))
+            || !int.TryParse(feature.GetValue("Feature Id"), out int featureId))
         {
             return;
         }
@@ -233,7 +250,7 @@ WHERE (
             string[] componentInitiatedLinkageList = componentInitiatedLinkage[featureId].Split(',');
             for (int i = 0; i < componentInitiatedLinkageList.Length; i++)
             {
-                feature.Add("ComponentInitiatedLinkage " + i, componentInitiatedLinkageList[i]);
+                feature.Add("Component Initiated Linkage " + i, componentInitiatedLinkageList[i]);
             }
         }
     }
@@ -268,13 +285,13 @@ WHERE (
 
         foreach (CommonDataModel feature in features)
         {
-            if (int.TryParse(feature.GetValue("FeatureId"), out int featureId)
+            if (int.TryParse(feature.GetValue("Feature Id"), out int featureId)
                 && componentInitiatedLinkage.ContainsKey(featureId))
             {
                 string[] componentInitiatedLinkageList = componentInitiatedLinkage[featureId].Split(',');
                 for (int i = 0; i < componentInitiatedLinkageList.Length; i++)
                 {
-                    feature.Add("ComponentInitiatedLinkage " + i, componentInitiatedLinkageList[i]);
+                    feature.Add("Component Initiated Linkage " + i, componentInitiatedLinkageList[i]);
                 }
             }
         }
@@ -287,13 +304,13 @@ WHERE (
             return null;
         }
 
-        if (feature.GetValue("RequiresRoot").Equals("True", StringComparison.OrdinalIgnoreCase))
+        if (feature.GetValue("Requires a Root").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            feature.Add("RequiresRoot", "Truly Linked");
+            feature.Add("Requires a Root", "Requires a Root");
         }
         else
         {
-            feature.Delete("RequiresRoot");
+            feature.Delete("Requires a Root");
         }
 
         return feature;
@@ -308,13 +325,13 @@ WHERE (
 
         foreach (CommonDataModel feature in features)
         {
-            if (feature.GetValue("RequiresRoot").Equals("True", StringComparison.OrdinalIgnoreCase))
+            if (feature.GetValue("Requires a Root").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                feature.Add("RequiresRoot", "Truly Linked");
+                feature.Add("Requires a Root", "Requires a Root");
             }
             else
             {
-                feature.Delete("RequiresRoot");
+                feature.Delete("Requires a Root");
             }
         }
 

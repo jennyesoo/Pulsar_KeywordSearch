@@ -34,6 +34,22 @@ internal class MeiliSearchClient
     }
 
     /// <summary>
+    /// This method is only for sending signal to meilisearch to create an index initialization step
+    /// When this method completes, it doesn't mean the index has been created in meilisearch.
+    /// </summary>
+    /// <returns></returns>
+    /// <exception cref="ArgumentException"></exception>
+    public async Task InitializeIndexCreationStepsAsync(IEnumerable<CommonDataModel> allDocuments, IReadOnlyCollection<string> allProperty)
+    {
+        await SendIndexDeletionAsync(); //for test
+        await SendIndexCreationAsync();
+        await SendUpdateSettingAsync();
+        await SendUpdatePaginationAsync();
+        await SendElementsCreationAsync(allDocuments);
+        await UpdateSearchableAttributesAsync(allProperty);
+    }
+
+    /// <summary>
     /// This method is only for sending signal to meilisearch to create an index
     /// When this method completes, it doesn't mean the index has been created in meilisearch.
     /// </summary>

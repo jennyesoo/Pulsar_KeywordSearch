@@ -34,7 +34,9 @@ public class SearchClient
             //This pattern accepts special character in MLName
             new Regex(@"[0-9]{2}[A-Za-z]{2}[A-Za-z0-9]{3}[A-Za-z]{1}[A-Za-z0-9]{3}", RegexOptions.IgnoreCase),
             //This pattern accepts special character in MLName
-            new Regex(@"[0-9]{2}[A-Za-z0-9]{2}[A-Za-z]{3}[A-Za-z0-9\#]{3}", RegexOptions.IgnoreCase)
+            new Regex(@"[0-9]{2}[A-Za-z0-9]{2}[A-Za-z]{3}[A-Za-z0-9\#]{3}", RegexOptions.IgnoreCase),
+            //This pattern accepts special character with english word and number
+            new Regex(@".*(([A-Za-z]+[0-9]+)+|([0-9]+[A-Za-z]+)+).*", RegexOptions.IgnoreCase)
         };
 
     public SearchClient(KeywordSearchInfo info)

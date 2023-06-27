@@ -44,7 +44,7 @@ internal class ChangeRequestReader : IKeywordSearchDataReader
     private string GetChangeRequestCommandText()
     {
         return @"
-SELECT di.id AS ChangeRequestId,
+SELECT di.id AS 'Change Request Id',
     CASE 
         WHEN di.ChangeType = 0
             THEN 'Dcr'
@@ -54,15 +54,17 @@ SELECT di.id AS ChangeRequestId,
             THEN 'Scr'
         WHEN di.ChangeType = 3
             THEN 'InfoDcr'
-        END AS ChangeType,
-    di.Submitter,
-    di.Created AS DateSubmitter,
-    di.actualDate AS DateClosed,
+        END AS 'Change Type',
+    us.FirstName + ' ' + us.LastName AS Submitter,
+    us.Email as 'Submitter Email',
+    di.Created AS 'Date Submitted',
+    di.actualDate AS 'Date Closed',
     pv.Dotsname AS Product,
-    DR.Name AS ComponentRoot,
+    DR.Name AS 'Deliverable Root',
     di.summary AS Summary,
-    AStatus.Name AS STATUS,
-    ui.FirstName + ', ' + ui.LastName AS OWNER,
+    AStatus.Name AS Status,
+    ui.FirstName + ' ' + ui.LastName AS Owner,
+    ui.Email as 'Owner Email',
     di.NA,
     di.LA,
     di.EMEA,
@@ -71,24 +73,32 @@ SELECT di.id AS ChangeRequestId,
     di.Details,
     di.Justification,
     di.Resolution,
-    di.Actions,
-    di.ZsrpRequired,
-    di.AVRequired,
-    di.QualificationRequired,
-    di.GlobalSeriesRequired,
-    di.AffectsCustomers AS CustomerImpact,
-    di.AvailableForTest AS SampleAvailable,
-    di.TargetApprovalDate,
+    di.Actions as 'Actions Needed',
+    di.ZsrpRequired as 'ZSRP Ready Date Required',
+    di.AVRequired as 'AV Required',
+    di.QualificationRequired as 'Qualification Required',
+    di.GlobalSeriesRequired as 'Global Series Required',
+    di.AffectsCustomers AS 'Customer Impact',
+    di.AvailableForTest AS 'Samples Available',
+    di.TargetApprovalDate as 'Target Approval Date',
     di.Important,
-    di.RTPDate,
-    di.RASDiscoDate,
-    di.OnStatusReport,
-    di.Notify
+    di.RTPDate as 'RTP Date',
+    di.RASDiscoDate as 'End of Manufacturing',
+    di.OnStatusReport as 'Status Report',
+    di.Notify as 'Notify on Approval',
+    ui2.FullName + ' ' + ui2.LastName AS 'BIOS PM',
+    di.Attachment1 AS 'Attachment 1',
+    di.Attachment2 AS 'Attachment 2',
+    di.Attachment3 AS 'Attachment 3',
+    di.Attachment4 AS 'Attachment 4',
+    di.Attachment5 AS 'Attachment 5'
 FROM Deliverableissues di
 LEFT JOIN DeliverableRoot DR ON DR.id = di.DeliverableRootID
 LEFT JOIN ProductVersion pv ON pv.id = di.ProductVersionID
 LEFT JOIN ActionStatus AStatus ON AStatus.id = di.STATUS
 LEFT JOIN UserInfo ui ON ui.userid = di.OwnerID
+LEFT JOIN UserInfo us ON us.userid = di.SubmitterID
+LEFT JOIN UserInfo ui2 on ui2.userid = di.BiosPmId
 WHERE (
         @ChangeRequestId = - 1
         OR di.Id = @ChangeRequestId
@@ -157,7 +167,7 @@ GROUP BY dcr.id
                 changeRequest.Add(columnName, value);
             }
             changeRequest.Add("Target", TargetTypeValue.Dcr);
-            changeRequest.Add("Id", SearchIdName.Dcr + changeRequest.GetValue("ChangeRequestId"));
+            changeRequest.Add("Id", SearchIdName.Dcr + changeRequest.GetValue("Change Request Id"));
         }
         return changeRequest;
     }
@@ -202,7 +212,7 @@ GROUP BY dcr.id
                 changeRequest.Add(columnName, value);
             }
             changeRequest.Add("Target", TargetTypeValue.Dcr);
-            changeRequest.Add("Id", SearchIdName.Dcr + changeRequest.GetValue("ChangeRequestId"));
+            changeRequest.Add("Id", SearchIdName.Dcr + changeRequest.GetValue("Change Request Id"));
             output.Add(changeRequest);
         }
         return output;
@@ -210,58 +220,70 @@ GROUP BY dcr.id
 
     private static CommonDataModel HandlePropertyValue(CommonDataModel changeRequest)
     {
-        if (changeRequest.GetValue("ZsrpRequired").Equals("True", StringComparison.OrdinalIgnoreCase))
+        if (changeRequest.GetValue("ZSRP Ready Date Required").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            changeRequest.Add("ZsrpRequired", "ZSRP Ready Date Required");
+            if (string.IsNullOrEmpty(changeRequest.GetValue("Additional Options")))
+            {
+                changeRequest.Add("Additional Options", "ZSRP Ready Date Required");
+            }
+            else
+            {
+                changeRequest.Add("Additional Options", changeRequest.GetValue("Additional Options") + ", ZSRP Ready Date Required");
+            }
+        }
+        
+        if (changeRequest.GetValue("AV Required").Equals("True", StringComparison.OrdinalIgnoreCase))
+        {
+            if (string.IsNullOrEmpty(changeRequest.GetValue("Additional Options")))
+            {
+                changeRequest.Add("Additional Options", "AV Required");
+            }
+            else
+            {
+                changeRequest.Add("Additional Options", changeRequest.GetValue("Additional Options") + ", AV Required");
+            }
+        }
+        
+        if (changeRequest.GetValue("Qualification Required").Equals("True", StringComparison.OrdinalIgnoreCase))
+        {
+            if (string.IsNullOrEmpty(changeRequest.GetValue("Additional Options")))
+            {
+                changeRequest.Add("Additional Options", "Qualification Required");
+            }
+            else
+            {
+                changeRequest.Add("Additional Options", changeRequest.GetValue("Additional Options") + ", Qualification Required");
+            }
+        }
+        
+        if (changeRequest.GetValue("Global Series Required").Equals("True", StringComparison.OrdinalIgnoreCase))
+        {
+            if (string.IsNullOrEmpty(changeRequest.GetValue("Additional Options")))
+            {
+                changeRequest.Add("Additional Options", "Global Series Required");
+            }
+            else
+            {
+                changeRequest.Add("Additional Options", changeRequest.GetValue("Additional Options") + ", Global Series Required");
+            }
+        }
+        
+        if (changeRequest.GetValue("Customer Impact").Equals("1", StringComparison.OrdinalIgnoreCase))
+        {
+            changeRequest.Add("Customer Impact", "Affects images and/or BIOS on shipping products");
         }
         else
         {
-            changeRequest.Delete("ZsrpRequired");
+            changeRequest.Delete("Customer Impact");
         }
 
-        if (changeRequest.GetValue("AVRequired").Equals("True", StringComparison.OrdinalIgnoreCase))
+        if (changeRequest.GetValue("Status Report").Equals("1", StringComparison.OrdinalIgnoreCase))
         {
-            changeRequest.Add("AVRequired", "AV Required");
+            changeRequest.Add("Status Report", "Remove from Online Status Reports");
         }
         else
         {
-            changeRequest.Delete("AVRequired");
-        }
-
-        if (changeRequest.GetValue("QualificationRequired").Equals("True", StringComparison.OrdinalIgnoreCase))
-        {
-            changeRequest.Add("QualificationRequired", "Qualification Required");
-        }
-        else
-        {
-            changeRequest.Delete("QualificationRequired");
-        }
-
-        if (changeRequest.GetValue("GlobalSeriesRequired").Equals("True", StringComparison.OrdinalIgnoreCase))
-        {
-            changeRequest.Add("GlobalSeriesRequired", "Global Series Required");
-        }
-        else
-        {
-            changeRequest.Delete("GlobalSeriesRequired");
-        }
-
-        if (changeRequest.GetValue("CustomerImpact").Equals("1", StringComparison.OrdinalIgnoreCase))
-        {
-            changeRequest.Add("CustomerImpact", "Affects images and/or BIOS on shipping products");
-        }
-        else
-        {
-            changeRequest.Delete("CustomerImpact");
-        }
-
-        if (changeRequest.GetValue("OnStatusReport").Equals("1", StringComparison.OrdinalIgnoreCase))
-        {
-            changeRequest.Add("OnStatusReport", "Remove from Online Status Reports");
-        }
-        else
-        {
-            changeRequest.Delete("OnStatusReport");
+            changeRequest.Delete("Status Report");
         }
 
         if (changeRequest.GetValue("Important").Equals("True", StringComparison.OrdinalIgnoreCase))
@@ -275,39 +297,59 @@ GROUP BY dcr.id
 
         if (changeRequest.GetValue("NA").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            changeRequest.Add("NA", "NA");
+            if (string.IsNullOrEmpty(changeRequest.GetValue("Regions")))
+            {
+                changeRequest.Add("Regions", "NA");
+            }
+            else
+            {
+                changeRequest.Add("Regions", changeRequest.GetValue("Regions") + ", NA");
+            }
         }
-        else
-        {
-            changeRequest.Delete("NA");
-        }
-
+        
         if (changeRequest.GetValue("LA").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            changeRequest.Add("LA", "LA");
+            if (string.IsNullOrEmpty(changeRequest.GetValue("Regions")))
+            {
+                changeRequest.Add("Regions", "LA");
+            }
+            else
+            {
+                changeRequest.Add("Regions", changeRequest.GetValue("Regions") + ", LA");
+            }
         }
-        else
-        {
-            changeRequest.Delete("LA");
-        }
-
+        
         if (changeRequest.GetValue("EMEA").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            changeRequest.Add("EMEA", "EMEA");
-        }
-        else
-        {
-            changeRequest.Delete("EMEA");
+            if (string.IsNullOrEmpty(changeRequest.GetValue("Regions")))
+            {
+                changeRequest.Add("Regions", "EMEA");
+            }
+            else
+            {
+                changeRequest.Add("Regions", changeRequest.GetValue("Regions") + ", EMEA");
+            }
         }
 
         if (changeRequest.GetValue("APJ").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            changeRequest.Add("APJ", "APJ");
+            if (string.IsNullOrEmpty(changeRequest.GetValue("Regions")))
+            {
+                changeRequest.Add("Regions", "APJ");
+            }
+            else
+            {
+                changeRequest.Add("Regions", changeRequest.GetValue("Regions") + ", APJ");
+            }
         }
-        else
-        {
-            changeRequest.Delete("APJ");
-        }
+        changeRequest.Delete("ZSRP Ready Date Required");
+        changeRequest.Delete("AV Required");
+        changeRequest.Delete("Qualification Required");
+        changeRequest.Delete("Global Series Required");
+        changeRequest.Delete("NA");
+        changeRequest.Delete("LA");
+        changeRequest.Delete("EMEA");
+        changeRequest.Delete("APJ");
 
         return changeRequest;
 
@@ -317,58 +359,70 @@ GROUP BY dcr.id
     {
         foreach (CommonDataModel dcr in changeRequests)
         {
-            if (dcr.GetValue("ZsrpRequired").Equals("True", StringComparison.OrdinalIgnoreCase))
+            if (dcr.GetValue("ZSRP Ready Date Required").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                dcr.Add("ZsrpRequired", "ZSRP Ready Date Required");
-            }
-            else
-            {
-                dcr.Delete("ZsrpRequired");
-            }
-
-            if (dcr.GetValue("AVRequired").Equals("True", StringComparison.OrdinalIgnoreCase))
-            {
-                dcr.Add("AVRequired", "AV Required");
-            }
-            else
-            {
-                dcr.Delete("AVRequired");
+                if (string.IsNullOrEmpty(dcr.GetValue("Additional Options")))
+                {
+                    dcr.Add("Additional Options", "ZSRP Ready Date Required");
+                }
+                else
+                {
+                    dcr.Add("Additional Options", dcr.GetValue("Additional Options") + ", ZSRP Ready Date Required");
+                }
             }
 
-            if (dcr.GetValue("QualificationRequired").Equals("True", StringComparison.OrdinalIgnoreCase))
+            if (dcr.GetValue("AV Required").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                dcr.Add("QualificationRequired", "Qualification Required");
-            }
-            else
-            {
-                dcr.Delete("QualificationRequired");
-            }
-
-            if (dcr.GetValue("GlobalSeriesRequired").Equals("True", StringComparison.OrdinalIgnoreCase))
-            {
-                dcr.Add("GlobalSeriesRequired", "Global Series Required");
-            }
-            else
-            {
-                dcr.Delete("GlobalSeriesRequired");
+                if (string.IsNullOrEmpty(dcr.GetValue("Additional Options")))
+                {
+                    dcr.Add("Additional Options", "AV Required");
+                }
+                else
+                {
+                    dcr.Add("Additional Options", dcr.GetValue("Additional Options") + ", AV Required");
+                }
             }
 
-            if (dcr.GetValue("CustomerImpact").Equals("1", StringComparison.OrdinalIgnoreCase))
+            if (dcr.GetValue("Qualification Required").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                dcr.Add("CustomerImpact", "Affects images and/or BIOS on shipping products");
-            }
-            else
-            {
-                dcr.Delete("CustomerImpact");
+                if (string.IsNullOrEmpty(dcr.GetValue("Additional Options")))
+                {
+                    dcr.Add("Additional Options", "Qualification Required");
+                }
+                else
+                {
+                    dcr.Add("Additional Options", dcr.GetValue("Additional Options") + ", Qualification Required");
+                }
             }
 
-            if (dcr.GetValue("OnStatusReport").Equals("1", StringComparison.OrdinalIgnoreCase))
+            if (dcr.GetValue("Global Series Required").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                dcr.Add("OnStatusReport", "Remove from Online Status Reports");
+                if (string.IsNullOrEmpty(dcr.GetValue("Additional Options")))
+                {
+                    dcr.Add("Additional Options", "Global Series Required");
+                }
+                else
+                {
+                    dcr.Add("Additional Options", dcr.GetValue("Additional Options") + ", Global Series Required");
+                }
+            }
+
+            if (dcr.GetValue("Customer Impact").Equals("1", StringComparison.OrdinalIgnoreCase))
+            {
+                dcr.Add("Customer Impact", "Affects images and/or BIOS on shipping products");
             }
             else
             {
-                dcr.Delete("OnStatusReport");
+                dcr.Delete("Customer Impact");
+            }
+
+            if (dcr.GetValue("Status Report").Equals("1", StringComparison.OrdinalIgnoreCase))
+            {
+                dcr.Add("Status Report", "Remove from Online Status Reports");
+            }
+            else
+            {
+                dcr.Delete("Status Report");
             }
 
             if (dcr.GetValue("Important").Equals("True", StringComparison.OrdinalIgnoreCase))
@@ -382,39 +436,59 @@ GROUP BY dcr.id
 
             if (dcr.GetValue("NA").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                dcr.Add("NA", "NA");
-            }
-            else
-            {
-                dcr.Delete("NA");
+                if (string.IsNullOrEmpty(dcr.GetValue("Regions")))
+                {
+                    dcr.Add("Regions", "NA");
+                }
+                else
+                {
+                    dcr.Add("Regions", dcr.GetValue("Regions") + ", NA");
+                }
             }
 
             if (dcr.GetValue("LA").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                dcr.Add("LA", "LA");
-            }
-            else
-            {
-                dcr.Delete("LA");
+                if (string.IsNullOrEmpty(dcr.GetValue("Regions")))
+                {
+                    dcr.Add("Regions", "LA");
+                }
+                else
+                {
+                    dcr.Add("Regions", dcr.GetValue("Regions") + ", LA");
+                }
             }
 
             if (dcr.GetValue("EMEA").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                dcr.Add("EMEA", "EMEA");
-            }
-            else
-            {
-                dcr.Delete("EMEA");
+                if (string.IsNullOrEmpty(dcr.GetValue("Regions")))
+                {
+                    dcr.Add("Regions", "EMEA");
+                }
+                else
+                {
+                    dcr.Add("Regions", dcr.GetValue("Regions") + ", EMEA");
+                }
             }
 
             if (dcr.GetValue("APJ").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                dcr.Add("APJ", "APJ");
+                if (string.IsNullOrEmpty(dcr.GetValue("Regions")))
+                {
+                    dcr.Add("Regions", "APJ");
+                }
+                else
+                {
+                    dcr.Add("Regions", dcr.GetValue("Regions") + ", APJ");
+                }
             }
-            else
-            {
-                dcr.Delete("APJ");
-            }
+            dcr.Delete("ZSRP Ready Date Required");
+            dcr.Delete("AV Required");
+            dcr.Delete("Qualification Required");
+            dcr.Delete("Global Series Required");
+            dcr.Delete("NA");
+            dcr.Delete("LA");
+            dcr.Delete("EMEA");
+            dcr.Delete("APJ");
         }
 
         return Task.CompletedTask;
@@ -448,7 +522,7 @@ GROUP BY dcr.id
             string[] approverList = approvers[changeRequestId].Split('{');
             for (int i = 0; i < approverList.Length; i++)
             {
-                changeRequest.Add("Approvals " + i, approverList[i]);
+                changeRequest.Add("Approvers " + i, approverList[i]);
             }
         }
 
@@ -476,13 +550,13 @@ GROUP BY dcr.id
 
         foreach (CommonDataModel dcr in changeRequests)
         {
-            if (int.TryParse(dcr.GetValue("ChangeRequestId"), out int changeRequestId)
+            if (int.TryParse(dcr.GetValue("Change Request Id"), out int changeRequestId)
             && approvers.ContainsKey(changeRequestId))
             {
                 string[] approverList = approvers[changeRequestId].Split('{');
                 for (int i = 0; i < approverList.Length; i++)
                 {
-                    dcr.Add("Approvals " + i, approverList[i]);
+                    dcr.Add("Approvers " + i, approverList[i]);
                 }
             }
         }

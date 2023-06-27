@@ -27,7 +27,6 @@ internal class ComponentRootReader : IKeywordSearchDataReader
 
         List<Task> tasks = new()
         {
-            FillProductListAsync(componentRoot),
             FillTrulyLinkedFeatureAsync(componentRoot),
             FillLinkedFeatureAsync(componentRoot),
             FillComponentInitiatedLinkageAsync(componentRoot)
@@ -44,7 +43,6 @@ internal class ComponentRootReader : IKeywordSearchDataReader
         List<Task> tasks = new()
         {
             HandlePropertyValueAsync(componentRoot),
-            FillProductListAsync(componentRoot),
             FillTrulyLinkedFeaturesAsync(componentRoot),
             FillLinkedFeaturesAsync(componentRoot),
             FillComponentInitiatedLinkageAsync(componentRoot)
@@ -56,18 +54,18 @@ internal class ComponentRootReader : IKeywordSearchDataReader
 
     private string GetAllComponentRootSqlCommandText()
     {
-        return @"SELECT root.id AS ComponentRootId,
-    root.name AS ComponentRootName,
-    root.description,
-    vendor.Name AS VendorName,
-    cate.name AS SIFunctionTestGroupCategory,
-    user1.FirstName + ' ' + user1.LastName AS ComponentPM,
-    user1.Email AS ComponentPMEmail,
+        return @"SELECT root.id AS 'Component Root Id',
+    root.name AS 'Component Root Name',
+    root.Description,
+    vendor.Name AS Vendor,
+    cate.name AS Category,
+    user1.FirstName + ' ' + user1.LastName AS 'Component PM',
+    user1.Email AS 'Component PM Email',
     user2.FirstName + ' ' + user2.LastName AS Developer,
-    user2.Email AS DeveloperEmail,
-    user3.FirstName + ' ' + user3.LastName AS TestLead,
-    user3.Email AS TestLeadEmail,
-    coreteam.Name AS SICoreTeam,
+    user2.Email AS 'Developer Email',
+    user3.FirstName + ' ' + user3.LastName AS 'Test Lead',
+    user3.Email AS 'Test Lead Email',
+    coreteam.Name AS 'SI Core Team',
     CASE 
         WHEN root.TypeID = 1
             THEN 'Hardware'
@@ -77,75 +75,66 @@ internal class ComponentRootReader : IKeywordSearchDataReader
             THEN 'Firmware'
         WHEN root.TypeID = 4
             THEN 'Documentation'
-        END AS ComponentType,
+        END AS 'Component Type',
     root.Preinstall,
-    root.active AS Visibility,
-    root.TargetPartition,
-    root.Reboot,
+    root.TargetPartition as 'Target Partition',
     root.CDImage,
     root.ISOImage,
     root.CAB,
     root.BINARY,
-    root.FloppyDisk,
-    root.CertRequired AS WHQLCertificationRequire,
-    root.ScriptPaq AS PackagingSoftpaq,
-    root.MultiLanguage,
-    Sc.name AS SoftpaqCategory,
+    root.CertRequired AS 'WHQL Certification Require',
+    root.ScriptPaq AS 'Packaging Softpaq',
+    Sc.name AS 'Softpaq Category',
     root.Created,
-    root.IconDesktop,
-    root.IconMenu,
-    root.IconTray,
-    root.IconPanel,
-    root.PropertyTabs,
+    root.IconDesktop as 'Desktop',
+    root.IconMenu as 'Start Menu',
+    root.IconTray as 'System Tray',
+    root.IconPanel as 'Control Panel',
+    root.PropertyTabs as 'Property Tabs Added',
     root.AR,
-    root.RoyaltyBearing,
-    sws.DisplayName AS RecoveryOption,
-    root.KitNumber,
-    root.KitDescription,
-    root.DeliverableSpec AS FunctionalSpec,
-    root.IconInfoCenter,
-    cts.Name AS TransferServer,
+    root.RoyaltyBearing as 'Royalty Bearing',
+    sws.DisplayName AS 'Recovery Option',
+    root.KitNumber as 'Kit Number',
+    root.KitDescription as 'Kit Description',
+    root.DeliverableSpec AS 'Functional Spec',
+    root.IconInfoCenter as 'Info Center',
+    cts.Name AS 'Transfer Server',
     root.Patch,
-    root.SystemBoardID,
-    root.IRSTransfers,
-    root.DevicesInfPath,
-    root.TestNotes,
-    root.CreatedBy,
+    root.SystemBoardID as 'System Board ID',
+    root.CreatedBy as 'Created by',
     root.Updated,
-    root.UpdatedBy,
+    root.UpdatedBy as 'Updated by',
     root.Deleted,
-    root.DeletedBy,
-    root.SupplierID,
-    user4.FirstName + ' ' + user4.LastName AS SIOApprover,
-    root.KoreanCertificationRequired,
-    root.BaseFilePath,
-    root.SubmissionPath,
-    root.IRSPartNumberLastSpin,
-    root.IRSBasePartNumber,
-    CPSW.Description AS PrismSWType,
-    root.LimitFuncTestGroupVisability,
-    root.IconTile,
-    root.IconTaskBarIcon,
-    root.SettingFWML,
-    root.SettingUWPCompliant,
-    root.FtpSitePath,
+    root.DeletedBy as 'Deleted by',
+    user4.FirstName + ' ' + user4.LastName AS 'SIO Approver',
+    root.KoreanCertificationRequired as 'Korean Certification Required',
+    root.SubmissionPath as 'Submission Path',
+    root.IRSBasePartNumber as 'IRS Base Part Number',
+    CPSW.Description AS 'Prism SW Type',
+    root.LimitFuncTestGroupVisability as 'Limit Partner Visibility ',
+    root.IconTile as 'Start Menu Tile',
+    root.IconTaskBarIcon as 'Taskbar Pinned Icon',
+    root.SettingFWML as 'FWML',
+    root.SettingUWPCompliant as 'UWP Compliant',
+    root.FtpSitePath as 'FTP Site',
     root.DrDvd,
-    root.MsStore,
-    root.ErdComments,
-    og.Name AS SiFunctionTestGroup,
+    root.MsStore as 'MS Store',
+    root.ErdComments as 'ERD Comments',
+    og.Name AS 'Si Function Test Group',
     root.Active AS Visibility,
-    root.Notes AS InternalNotes,
+    root.Notes AS 'Internal Notes',
     root.CDImage,
     root.ISOImage,
     root.AR,
-    root.FloppyDisk,
-    root.IsSoftPaqInPreinstall,
-    root.IconMenu,
-    root.RootFilename AS ROMFamily,
-    root.Rompaq,
-    root.PreinstallROM,
+    root.FloppyDisk as 'Internal Tool',
+    root.IsSoftPaqInPreinstall as 'SoftPaq In Preinstall',
+    root.IconMenu as 'Start Menu',
+    root.RootFilename AS 'ROM Family',
+    root.Rompaq as 'Rompaq Binary',
+    root.PreinstallROM as 'ROM Components Preinstall',
     root.CAB,
-    root.Softpaq AS ROMSoftpaq
+    root.Softpaq AS 'ROM component Softpaq',
+    ns.name AS 'Naming Standard'
 FROM DeliverableRoot root
 LEFT JOIN vendor ON root.vendorid = vendor.id
 LEFT JOIN componentCategory cate ON cate.CategoryId = root.categoryid
@@ -159,6 +148,7 @@ LEFT JOIN SWSetupCategory sws ON sws.ID = root.SWSetupCategoryID
 LEFT JOIN ComponentTransferServer cts ON cts.Id = root.TransferServerId
 LEFT JOIN SoftpaqCategory Sc ON Sc.id = root.SoftpaqCategoryID
 LEFT JOIN OTSFVTOrganizations og ON root.OTSFVTOrganizationID = og.id
+LEFT JOIN NamingStandard ns ON ns.NamingStandardID = root.NamingStandardId
 WHERE (
         @ComponentRootId = - 1
         OR root.id = @ComponentRootId
@@ -221,39 +211,6 @@ WHERE (
 ";
     }
 
-    private string GetTSQLProductListCommandText()
-    {
-        return @"SELECT DR.Id AS ComponentRootId,
-    stuff((
-            SELECT ' , ' + (CONVERT(VARCHAR, p.Id) + ' ' + p.DOTSName)
-            FROM ProductVersion p
-            LEFT JOIN ProductStatus ps ON ps.id = p.ProductStatusID
-            LEFT JOIN Product_DelRoot pr ON pr.ProductVersionId = p.id
-            LEFT JOIN DeliverableRoot root ON root.Id = pr.DeliverableRootId
-            WHERE root.Id = DR.Id
-                AND ps.Name <> 'Inactive'
-                AND p.FusionRequirements = 1
-            ORDER BY root.Id
-            FOR XML path('')
-            ), 1, 3, '') AS ProductList
-FROM DeliverableRoot DR
-WHERE (
-        @ComponentRootId = - 1
-        OR DR.Id = @ComponentRootId
-        )
-GROUP BY DR.Id
-";
-
-        //SELECT p.dotsname, r.Name
-        //FROM DeliverableRoot root
-        //join Product_DelRoot pr on root.Id = pr.DeliverableRootId
-        //join ProductVersion p on pr.ProductVersionID = p.id
-        //join ProductVersion_Release pr2 on pr2.ProductVersionID = p.Id
-        //join ProductVersionRelease r on r.Id = pr2.ReleaseId
-        //where root.id = 36886
-        //order by p.dotsname
-    }
-
     private async Task<CommonDataModel> GetComponentRootAsync(int componentRootId)
     {
         using SqlConnection connection = new(_info.DatabaseConnectionString);
@@ -293,7 +250,7 @@ GROUP BY DR.Id
                 root.Add(columnName, value);
             }
             root.Add("Target", "ComponentRoot");
-            root.Add("Id", SearchIdName.ComponentRoot + root.GetValue("ComponentRootId"));
+            root.Add("Id", SearchIdName.ComponentRoot + root.GetValue("Component Root Id"));
         }
         return root;
     }
@@ -339,115 +296,72 @@ GROUP BY DR.Id
                 root.Add(columnName, value);
             }
             root.Add("Target", TargetTypeValue.ComponentRoot);
-            root.Add("Id", SearchIdName.ComponentRoot + root.GetValue("ComponentRootId"));
+            root.Add("Id", SearchIdName.ComponentRoot + root.GetValue("Component Root Id"));
             output.Add(root);
         }
         return output;
-    }
-
-    private async Task FillProductListAsync(CommonDataModel componentRoot)
-    {
-        if (!int.TryParse(componentRoot.GetValue("ComponentRootId"), out int componentRootId))
-        {
-            return;
-        }
-        using SqlConnection connection = new(_info.DatabaseConnectionString);
-        await connection.OpenAsync();
-        SqlCommand command = new(GetTSQLProductListCommandText(), connection);
-        SqlParameter parameter = new("ComponentRootId", componentRootId);
-        command.Parameters.Add(parameter);
-        using SqlDataReader reader = command.ExecuteReader();
-        Dictionary<int, string> productList = new();
-
-        if (!await reader.ReadAsync())
-        {
-            return;
-        }
-
-        if (int.TryParse(reader["ComponentRootId"].ToString(), out int dbComponentRootId))
-        {
-            productList[dbComponentRootId] = reader["ProductList"].ToString();
-        }
-
-        if (productList.ContainsKey(componentRootId))
-        {
-            componentRoot.Add("ProductList", productList[componentRootId]);
-        }
-    }
-
-    private async Task FillProductListAsync(IEnumerable<CommonDataModel> componentRoots)
-    {
-        using SqlConnection connection = new(_info.DatabaseConnectionString);
-        await connection.OpenAsync();
-        SqlCommand command = new(GetTSQLProductListCommandText(), connection);
-        SqlParameter parameter = new("ComponentRootId", "-1");
-        command.Parameters.Add(parameter);
-        using SqlDataReader reader = command.ExecuteReader();
-        Dictionary<int, string> productList = new();
-
-        while (await reader.ReadAsync())
-        {
-            if (int.TryParse(reader["ComponentRootId"].ToString(), out int componentRootId))
-            {
-                productList[componentRootId] = reader["ProductList"].ToString();
-            }
-        }
-
-        foreach (CommonDataModel root in componentRoots)
-        {
-            if (int.TryParse(root.GetValue("ComponentRootId"), out int componentRootId)
-            && productList.ContainsKey(componentRootId))
-            {
-                root.Add("ProductList", productList[componentRootId]);
-            }
-        }
     }
 
     private static CommonDataModel HandlePropertyValue(CommonDataModel componentRoot)
     {
         if (componentRoot.GetValue("Preinstall").Equals("1", StringComparison.OrdinalIgnoreCase))
         {
-            componentRoot.Add("Preinstall", "Preinstall");
-        }
-        else
-        {
-            componentRoot.Delete("Preinstall");
+            if (string.IsNullOrEmpty(componentRoot.GetValue("Packaging")))
+            {
+                componentRoot.Add("Packagings", "Preinstall");
+            }
+            else
+            {
+                componentRoot.Add("Packaging", componentRoot.GetValue("Packaging") + ", Preinstall");
+            }
         }
 
         if (componentRoot.GetValue("DrDvd").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            componentRoot.Add("DrDvd", "DRDVD");
-        }
-        else
-        {
-            componentRoot.Delete("DrDvd");
-        }
-
-        if (componentRoot.GetValue("PackagingSoftpaq").Equals("1", StringComparison.OrdinalIgnoreCase))
-        {
-            componentRoot.Add("PackagingSoftpaq", "Packaging Softpaq");
-        }
-        else
-        {
-            componentRoot.Delete("PackagingSoftpaq");
+            if (string.IsNullOrEmpty(componentRoot.GetValue("Packaging")))
+            {
+                componentRoot.Add("Packagings", "DRDVD");
+            }
+            else
+            {
+                componentRoot.Add("Packaging", componentRoot.GetValue("Packaging") + ", DRDVD");
+            }
         }
 
-        if (componentRoot.GetValue("MsStore").Equals("True", StringComparison.OrdinalIgnoreCase))
+        if (componentRoot.GetValue("Packaging Softpaq").Equals("1", StringComparison.OrdinalIgnoreCase))
         {
-            componentRoot.Add("MsStore", "Ms Store");
-        }
-        else
-        {
-            componentRoot.Delete("MsStore");
+            if (string.IsNullOrEmpty(componentRoot.GetValue("Packaging")))
+            {
+                componentRoot.Add("Packagings", "Softpaq");
+            }
+            else
+            {
+                componentRoot.Add("Packaging", componentRoot.GetValue("Packaging") + ", Softpaq");
+            }
         }
 
-        if (componentRoot.GetValue("FloppyDisk").Equals("1", StringComparison.OrdinalIgnoreCase))
+        if (componentRoot.GetValue("Ms Store").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            componentRoot.Add("FloppyDisk", "Internal Tool");
+            if (string.IsNullOrEmpty(componentRoot.GetValue("Packaging")))
+            {
+                componentRoot.Add("Packagings", "Ms Store");
+            }
+            else
+            {
+                componentRoot.Add("Packaging", componentRoot.GetValue("Packaging") + ", Ms Store");
+            }
         }
-        else
+
+        if (componentRoot.GetValue("Internal Tool").Equals("1", StringComparison.OrdinalIgnoreCase))
         {
-            componentRoot.Delete("FloppyDisk");
+            if (string.IsNullOrEmpty(componentRoot.GetValue("Packaging")))
+            {
+                componentRoot.Add("Packagings", "Internal Tool");
+            }
+            else
+            {
+                componentRoot.Add("Packaging", componentRoot.GetValue("Packaging") + ", Internal Tool");
+            }
         }
 
         if (componentRoot.GetValue("Patch").Equals("1", StringComparison.OrdinalIgnoreCase))
@@ -461,155 +375,200 @@ GROUP BY DR.Id
 
         if (componentRoot.GetValue("Binary").Equals("1", StringComparison.OrdinalIgnoreCase))
         {
-            componentRoot.Add("Binary", "Binary");
-        }
-        else
-        {
-            componentRoot.Delete("Binary");
+            if (string.IsNullOrEmpty(componentRoot.GetValue("ROM components")))
+            {
+                componentRoot.Add("ROM components", "Binary");
+            }
+            else
+            {
+                componentRoot.Add("ROM components", componentRoot.GetValue("ROM components") + ", Binary");
+            }
         }
 
-        if (componentRoot.GetValue("PreinstallROM").Equals("1", StringComparison.OrdinalIgnoreCase))
+        if (componentRoot.GetValue("ROM Components Preinstall").Equals("1", StringComparison.OrdinalIgnoreCase))
         {
-            componentRoot.Add("PreinstallROM", "ROM Component Preinstall");
-        }
-        else
-        {
-            componentRoot.Delete("PreinstallROM");
+            if (string.IsNullOrEmpty(componentRoot.GetValue("ROM components")))
+            {
+                componentRoot.Add("ROM components", "Preinstall");
+            }
+            else
+            {
+                componentRoot.Add("ROM components", componentRoot.GetValue("ROM components") + ", Preinstall");
+            }
         }
 
         if (componentRoot.GetValue("CAB").Equals("1", StringComparison.OrdinalIgnoreCase))
         {
-            componentRoot.Add("CAB", "CAB");
-        }
-        else
-        {
-            componentRoot.Delete("CAB");
-        }
-
-        if (componentRoot.GetValue("ROMSoftpaq").Equals("1", StringComparison.OrdinalIgnoreCase))
-        {
-            componentRoot.Add("ROMSoftpaq", "ROM component Softpaq");
-        }
-        else
-        {
-            componentRoot.Delete("ROMSoftpaq");
+            if (string.IsNullOrEmpty(componentRoot.GetValue("ROM components")))
+            {
+                componentRoot.Add("ROM components", "CAB");
+            }
+            else
+            {
+                componentRoot.Add("ROM components", componentRoot.GetValue("ROM components") + ", CAB");
+            }
         }
 
-        if (componentRoot.GetValue("IconDesktop").Equals("True", StringComparison.OrdinalIgnoreCase))
+        if (componentRoot.GetValue("ROM component Softpaq").Equals("1", StringComparison.OrdinalIgnoreCase))
         {
-            componentRoot.Add("IconDesktop", "Desktop");
-        }
-        else
-        {
-            componentRoot.Delete("IconDesktop");
-        }
-
-        if (componentRoot.GetValue("IconMenu").Equals("True", StringComparison.OrdinalIgnoreCase))
-        {
-            componentRoot.Add("IconMenu", "Start Menu");
-        }
-        else
-        {
-            componentRoot.Delete("IconMenu");
+            if (string.IsNullOrEmpty(componentRoot.GetValue("ROM components")))
+            {
+                componentRoot.Add("ROM components", "Softpaq");
+            }
+            else
+            {
+                componentRoot.Add("ROM components", componentRoot.GetValue("ROM components") + ", Softpaq");
+            }
         }
 
-        if (componentRoot.GetValue("IconTray").Equals("True", StringComparison.OrdinalIgnoreCase))
+        if (componentRoot.GetValue("Desktop").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            componentRoot.Add("IconTray", "System Tray");
-        }
-        else
-        {
-            componentRoot.Delete("IconTray");
-        }
-
-        if (componentRoot.GetValue("IconPanel").Equals("True", StringComparison.OrdinalIgnoreCase))
-        {
-            componentRoot.Add("IconPanel", "Control Panel");
-        }
-        else
-        {
-            componentRoot.Delete("IconPanel");
+            if (string.IsNullOrEmpty(componentRoot.GetValue("Touch Points")))
+            {
+                componentRoot.Add("Touch Points", "Desktop");
+            }
+            else
+            {
+                componentRoot.Add("Touch Points", componentRoot.GetValue("Touch Points") + ", Desktop");
+            }
         }
 
-        if (componentRoot.GetValue("IconInfoCenter").Equals("True", StringComparison.OrdinalIgnoreCase))
+        if (componentRoot.GetValue("Start Menu").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            componentRoot.Add("IconInfoCenter", "Info Center");
-        }
-        else
-        {
-            componentRoot.Delete("IconInfoCenter");
-        }
-
-        if (componentRoot.GetValue("IconTile").Equals("True", StringComparison.OrdinalIgnoreCase))
-        {
-            componentRoot.Add("IconTile", "Start Menu Tile");
-        }
-        else
-        {
-            componentRoot.Delete("IconTile");
+            if (string.IsNullOrEmpty(componentRoot.GetValue("Touch Points")))
+            {
+                componentRoot.Add("Touch Points", "Start Menu");
+            }
+            else
+            {
+                componentRoot.Add("Touch Points", componentRoot.GetValue("Touch Points") + ", Start Menu");
+            }
         }
 
-        if (componentRoot.GetValue("IconTaskBarIcon").Equals("True", StringComparison.OrdinalIgnoreCase))
+        if (componentRoot.GetValue("System Tray").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            componentRoot.Add("IconTaskBarIcon", "Taskbar Pinned Icon ");
-        }
-        else
-        {
-            componentRoot.Delete("IconTaskBarIcon");
-        }
-
-        if (componentRoot.GetValue("SettingFWML").Equals("True", StringComparison.OrdinalIgnoreCase))
-        {
-            componentRoot.Add("SettingFWML", "FWML");
-        }
-        else
-        {
-            componentRoot.Delete("SettingFWML");
+            if (string.IsNullOrEmpty(componentRoot.GetValue("Touch Points")))
+            {
+                componentRoot.Add("Touch Points", "System Tray");
+            }
+            else
+            {
+                componentRoot.Add("Touch Points", componentRoot.GetValue("Touch Points") + ", System Tray");
+            }
         }
 
-        if (componentRoot.GetValue("SettingUWPCompliant").Equals("True", StringComparison.OrdinalIgnoreCase))
+        if (componentRoot.GetValue("Control Panel").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            componentRoot.Add("SettingUWPCompliant", "FWML");
-        }
-        else
-        {
-            componentRoot.Delete("SettingUWPCompliant");
-        }
-
-        if (componentRoot.GetValue("RoyaltyBearing").Equals("True", StringComparison.OrdinalIgnoreCase))
-        {
-            componentRoot.Add("RoyaltyBearing", "Royalty Bearing");
-        }
-        else
-        {
-            componentRoot.Delete("RoyaltyBearing");
+            if (string.IsNullOrEmpty(componentRoot.GetValue("Touch Points")))
+            {
+                componentRoot.Add("Touch Points", "Control Panel");
+            }
+            else
+            {
+                componentRoot.Add("Touch Points", componentRoot.GetValue("Touch Points") + ", Control Panel");
+            }
         }
 
-        if (componentRoot.GetValue("KoreanCertificationRequired").Equals("True", StringComparison.OrdinalIgnoreCase))
+        if (componentRoot.GetValue("Info Center").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            componentRoot.Add("KoreanCertificationRequired", "Korean Certification Required");
-        }
-        else
-        {
-            componentRoot.Delete("KoreanCertificationRequired");
-        }
-
-        if (componentRoot.GetValue("WHQLCertificationRequire").Equals("1", StringComparison.OrdinalIgnoreCase))
-        {
-            componentRoot.Add("WHQLCertificationRequire", "WHQL Certification Require");
-        }
-        else
-        {
-            componentRoot.Delete("WHQLCertificationRequire");
+            if (string.IsNullOrEmpty(componentRoot.GetValue("Touch Points")))
+            {
+                componentRoot.Add("Touch Points", "Info Center");
+            }
+            else
+            {
+                componentRoot.Add("Touch Points", componentRoot.GetValue("Touch Points") + ", Info Center");
+            }
         }
 
-        if (componentRoot.GetValue("LimitFuncTestGroupVisability").Equals("True", StringComparison.OrdinalIgnoreCase))
+        if (componentRoot.GetValue("Start Menu Tile").Equals("True", StringComparison.OrdinalIgnoreCase))
         {
-            componentRoot.Add("LimitFuncTestGroupVisability", "Limit partner visibility");
+            if (string.IsNullOrEmpty(componentRoot.GetValue("Touch Points")))
+            {
+                componentRoot.Add("Touch Points", "Start Menu Tile");
+            }
+            else
+            {
+                componentRoot.Add("Touch Points", componentRoot.GetValue("Touch Points") + ", Start Menu Tile");
+            }
+        }
+
+        if (componentRoot.GetValue("Taskbar Pinned Icon").Equals("True", StringComparison.OrdinalIgnoreCase))
+        {
+            if (string.IsNullOrEmpty(componentRoot.GetValue("Touch Points")))
+            {
+                componentRoot.Add("Touch Points", "Taskbar Pinned Icon");
+            }
+            else
+            {
+                componentRoot.Add("Touch Points", componentRoot.GetValue("Touch Points") + ", Taskbar Pinned Icon");
+            }
+        }
+
+        if (componentRoot.GetValue("FWML").Equals("True", StringComparison.OrdinalIgnoreCase))
+        {
+            if (string.IsNullOrEmpty(componentRoot.GetValue("Other Setting")))
+            {
+                componentRoot.Add("Other Setting", "FWML");
+            }
+            else
+            {
+                componentRoot.Add("Other Settings", componentRoot.GetValue("Other Setting") + ", FWML");
+            }
+        }
+
+        if (componentRoot.GetValue("UWP Compliant").Equals("True", StringComparison.OrdinalIgnoreCase))
+        {
+            if (string.IsNullOrEmpty(componentRoot.GetValue("Other Setting")))
+            {
+                componentRoot.Add("Other Setting", "UWP Compliant");
+            }
+            else
+            {
+                componentRoot.Add("Other Settings", componentRoot.GetValue("Other Setting") + ", UWP Compliant");
+            }
+        }
+
+        if (componentRoot.GetValue("Royalty Bearing").Equals("True", StringComparison.OrdinalIgnoreCase))
+        {
+            if (string.IsNullOrEmpty(componentRoot.GetValue("Special Notes")))
+            {
+                componentRoot.Add("Special Notes", "Royalty Bearing");
+            }
+            else
+            {
+                componentRoot.Add("Special Notes", componentRoot.GetValue("Special Notes") + ", Royalty Bearing");
+            }
+        }
+
+        if (componentRoot.GetValue("Korean Certification Required").Equals("True", StringComparison.OrdinalIgnoreCase))
+        {
+            if (string.IsNullOrEmpty(componentRoot.GetValue("Special Notes")))
+            {
+                componentRoot.Add("Special Notes", "Korean Certification Required");
+            }
+            else
+            {
+                componentRoot.Add("Special Notes", componentRoot.GetValue("Special Notes") + ", Korean Certification Required");
+            }
+        }
+
+        if (componentRoot.GetValue("WHQL Certification Require").Equals("1", StringComparison.OrdinalIgnoreCase))
+        {
+            componentRoot.Add("WHQL Certification Require", "WHQL Certification Require");
         }
         else
         {
-            componentRoot.Delete("LimitFuncTestGroupVisability");
+            componentRoot.Delete("WHQL Certification Require");
+        }
+
+        if (componentRoot.GetValue("Limit partner visibility").Equals("True", StringComparison.OrdinalIgnoreCase))
+        {
+            componentRoot.Add("Limit partner visibility", "Limit partner visibility");
+        }
+        else
+        {
+            componentRoot.Delete("Limit partner visibility");
         }
 
         if (componentRoot.GetValue("Visibility").Equals("True", StringComparison.OrdinalIgnoreCase))
@@ -621,31 +580,66 @@ GROUP BY DR.Id
             componentRoot.Delete("Visibility");
         }
 
-        if (componentRoot.GetValue("IsSoftPaqInPreinstall").Equals("1", StringComparison.OrdinalIgnoreCase))
+        if (componentRoot.GetValue("SoftPaq In Preinstall").Equals("1", StringComparison.OrdinalIgnoreCase))
         {
-            componentRoot.Add("IsSoftPaqInPreinstall", "SoftPaq In Preinstall");
-        }
-        else
-        {
-            componentRoot.Delete("IsSoftPaqInPreinstall");
+            if (string.IsNullOrEmpty(componentRoot.GetValue("Packaging")))
+            {
+                componentRoot.Add("Packagings", "SoftPaq In Preinstall");
+            }
+            else
+            {
+                componentRoot.Add("Packaging", componentRoot.GetValue("Packaging") + ", SoftPaq In Preinstall");
+            }
         }
 
-        if (componentRoot.GetValue("Rompaq").Equals("1", StringComparison.OrdinalIgnoreCase))
+        if (componentRoot.GetValue("Rompaq Binary").Equals("1", StringComparison.OrdinalIgnoreCase))
         {
-            componentRoot.Add("Rompaq", "Rompaq Binary");
-        }
-        else
-        {
-            componentRoot.Delete("Rompaq");
+            if (string.IsNullOrEmpty(componentRoot.GetValue("ROM components")))
+            {
+                componentRoot.Add("ROM components", "Binary");
+            }
+            else
+            {
+                componentRoot.Add("ROM components", componentRoot.GetValue("ROM components") + ", Binary");
+            }
         }
 
         if (GetCd(componentRoot).Equals(1))
         {
-            componentRoot.Add("CD", "CD");
+            if (string.IsNullOrEmpty(componentRoot.GetValue("Packaging")))
+            {
+                componentRoot.Add("Packagings", "CD");
+            }
+            else
+            {
+                componentRoot.Add("Packaging", componentRoot.GetValue("Packaging") + ", CD");
+            }
         }
         componentRoot.Delete("CDImage");
         componentRoot.Delete("ISOImage");
         componentRoot.Delete("AR");
+        componentRoot.Delete("Royalty Bearing");
+        componentRoot.Delete("Korean Certification Required");
+        componentRoot.Delete("Preinstall");
+        componentRoot.Delete("DrDvd");
+        componentRoot.Delete("Packaging Softpaq");
+        componentRoot.Delete("Ms Store");
+        componentRoot.Delete("Internal Tool");
+        componentRoot.Delete("SoftPaq In Preinstall");
+        componentRoot.Delete("Binary");
+        componentRoot.Delete("ROM Components Preinstall");
+        componentRoot.Delete("CAB");
+        componentRoot.Delete("ROM component Softpaq");
+        componentRoot.Delete("Desktop");
+        componentRoot.Delete("Start Menu");
+        componentRoot.Delete("System Tray");
+        componentRoot.Delete("Control Panel");
+        componentRoot.Delete("Info Center");
+        componentRoot.Delete("Start Menu Tile");
+        componentRoot.Delete("Taskbar Pinned Icon");
+        componentRoot.Delete("FWML");
+        componentRoot.Delete("UWP Compliant");
+        componentRoot.Delete("Rompaq Binary");
 
         return componentRoot;
     }
@@ -656,47 +650,62 @@ GROUP BY DR.Id
         {
             if (root.GetValue("Preinstall").Equals("1", StringComparison.OrdinalIgnoreCase))
             {
-                root.Add("Preinstall", "Preinstall");
-            }
-            else
-            {
-                root.Delete("Preinstall");
+                if (string.IsNullOrEmpty(root.GetValue("Packaging")))
+                {
+                    root.Add("Packagings", "Preinstall");
+                }
+                else
+                {
+                    root.Add("Packaging", root.GetValue("Packaging") + ", Preinstall");
+                }
             }
 
             if (root.GetValue("DrDvd").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                root.Add("DrDvd", "DRDVD");
-            }
-            else
-            {
-                root.Delete("DrDvd");
-            }
-
-            if (root.GetValue("PackagingSoftpaq").Equals("1", StringComparison.OrdinalIgnoreCase))
-            {
-                root.Add("PackagingSoftpaq", "Packaging Softpaq");
-            }
-            else
-            {
-                root.Delete("PackagingSoftpaq");
+                if (string.IsNullOrEmpty(root.GetValue("Packaging")))
+                {
+                    root.Add("Packagings", "DRDVD");
+                }
+                else
+                {
+                    root.Add("Packaging", root.GetValue("Packaging") + ", DRDVD");
+                }
             }
 
-            if (root.GetValue("MsStore").Equals("True", StringComparison.OrdinalIgnoreCase))
+            if (root.GetValue("Packaging Softpaq").Equals("1", StringComparison.OrdinalIgnoreCase))
             {
-                root.Add("MsStore", "Ms Store");
-            }
-            else
-            {
-                root.Delete("MsStore");
+                if (string.IsNullOrEmpty(root.GetValue("Packaging")))
+                {
+                    root.Add("Packagings", "Softpaq");
+                }
+                else
+                {
+                    root.Add("Packaging", root.GetValue("Packaging") + ", Softpaq");
+                }
             }
 
-            if (root.GetValue("FloppyDisk").Equals("1", StringComparison.OrdinalIgnoreCase))
+            if (root.GetValue("Ms Store").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                root.Add("FloppyDisk", "Internal Tool");
+                if (string.IsNullOrEmpty(root.GetValue("Packaging")))
+                {
+                    root.Add("Packagings", "Ms Store");
+                }
+                else
+                {
+                    root.Add("Packaging", root.GetValue("Packaging") + ", Ms Store");
+                }
             }
-            else
+
+            if (root.GetValue("Internal Tool").Equals("1", StringComparison.OrdinalIgnoreCase))
             {
-                root.Delete("FloppyDisk");
+                if (string.IsNullOrEmpty(root.GetValue("Packaging")))
+                {
+                    root.Add("Packagings", "Internal Tool");
+                }
+                else
+                {
+                    root.Add("Packaging", root.GetValue("Packaging") + ", Internal Tool");
+                }
             }
 
             if (root.GetValue("Patch").Equals("1", StringComparison.OrdinalIgnoreCase))
@@ -710,155 +719,200 @@ GROUP BY DR.Id
 
             if (root.GetValue("Binary").Equals("1", StringComparison.OrdinalIgnoreCase))
             {
-                root.Add("Binary", "Binary");
-            }
-            else
-            {
-                root.Delete("Binary");
+                if (string.IsNullOrEmpty(root.GetValue("ROM components")))
+                {
+                    root.Add("ROM components", "Binary");
+                }
+                else
+                {
+                    root.Add("ROM components", root.GetValue("ROM components") + ", Binary");
+                }
             }
 
-            if (root.GetValue("PreinstallROM").Equals("1", StringComparison.OrdinalIgnoreCase))
+            if (root.GetValue("ROM Components Preinstall").Equals("1", StringComparison.OrdinalIgnoreCase))
             {
-                root.Add("PreinstallROM", "ROM Component Preinstall");
-            }
-            else
-            {
-                root.Delete("PreinstallROM");
+                if (string.IsNullOrEmpty(root.GetValue("ROM components")))
+                {
+                    root.Add("ROM components", "Preinstall");
+                }
+                else
+                {
+                    root.Add("ROM components", root.GetValue("ROM components") + ", Preinstall");
+                }
             }
 
             if (root.GetValue("CAB").Equals("1", StringComparison.OrdinalIgnoreCase))
             {
-                root.Add("CAB", "CAB");
-            }
-            else
-            {
-                root.Delete("CAB");
-            }
-
-            if (root.GetValue("ROMSoftpaq").Equals("1", StringComparison.OrdinalIgnoreCase))
-            {
-                root.Add("ROMSoftpaq", "ROM component Softpaq");
-            }
-            else
-            {
-                root.Delete("ROMSoftpaq");
+                if (string.IsNullOrEmpty(root.GetValue("ROM components")))
+                {
+                    root.Add("ROM components", "CAB");
+                }
+                else
+                {
+                    root.Add("ROM components", root.GetValue("ROM components") + ", CAB");
+                }
             }
 
-            if (root.GetValue("IconDesktop").Equals("True", StringComparison.OrdinalIgnoreCase))
+            if (root.GetValue("ROM component Softpaq").Equals("1", StringComparison.OrdinalIgnoreCase))
             {
-                root.Add("IconDesktop", "Desktop");
-            }
-            else
-            {
-                root.Delete("IconDesktop");
-            }
-
-            if (root.GetValue("IconMenu").Equals("True", StringComparison.OrdinalIgnoreCase))
-            {
-                root.Add("IconMenu", "Start Menu");
-            }
-            else
-            {
-                root.Delete("IconMenu");
+                if (string.IsNullOrEmpty(root.GetValue("ROM components")))
+                {
+                    root.Add("ROM components", "Softpaq");
+                }
+                else
+                {
+                    root.Add("ROM components", root.GetValue("ROM components") + ", Softpaq");
+                }
             }
 
-            if (root.GetValue("IconTray").Equals("True", StringComparison.OrdinalIgnoreCase))
+            if (root.GetValue("Desktop").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                root.Add("IconTray", "System Tray");
-            }
-            else
-            {
-                root.Delete("IconTray");
-            }
-
-            if (root.GetValue("IconPanel").Equals("True", StringComparison.OrdinalIgnoreCase))
-            {
-                root.Add("IconPanel", "Control Panel");
-            }
-            else
-            {
-                root.Delete("IconPanel");
+                if (string.IsNullOrEmpty(root.GetValue("Touch Points")))
+                {
+                    root.Add("Touch Points", "Desktop");
+                }
+                else
+                {
+                    root.Add("Touch Points", root.GetValue("Touch Points") + ", Desktop");
+                }
             }
 
-            if (root.GetValue("IconInfoCenter").Equals("True", StringComparison.OrdinalIgnoreCase))
+            if (root.GetValue("Start Menu").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                root.Add("IconInfoCenter", "Info Center");
-            }
-            else
-            {
-                root.Delete("IconInfoCenter");
-            }
-
-            if (root.GetValue("IconTile").Equals("True", StringComparison.OrdinalIgnoreCase))
-            {
-                root.Add("IconTile", "Start Menu Tile");
-            }
-            else
-            {
-                root.Delete("IconTile");
+                if (string.IsNullOrEmpty(root.GetValue("Touch Points")))
+                {
+                    root.Add("Touch Points", "Start Menu");
+                }
+                else
+                {
+                    root.Add("Touch Points", root.GetValue("Touch Points") + ", Start Menu");
+                }
             }
 
-            if (root.GetValue("IconTaskBarIcon").Equals("True", StringComparison.OrdinalIgnoreCase))
+            if (root.GetValue("System Tray").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                root.Add("IconTaskBarIcon", "Taskbar Pinned Icon ");
-            }
-            else
-            {
-                root.Delete("IconTaskBarIcon");
-            }
-
-            if (root.GetValue("SettingFWML").Equals("True", StringComparison.OrdinalIgnoreCase))
-            {
-                root.Add("SettingFWML", "FWML");
-            }
-            else
-            {
-                root.Delete("SettingFWML");
+                if (string.IsNullOrEmpty(root.GetValue("Touch Points")))
+                {
+                    root.Add("Touch Points", "System Tray");
+                }
+                else
+                {
+                    root.Add("Touch Points", root.GetValue("Touch Points") + ", System Tray");
+                }
             }
 
-            if (root.GetValue("SettingUWPCompliant").Equals("True", StringComparison.OrdinalIgnoreCase))
+            if (root.GetValue("Control Panel").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                root.Add("SettingUWPCompliant", "FWML");
-            }
-            else
-            {
-                root.Delete("SettingUWPCompliant");
-            }
-
-            if (root.GetValue("RoyaltyBearing").Equals("True", StringComparison.OrdinalIgnoreCase))
-            {
-                root.Add("RoyaltyBearing", "Royalty Bearing");
-            }
-            else
-            {
-                root.Delete("RoyaltyBearing");
+                if (string.IsNullOrEmpty(root.GetValue("Touch Points")))
+                {
+                    root.Add("Touch Points", "Control Panel");
+                }
+                else
+                {
+                    root.Add("Touch Points", root.GetValue("Touch Points") + ", Control Panel");
+                }
             }
 
-            if (root.GetValue("KoreanCertificationRequired").Equals("True", StringComparison.OrdinalIgnoreCase))
+            if (root.GetValue("Info Center").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                root.Add("KoreanCertificationRequired", "Korean Certification Required");
-            }
-            else
-            {
-                root.Delete("KoreanCertificationRequired");
-            }
-
-            if (root.GetValue("WHQLCertificationRequire").Equals("1", StringComparison.OrdinalIgnoreCase))
-            {
-                root.Add("WHQLCertificationRequire", "WHQL Certification Require");
-            }
-            else
-            {
-                root.Delete("WHQLCertificationRequire");
+                if (string.IsNullOrEmpty(root.GetValue("Touch Points")))
+                {
+                    root.Add("Touch Points", "Info Center");
+                }
+                else
+                {
+                    root.Add("Touch Points", root.GetValue("Touch Points") + ", Info Center");
+                }
             }
 
-            if (root.GetValue("LimitFuncTestGroupVisability").Equals("True", StringComparison.OrdinalIgnoreCase))
+            if (root.GetValue("Start Menu Tile").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                root.Add("LimitFuncTestGroupVisability", "Limit partner visibility");
+                if (string.IsNullOrEmpty(root.GetValue("Touch Points")))
+                {
+                    root.Add("Touch Points", "Start Menu Tile");
+                }
+                else
+                {
+                    root.Add("Touch Points", root.GetValue("Touch Points") + ", Start Menu Tile");
+                }
+            }
+
+            if (root.GetValue("Taskbar Pinned Icon").Equals("True", StringComparison.OrdinalIgnoreCase))
+            {
+                if (string.IsNullOrEmpty(root.GetValue("Touch Points")))
+                {
+                    root.Add("Touch Points", "Taskbar Pinned Icon");
+                }
+                else
+                {
+                    root.Add("Touch Points", root.GetValue("Touch Points") + ", Taskbar Pinned Icon");
+                }
+            }
+
+            if (root.GetValue("FWML").Equals("True", StringComparison.OrdinalIgnoreCase))
+            {
+                if (string.IsNullOrEmpty(root.GetValue("Other Setting")))
+                {
+                    root.Add("Other Setting", "FWML");
+                }
+                else
+                {
+                    root.Add("Other Settings", root.GetValue("Other Setting") + ", FWML");
+                }
+            }
+
+            if (root.GetValue("UWP Compliant").Equals("True", StringComparison.OrdinalIgnoreCase))
+            {
+                if (string.IsNullOrEmpty(root.GetValue("Other Setting")))
+                {
+                    root.Add("Other Setting", "UWP Compliant");
+                }
+                else
+                {
+                    root.Add("Other Settings", root.GetValue("Other Setting") + ", UWP Compliant");
+                }
+            }
+
+            if (root.GetValue("Royalty Bearing").Equals("True", StringComparison.OrdinalIgnoreCase))
+            {
+                if (string.IsNullOrEmpty(root.GetValue("Special Notes")))
+                {
+                    root.Add("Special Notes", "Royalty Bearing");
+                }
+                else
+                {
+                    root.Add("Special Notes", root.GetValue("Special Notes") + ", Royalty Bearing");
+                }
+            }
+
+            if (root.GetValue("Korean Certification Required").Equals("True", StringComparison.OrdinalIgnoreCase))
+            {
+                if (string.IsNullOrEmpty(root.GetValue("Special Notes")))
+                {
+                    root.Add("Special Notes", "Korean Certification Required");
+                }
+                else
+                {
+                    root.Add("Special Notes", root.GetValue("Special Notes") + ", Korean Certification Required");
+                }
+            }
+
+            if (root.GetValue("WHQL Certification Require").Equals("1", StringComparison.OrdinalIgnoreCase))
+            {
+                root.Add("WHQL Certification Require", "WHQL Certification Require");
             }
             else
             {
-                root.Delete("LimitFuncTestGroupVisability");
+                root.Delete("WHQL Certification Require");
+            }
+
+            if (root.GetValue("Limit partner visibility").Equals("True", StringComparison.OrdinalIgnoreCase))
+            {
+                root.Add("Limit partner visibility", "Limit partner visibility");
+            }
+            else
+            {
+                root.Delete("Limit partner visibility");
             }
 
             if (root.GetValue("Visibility").Equals("True", StringComparison.OrdinalIgnoreCase))
@@ -870,31 +924,66 @@ GROUP BY DR.Id
                 root.Delete("Visibility");
             }
 
-            if (root.GetValue("IsSoftPaqInPreinstall").Equals("1", StringComparison.OrdinalIgnoreCase))
+            if (root.GetValue("SoftPaq In Preinstall").Equals("1", StringComparison.OrdinalIgnoreCase))
             {
-                root.Add("IsSoftPaqInPreinstall", "SoftPaq In Preinstall");
-            }
-            else
-            {
-                root.Delete("IsSoftPaqInPreinstall");
+                if (string.IsNullOrEmpty(root.GetValue("Packaging")))
+                {
+                    root.Add("Packagings", "SoftPaq In Preinstall");
+                }
+                else
+                {
+                    root.Add("Packaging", root.GetValue("Packaging") + ", SoftPaq In Preinstall");
+                }
             }
 
-            if (root.GetValue("Rompaq").Equals("1", StringComparison.OrdinalIgnoreCase))
+            if (root.GetValue("Rompaq Binary").Equals("1", StringComparison.OrdinalIgnoreCase))
             {
-                root.Add("Rompaq", "Rompaq Binary");
-            }
-            else
-            {
-                root.Delete("Rompaq");
+                if (string.IsNullOrEmpty(root.GetValue("ROM components")))
+                {
+                    root.Add("ROM components", "Binary");
+                }
+                else
+                {
+                    root.Add("ROM components", root.GetValue("ROM components") + ", Binary");
+                }
             }
 
             if (GetCd(root).Equals(1))
             {
-                root.Add("CD", "CD");
+                if (string.IsNullOrEmpty(root.GetValue("Packaging")))
+                {
+                    root.Add("Packagings", "CD");
+                }
+                else
+                {
+                    root.Add("Packaging", root.GetValue("Packaging") + ", CD");
+                }
             }
             root.Delete("CDImage");
             root.Delete("ISOImage");
             root.Delete("AR");
+            root.Delete("Royalty Bearing");
+            root.Delete("Korean Certification Required");
+            root.Delete("Preinstall");
+            root.Delete("DrDvd");
+            root.Delete("Packaging Softpaq");
+            root.Delete("Ms Store");
+            root.Delete("Internal Tool");
+            root.Delete("SoftPaq In Preinstall");
+            root.Delete("Binary");
+            root.Delete("ROM Components Preinstall");
+            root.Delete("CAB");
+            root.Delete("ROM component Softpaq");
+            root.Delete("Desktop");
+            root.Delete("Start Menu");
+            root.Delete("System Tray");
+            root.Delete("Control Panel");
+            root.Delete("Info Center");
+            root.Delete("Start Menu Tile");
+            root.Delete("Taskbar Pinned Icon");
+            root.Delete("FWML");
+            root.Delete("UWP Compliant");
+            root.Delete("Rompaq Binary");
         }
 
         return Task.CompletedTask;
@@ -919,7 +1008,7 @@ GROUP BY DR.Id
 
     private async Task FillTrulyLinkedFeatureAsync(CommonDataModel componentRoot)
     {
-        if (!int.TryParse(componentRoot.GetValue("ComponentRootId"), out int componentRootId))
+        if (!int.TryParse(componentRoot.GetValue("Component Root Id"), out int componentRootId))
         {
             return;
         }
@@ -953,8 +1042,8 @@ GROUP BY DR.Id
         {
             for (int i = 0; i < trulyLinkedFeatures[componentRootId].Count; i++)
             {
-                componentRoot.Add("TrulyLinkedFeatures Id" + i, trulyLinkedFeatures[componentRootId][i].Item1);
-                componentRoot.Add("TrulyLinkedFeatures Name" + i, trulyLinkedFeatures[componentRootId][i].Item2);
+                componentRoot.Add("Truly Linked Features Id " + i, trulyLinkedFeatures[componentRootId][i].Item1);
+                componentRoot.Add("Truly Linked Features Name " + i, trulyLinkedFeatures[componentRootId][i].Item2);
             }
         }
     }
@@ -988,13 +1077,13 @@ GROUP BY DR.Id
 
         foreach (CommonDataModel root in roots)
         {
-            if (int.TryParse(root.GetValue("ComponentRootId"), out int componentRootId)
+            if (int.TryParse(root.GetValue("Component Root Id"), out int componentRootId)
               && trulyLinkedFeatures.ContainsKey(componentRootId))
             {
                 for (int i = 0; i < trulyLinkedFeatures[componentRootId].Count; i++)
                 {
-                    root.Add("TrulyLinkedFeatures Id" + i, trulyLinkedFeatures[componentRootId][i].Item1);
-                    root.Add("TrulyLinkedFeatures Name" + i, trulyLinkedFeatures[componentRootId][i].Item2);
+                    root.Add("Truly Linked Features Id " + i, trulyLinkedFeatures[componentRootId][i].Item1);
+                    root.Add("Truly Linked Features Name " + i, trulyLinkedFeatures[componentRootId][i].Item2);
 
                 }
             }
@@ -1003,7 +1092,7 @@ GROUP BY DR.Id
 
     private async Task FillLinkedFeatureAsync(CommonDataModel componentRoot)
     {
-        if (!int.TryParse(componentRoot.GetValue("ComponentRootId"), out int componentRootId))
+        if (!int.TryParse(componentRoot.GetValue("Component Root Id"), out int componentRootId))
         {
             return;
         }
@@ -1037,8 +1126,8 @@ GROUP BY DR.Id
         {
             for (int i = 0; i < linkedFeatures[componentRootId].Count; i++)
             {
-                componentRoot.Add("LinkedFeatures Id" + i, linkedFeatures[componentRootId][i].Item1);
-                componentRoot.Add("LinkedFeatures Name" + i, linkedFeatures[componentRootId][i].Item2);
+                componentRoot.Add("Linked Features Id " + i, linkedFeatures[componentRootId][i].Item1);
+                componentRoot.Add("Linked Features Name " + i, linkedFeatures[componentRootId][i].Item2);
             }
         }
     }
@@ -1072,13 +1161,13 @@ GROUP BY DR.Id
 
         foreach (CommonDataModel root in roots)
         {
-            if (int.TryParse(root.GetValue("ComponentRootId"), out int componentRootId)
+            if (int.TryParse(root.GetValue("Component Root Id"), out int componentRootId)
               && linkedFeatures.ContainsKey(componentRootId))
             {
                 for (int i = 0; i < linkedFeatures[componentRootId].Count; i++)
                 {
-                    root.Add("LinkedFeatures Id" + i, linkedFeatures[componentRootId][i].Item1);
-                    root.Add("LinkedFeatures Name" + i, linkedFeatures[componentRootId][i].Item2);
+                    root.Add("Linked Features Id " + i, linkedFeatures[componentRootId][i].Item1);
+                    root.Add("Linked Features Name " + i, linkedFeatures[componentRootId][i].Item2);
                 }
             }
         }
@@ -1086,7 +1175,7 @@ GROUP BY DR.Id
 
     private async Task FillComponentInitiatedLinkageAsync(CommonDataModel componentRoot)
     {
-        if (!int.TryParse(componentRoot.GetValue("ComponentRootId"), out int componentRootId))
+        if (!int.TryParse(componentRoot.GetValue("Component Root Id"), out int componentRootId))
         {
             return;
         }
@@ -1120,8 +1209,8 @@ GROUP BY DR.Id
         {
             for (int i = 0; i < componentInitiatedLinkage[componentRootId].Count; i++)
             {
-                componentRoot.Add("ComponentInitiatedLinkage Id" + i, componentInitiatedLinkage[componentRootId][i].Item1);
-                componentRoot.Add("ComponentInitiatedLinkage Name" + i, componentInitiatedLinkage[componentRootId][i].Item2);
+                componentRoot.Add("Component Initiated Linkage Id " + i, componentInitiatedLinkage[componentRootId][i].Item1);
+                componentRoot.Add("Component Initiated Linkage Name " + i, componentInitiatedLinkage[componentRootId][i].Item2);
             }
         }
     }
@@ -1155,13 +1244,13 @@ GROUP BY DR.Id
 
         foreach (CommonDataModel root in roots)
         {
-            if (int.TryParse(root.GetValue("ComponentRootId"), out int componentRootId)
+            if (int.TryParse(root.GetValue("Component Root Id"), out int componentRootId)
               && componentInitiatedLinkage.ContainsKey(componentRootId))
             {
                 for (int i = 0; i < componentInitiatedLinkage[componentRootId].Count; i++)
                 {
-                    root.Add("ComponentInitiatedLinkage Id" + i, componentInitiatedLinkage[componentRootId][i].Item1);
-                    root.Add("ComponentInitiatedLinkage Name" + i, componentInitiatedLinkage[componentRootId][i].Item2);
+                    root.Add("Component Initiated Linkage Id " + i, componentInitiatedLinkage[componentRootId][i].Item1);
+                    root.Add("Component Initiated Linkage Name " + i, componentInitiatedLinkage[componentRootId][i].Item2);
                 }
             }
         }

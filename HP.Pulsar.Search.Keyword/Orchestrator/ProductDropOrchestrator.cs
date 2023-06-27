@@ -8,19 +8,17 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator;
 
 internal class ProductDropOrchestrator : IInitializationOrchestrator
 {
-    private KeywordSearchInfo KeywordSearchInfo { get; }
-    private MeiliSearchClient MeiliSearchClient { get; }
+    private KeywordSearchInfo _keywordSearchInfo { get; }
 
-    public ProductDropOrchestrator(KeywordSearchInfo keywordSearchInfo, MeiliSearchClient meiliSearchClient)
+    public ProductDropOrchestrator(KeywordSearchInfo keywordSearchInfo)
     {
-        KeywordSearchInfo = keywordSearchInfo;
-        MeiliSearchClient = meiliSearchClient;
+        _keywordSearchInfo = keywordSearchInfo;
     }
 
     public async Task InitializeAsync()
     {
         // read productDrops from database
-        ProductDropReader reader = new(KeywordSearchInfo);
+        ProductDropReader reader = new(_keywordSearchInfo);
         IEnumerable<CommonDataModel> productDrops = await reader.GetDataAsync();
 
         // data processing
@@ -28,9 +26,11 @@ internal class ProductDropOrchestrator : IInitializationOrchestrator
         productDrops = tranformer.Transform(productDrops);
 
         // summary property
-        ElementKeyContainer.Add(productDrops.SelectMany(p => p.GetKeys()).Distinct<string>());
+        ElementKeyContainer elementKeyContainer = new();
+        elementKeyContainer.Add(productDrops.SelectMany(p => p.GetKeys()).Distinct<string>());
 
         // write to meiliesearch
-        await MeiliSearchClient.SendElementsCreationAsync(productDrops);
+        MeiliSearchClient writer = new(_keywordSearchInfo.SearchEngineUrl, IndexName.ProductDrop);
+        await writer.InitializeIndexCreationStepsAsync(productDrops, elementKeyContainer.Get());
     }
 }

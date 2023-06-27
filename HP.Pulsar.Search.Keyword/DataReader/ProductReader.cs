@@ -1,4 +1,6 @@
 ﻿using System.Reflection.Metadata;
+using System.Text;
+using System.Xml.Linq;
 using HP.Pulsar.Search.Keyword.CommonDataStructure;
 using HP.Pulsar.Search.Keyword.Infrastructure;
 using Microsoft.Data.SqlClient;
@@ -31,7 +33,11 @@ public class ProductReader : IKeywordSearchDataReader
             FillChipsetAsync(product),
             FillCurrentBiosVersionAsync(product),
             FillAvDetailAsync(product),
-            FillFactoryNameAsync(product)
+            FillFactoryNameAsync(product),
+            FillReferencePlatformAsync(product),
+            FillMarketingNamesAndPHWebNamesAsync(product),
+            FillKMATAsync(product),
+            FillOperatingSystemAsync(product)
         };
 
         await Task.WhenAll(tasks);
@@ -51,7 +57,11 @@ public class ProductReader : IKeywordSearchDataReader
             FillChipsetsAsync(products),
             FillCurrentBiosVersionsAsync(products),
             FillAvDetailsAsync(products),
-            FillFactoryNamesAsync(products)
+            FillFactoryNamesAsync(products),
+            FillReferencePlatformAsync(products),
+            FillMarketingNamesAndPHWebNamesAsync(products),
+            FillKMATAsync(products),
+            FillOperatingSystemAsync(products)
         };
 
         await Task.WhenAll(tasks);
@@ -62,55 +72,64 @@ public class ProductReader : IKeywordSearchDataReader
     private string GetProductsCommandText()
     {
         return @"
-SELECT p.id AS ProductId,
-    DOTSName AS ProductName,
-    partner.name AS Partner,
-    pdc.Name AS DevCenter,
+SELECT p.id AS 'Product Id',
+    DOTSName AS 'Product Name',
+    CASE WHEN p.DevCenter = 0 THEN ''
+        WHEN p.DevCenter = 1 THEN 'Houston'
+        WHEN p.DevCenter = 2 THEN 'Taiwan - Consumer'
+        WHEN p.DevCenter = 3 THEN 'Taiwan - Commercial'
+        WHEN p.DevCenter = 4 THEN 'Singapore'
+        WHEN p.DevCenter = 5 THEN 'Brazil'
+        WHEN p.DevCenter = 6 THEN 'Mobility'
+        WHEN p.DevCenter = 7 THEN 'San Diego'
+        WHEN p.DevCenter = 8 THEN 'No Dev. Center'
+        WHEN p.DevCenter = 9 THEN 'Fort Collins'
+    END AS 'Development Center',
     Brands,
-    p.SystemBoardId,
-    ServiceLifeDate,
-    ps.Name AS ProductStatus,
-    sg.Name AS BusinessSegment,
-    p.CreatedBy AS CreatorName,
-    p.Created AS CreatedDate,
-    p.UpdatedBy AS LastUpdaterName,
-    p.Updated AS LatestUpdateDate,
-    user_SMID.FirstName + ' ' + user_SMID.LastName AS SystemManager,
-    user_SMID.Email AS SystemManagerEmail,
-    user_PDPM.FirstName + ' ' + user_PDPM.LastName AS PlatformDevelopmentPM,
-    user_PDPM.Email AS PlatformDevelopmentPMEmail,
-    user_SCID.FirstName + ' ' + user_SCID.LastName AS SupplyChain,
-    user_SCID.Email AS SupplyChainEmail,
-    user_ODMSEPM.FirstName + ' ' + user_ODMSEPM.LastName AS ODMSystemEngineeringPM,
-    user_ODMSEPM.Email AS ODMSystemEngineeringPMEmail,
-    user_CM.FirstName + ' ' + user_CM.LastName AS ConfigurationManager,
-    user_CM.Email AS ConfigurationManagerEmail,
-    user_CPM.FirstName + ' ' + user_CPM.LastName AS CommodityPM,
-    user_CPM.Email AS CommodityPMEmail,
+    p.SystemBoardId as 'System Board Id',
+    vw_GetEndOfServiceLifeDate.EndOfServiceLifeDate as 'End Of Service',
+    ps.Name AS 'Product Phase',
+    sg.Name AS 'Business Segment',
+    p.CreatedBy AS 'Creator Name',
+    p.Created AS 'Created Date',
+    p.UpdatedBy AS 'Last Updater Name',
+    p.Updated AS 'Latest Update Date',
+    user_SMID.FirstName + ' ' + user_SMID.LastName AS 'System Manager',
+    user_SMID.Email AS 'System Manager Email',
+    user_PDPM.FirstName + ' ' + user_PDPM.LastName AS 'Platform Development PM',
+    user_PDPM.Email AS 'Platform Development PM Email',
+    user_SCID.FirstName + ' ' + user_SCID.LastName AS 'Supply Chain',
+    user_SCID.Email AS 'Supply Chain Email',
+    user_ODMSEPM.FirstName + ' ' + user_ODMSEPM.LastName AS 'ODM System Engineering PM',
+    user_ODMSEPM.Email AS 'ODM System Engineering PM Email',
+    user_CM.FirstName + ' ' + user_CM.LastName AS 'Configuration Manager',
+    user_CM.Email AS 'Configuration Manager Email',
+    user_CPM.FirstName + ' ' + user_CPM.LastName AS 'Commodity PM',
+    user_CPM.Email AS 'Commodity PM Email',
     user_Service.FirstName + ' ' + user_Service.LastName AS Service,
-    user_Service.Email AS ServiceEmail,
-    user_ODMHWPM.FirstName + ' ' + user_ODMHWPM.LastName AS ODMHWPM,
-    user_ODMHWPM.Email AS ODMHWPMEmail,
-    user_POPM.FirstName + ' ' + user_POPM.LastName AS ProgramOfficeProgramManager,
-    user_POPM.Email AS ProgramOfficeProgramManagerEmail,
+    user_Service.Email AS 'Service Email',
+    user_ODMHWPM.FirstName + ' ' + user_ODMHWPM.LastName AS 'ODM HW PM',
+    user_ODMHWPM.Email AS 'ODM HW PM Email',
+    user_POPM.FirstName + ' ' + user_POPM.LastName AS 'Program Office Program Manager',
+    user_POPM.Email AS 'Program Office Program Manager Email',
     user_Quality.FirstName + ' ' + user_Quality.LastName AS Quality,
-    user_Quality.Email AS QualityEmail,
-    user_PPM.FirstName + ' ' + user_PPM.LastName AS PlanningPM,
-    user_PPM.Email AS PlanningPMEmail,
-    user_BIOSPM.FirstName + ' ' + user_BIOSPM.LastName AS BIOSPM,
-    user_BIOSPM.Email AS BIOSPMEmail,
-    user_SEPM.FirstName + ' ' + user_SEPM.LastName AS SystemsEngineeringPM,
-    user_SEPM.Email AS SystemsEngineeringPMEmail,
-    user_MPM.FirstName + ' ' + user_MPM.LastName AS MarketingProductMgmt,
-    user_MPM.Email AS MarketingProductMgmtEmail,
-    user_ProPM.FirstName + ' ' + user_ProPM.LastName AS ProcurementPM,
-    user_ProPM.Email AS ProcurementPMEmail,
-    user_SWM.FirstName + ' ' + user_SWM.LastName AS SWMarketing,
-    user_SWM.Email AS SWMarketingEmail,
-    pf.Name AS ProductFamily,
+    user_Quality.Email AS 'Quality Email',
+    user_PPM.FirstName + ' ' + user_PPM.LastName AS 'Planning PM',
+    user_PPM.Email AS 'Planning PM Email',
+    user_BIOSPM.FirstName + ' ' + user_BIOSPM.LastName AS 'BIOS PM',
+    user_BIOSPM.Email AS 'BIOS PM Email',
+    user_SEPM.FirstName + ' ' + user_SEPM.LastName AS 'Systems Engineering PM',
+    user_SEPM.Email AS 'Systems Engineering PM Email',
+    user_MPM.FirstName + ' ' + user_MPM.LastName AS 'Marketing/Product Mgmt',
+    user_MPM.Email AS 'Marketing/Product Mgmt Email',
+    user_ProPM.FirstName + ' ' + user_ProPM.LastName AS 'Procurement PM',
+    user_ProPM.Email AS 'Procurement PM Email',
+    user_SWM.FirstName + ' ' + user_SWM.LastName AS 'SW Marketing',
+    user_SWM.Email AS 'SW Marketing Email',
+    pf.Name AS 'Product Family',
     partner.name AS ODM,
-    pis.Name AS ReleaseTeam,
-    p.RegulatoryModel AS RegulatoryModel,
+    pis.Name AS 'Release Team',
+    p.RegulatoryModel AS 'Regulatory Model',
     STUFF((
             SELECT ',' + new_releases.Releases
             FROM (
@@ -127,7 +146,7 @@ SELECT p.id AS ProductId,
             FOR XML PATH('')
             ), 1, 1, '') AS Releases,
     p.Description,
-    pl.Name + '-' + pl.Description AS ProductLine,
+    pl.Name + '-' + pl.Description AS 'Product Line',
     CASE 
         WHEN p.PreinstallTeam = - 1
             THEN ''
@@ -147,14 +166,17 @@ SELECT p.id AS ProductId,
             THEN 'Mobility'
         WHEN p.PreinstallTeam = 8
             THEN ''
-        END AS PreinstallTeam,
-    p.MachinePNPID AS MachinePNPID,
-    p.RCTOSites,
-    p.IsNdaProduct
+        END AS 'Preinstall Team',
+    p.MachinePNPID AS 'Machine PNP ID',
+    p.RCTOSites as 'RCTO Sites',
+    p.IsNdaProduct as 'Is Nda Product',
+    p.TypeId,
+    p.ImagePO AS 'Current Image Part Number',
+    p.AllowFollowMarketingName,
+    FusionRequirements = isnull(FusionRequirements, 0)
 FROM ProductVersion p
 LEFT JOIN ProductFamily pf ON p.ProductFamilyId = pf.id
 LEFT JOIN Partner partner ON partner.id = p.PartnerId
-LEFT JOIN ProductDevCenter pdc ON pdc.ProductDevCenterId = DevCenter
 LEFT JOIN ProductStatus ps ON ps.id = p.ProductStatusID
 LEFT JOIN BusinessSegment sg ON sg.BusinessSegmentID = p.BusinessSegmentID
 LEFT JOIN PreinstallTeam pis ON pis.ID = p.ReleaseTeam
@@ -175,11 +197,11 @@ LEFT JOIN UserInfo user_MPM ON user_MPM.userid = p.ConsMarketingID
 LEFT JOIN UserInfo user_ProPM ON user_ProPM.userid = p.ProcurementPMID
 LEFT JOIN UserInfo user_SWM ON user_SWM.userid = p.SwMarketingId
 LEFT JOIN ProductLine pl ON pl.Id = p.ProductLineId
+LEFT JOIN vw_GetEndOfServiceLifeDate on vw_GetEndOfServiceLifeDate.productId = p.Id
 WHERE (
         @ProductId = - 1
         OR p.Id = @ProductId
         )
-
 ";
     }
 
@@ -223,7 +245,7 @@ WHERE (
             }
 
             product.Add("Target", TargetTypeValue.Product);
-            product.Add("Id", SearchIdName.Product + product.GetValue("ProductId"));
+            product.Add("Id", SearchIdName.Product + product.GetValue("Product Id"));
         }
         return product;
     }
@@ -270,7 +292,7 @@ WHERE (
             }
 
             product.Add("Target", TargetTypeValue.Product);
-            product.Add("Id", SearchIdName.Product + product.GetValue("ProductId"));
+            product.Add("Id", SearchIdName.Product + product.GetValue("Product Id"));
             output.Add(product);
         }
 
@@ -429,18 +451,163 @@ WHERE APB.STATUS = 'A'
 ";
     }
 
+    private string GetReferencePlatformText()
+    {
+        return @"
+Select v.id as ProductId ,f2.name + ' ' + v2.version as ReferencePlatform 
+from productversion v with (NOLOCK), productversion v2 with (NOLOCK), productfamily f2 with (NOLOCK) 
+where f2.id = v2.productfamilyid 
+and v2.id = v.referenceid 
+    AND (
+        @ProductId = - 1
+        OR v.id = @ProductId
+        )
+";
+    }
+
+    private string GetKMATText()
+    {
+        return @"
+SELECT p.ProductVersionID AS 'ProductId',
+    isnull(p.KMAT, '') AS 'KMAT', 
+    p.LastPublishDt AS 'Last SCM Publish'
+FROM Product_Brand p WITH (NOLOCK) 
+left join ProductVersion pv on pv.ProductVersionID = p.ProductVersionID 
+where pv.AllowFollowMarketingName =1
+    AND(
+        @ProductId = - 1
+        OR p.ProductVersionID = @ProductId
+        )
+";
+    }
+
+    private string GetMarketingNamesAndPHWebNamesText()
+    {
+        return @"
+SELECT p.ProductVersionId AS 'ProductId', 
+    l.ID, 
+    l.Name, 
+    l.StreetName, 
+    l.StreetName2, 
+    l.StreetName3,
+    l.Suffix, 
+    l.RASSegment, 
+    v.version AS 'ProductVersion', 
+    v.productname AS 'ProductFamily',  
+    p.ID AS 'ProductBrandID', 
+    v.dotsname AS 'ProductName', 
+    p.LastPublishDt, 
+    l.ShowSeriesNumberInLogoBadge, 
+    l.ShowSeriesNumberInBrandname, 
+    l.SplitSeriesForLogoAndBrand,  
+    l.ShowSeriesNumberInShortName,  
+    isnull(p.KMAT, '') AS 'KMAT', 
+    isnull(p.ServiceTag, '') AS 'ServiceTag', 
+    isnull(p.BIOSBranding, '') AS 'BIOSBranding', 
+    isnull(p.LogoBadge, '') AS 'LogoBadge', 
+    isnull(p.LongName, '') AS 'LongName',  
+    isnull(p.ShortName, '') AS 'ShortName', 
+    isnull(p.FamilyName, '') AS 'FamilyName', 
+    isnull(p.BrandName, '') AS 'BrandName', 
+    '' AS 'SeriesName', 
+    0 AS 'SeriesID', 
+    isnull(p.MasterLabel, '') AS 'MasterLabel', 
+    isnull(p.CTOModelNumber, '') AS 'CTOModelNumber' 
+FROM product_brand p WITH (NOLOCK) 
+INNER JOIN Brand l WITH (NOLOCK) ON p.BrandID = l.ID 
+INNER JOIN productversion v WITH (NOLOCK) ON v.id = p.ProductVersionID 
+LEFT OUTER JOIN Series s WITH (NOLOCK) ON p.ID = s.ProductBrandId 
+WHERE (
+        @ProductId = - 1
+        OR p.ProductVersionID = @ProductId
+        ) 
+    AND 
+        ( 
+            SELECT count(1) 
+            FROM Series WITH (NOLOCK) 
+            WHERE ProductBrandID = p.ID 
+            ) = 0 
+            
+UNION 
+    
+SELECT p.ProductVersionId, 
+    l.ID, 
+    Name = l.Name, 
+    l.StreetName, 
+    l.StreetName2, 
+    l.StreetName3, 
+    l.Suffix, 
+    l.RASSegment, 
+    v.version AS 'ProductVersion', 
+    v.productname AS 'ProductFamily', 
+    p.ID AS 'ProductBrandID', 
+    v.dotsname AS 'Product', 
+    p.LastPublishDt, 
+    l.ShowSeriesNumberInLogoBadge, 
+    l.ShowSeriesNumberInBrandname, 
+    l.SplitSeriesForLogoAndBrand, 
+    l.ShowSeriesNumberInShortName, 
+    isnull(p.KMAT, '') AS 'KMAT',
+    isnull(p.ServiceTag, '') AS 'ServiceTag', 
+    isnull(Series.BIOSBranding, '') AS 'BIOSBranding', 
+    isnull(Series.LogoBadge, '') AS 'LogoBadge', 
+    isnull(Series.LongName, '') AS 'LongName', 
+    isnull(Series.ShortName, '') AS 'ShortName', 
+    isnull(Series.FamilyName, '') AS 'FamilyName', 
+    isnull(Series.BrandName, '') AS 'BrandName', 
+    isnull(Series.Name, '') AS 'SeriesName', 
+    Series.ID AS 'SeriesID', 
+    isnull(Series.MasterLabel, '') AS 'MasterLabel', 
+    isnull(Series.CTOModelNumber, '') AS 'CTOModelNumber'
+FROM product_brand p WITH (NOLOCK) 
+INNER JOIN Brand l WITH (NOLOCK) ON p.BrandID = l.ID 
+INNER JOIN productversion v WITH (NOLOCK) ON v.id = p.ProductVersionID 
+LEFT OUTER JOIN Series WITH (NOLOCK) ON p.ID = Series.ProductBrandID 
+WHERE (
+        @ProductId = - 1
+        OR p.ProductVersionID = @ProductId
+        ) 
+    AND ( 
+        ( 
+            SELECT count(1) 
+            FROM Series WITH (NOLOCK) 
+            WHERE ProductBrandID = p.ID 
+            ) > 0 
+        ) 
+";
+    }
+
+    private string GetOperatingSystemText()
+    {
+        return @"
+select po.productversionid as ProductId, 
+    o.Name as ShortName,
+    po.Preinstall,
+    po.Web 
+from product_os po with (NOLOCK),
+     oslookup o with (NOLOCK) 
+where po.osid = o.id 
+    and o.id <> 16 
+    and (
+        @ProductId = - 1
+        OR po.productversionid = @ProductId
+        )
+";
+    }
+
     private async Task FillEndOfProductionDateAsync(CommonDataModel product)
     {
-        if (int.TryParse(product.GetValue("ProductId"), out int productId)
+        if (int.TryParse(product.GetValue("Product Id"), out int productId)
             && int.TryParse(product.GetValue("TypeId"), out int typeId))
         {
             using SqlConnection connection = new(_info.DatabaseConnectionString);
             await connection.OpenAsync();
             SqlCommand command1 = new(GetEndOfProductionCommand1Text(), connection);
             SqlCommand command2 = new(GetEndOfProductionCommand2Text(), connection);
-            SqlParameter parameter = new("ProductId", productId);
-            command1.Parameters.Add(parameter);
-            command2.Parameters.Add(parameter);
+            SqlParameter parameter1 = new("ProductId", productId);
+            SqlParameter parameter2 = new("ProductId", productId);
+            command1.Parameters.Add(parameter1);
+            command2.Parameters.Add(parameter2);
             Dictionary<int, DateTime> eopDates1 = new();
             Dictionary<int, DateTime> eopDates2 = new();
 
@@ -472,17 +639,20 @@ WHERE APB.STATUS = 'A'
             {
                 if (eopDates1.ContainsKey(productId))
                 {
-                    product.Add("EndOfProduction", eopDates1[productId].ToString("yyyy/MM/dd"));
+                    product.Add("End Of Production", eopDates1[productId].ToString("yyyy/MM/dd"));
+                    product.Add("End Of Sales", GetEndOfSalesDate(eopDates1[productId]));
                 }
             }
             else
             {
                 if (eopDates2.ContainsKey(productId))
                 {
-                    product.Add("EndOfProduction", eopDates2[productId].ToString("yyyy/MM/dd"));
+                    product.Add("End Of Production", eopDates2[productId].ToString("yyyy/MM/dd"));
+                    product.Add("End Of Sales", GetEndOfSalesDate(eopDates2[productId]));
                 }
             }
         }
+        product.Delete("TypeId");
     }
 
     private async Task FillEndOfProductionDatesAsync(IEnumerable<CommonDataModel> products)
@@ -525,8 +695,9 @@ WHERE APB.STATUS = 'A'
         foreach (CommonDataModel product in products)
         {
             if (!int.TryParse(product.GetValue("TypeId"), out int typeId)
-                || !int.TryParse(product.GetValue("ProductId"), out int productId))
+                || !int.TryParse(product.GetValue("Product Id"), out int productId))
             {
+                product.Delete("TypeId");
                 continue;
             }
 
@@ -534,22 +705,40 @@ WHERE APB.STATUS = 'A'
             {
                 if (eopDates1.ContainsKey(productId))
                 {
-                    product.Add("EndOfProduction", eopDates1[productId].ToString("yyyy/MM/dd"));
+                    product.Add("End Of Production", eopDates1[productId].ToString("yyyy/MM/dd"));
+                    product.Add("End Of Sales", GetEndOfSalesDate(eopDates1[productId]));
                 }
             }
             else
             {
                 if (eopDates2.ContainsKey(productId))
                 {
-                    product.Add("EndOfProduction", eopDates2[productId].ToString("yyyy/MM/dd"));
+                    product.Add("End Of Production", eopDates2[productId].ToString("yyyy/MM/dd"));
+                    product.Add("End Of Sales", GetEndOfSalesDate(eopDates2[productId]));
                 }
             }
+            product.Delete("TypeId");
         }
+    }
+
+    private static string GetEndOfSalesDate(DateTime date)
+    {
+        return GetLastDateOfMonth(date.AddMonths(3)).ToString("yyyy/MM/dd");
+    }
+
+    private static DateTime GetFirstDateOfMonth(DateTime date)
+    {
+        return new DateTime(date.Year, date.Month, 1);
+    }
+
+    private static DateTime GetLastDateOfMonth(DateTime date)
+    {
+        return GetFirstDateOfMonth(date).AddMonths(1).AddDays(-1);
     }
 
     private async Task FillProductGroupAsync(CommonDataModel product)
     {
-        if (!int.TryParse(product.GetValue("ProductId"), out int productId))
+        if (!int.TryParse(product.GetValue("Product Id"), out int productId))
         {
             return;
         }
@@ -581,7 +770,7 @@ WHERE APB.STATUS = 'A'
 
         if (productGroups.ContainsKey(productId))
         {
-            product.Add("ProductGroups", string.Join(" ", productGroups[productId]));
+            product.Add("Product Groups", string.Join(" ", productGroups[productId]));
         }
     }
 
@@ -615,17 +804,17 @@ WHERE APB.STATUS = 'A'
 
         foreach (CommonDataModel product in products)
         {
-            if (int.TryParse(product.GetValue("ProductId"), out int productId)
+            if (int.TryParse(product.GetValue("Product Id"), out int productId)
                 && productGroups.ContainsKey(productId))
             {
-                product.Add("ProductGroups", string.Join(" ", productGroups[productId]));
+                product.Add("Product Groups", string.Join(" ", productGroups[productId]));
             }
         }
     }
 
     private async Task FillLeadProductAsync(CommonDataModel product)
     {
-        if (!int.TryParse(product.GetValue("ProductId"), out int productId))
+        if (!int.TryParse(product.GetValue("Product Id"), out int productId))
         {
             return;
         }
@@ -661,7 +850,7 @@ WHERE APB.STATUS = 'A'
 
         if (leadProducts.ContainsKey(productId))
         {
-            product.Add("LeadProduct", string.Join(", ", leadProducts[productId]));
+            product.Add("Lead Product", string.Join(", ", leadProducts[productId]));
         }
     }
 
@@ -698,17 +887,17 @@ WHERE APB.STATUS = 'A'
 
         foreach (CommonDataModel product in products)
         {
-            if (int.TryParse(product.GetValue("ProductId"), out int productId)
+            if (int.TryParse(product.GetValue("Product Id"), out int productId)
                && leadProducts.ContainsKey(productId))
             {
-                product.Add("LeadProduct", string.Join(", ", leadProducts[productId]));
+                product.Add("Lead Product", string.Join(", ", leadProducts[productId]));
             }
         }
     }
 
     private async Task FillChipsetAsync(CommonDataModel product)
     {
-        if (!int.TryParse(product.GetValue("ProductId"), out int productId))
+        if (!int.TryParse(product.GetValue("Product Id"), out int productId))
         {
             return;
         }
@@ -773,7 +962,7 @@ WHERE APB.STATUS = 'A'
 
         foreach (CommonDataModel product in products)
         {
-            if (int.TryParse(product.GetValue("ProductId"), out int productId)
+            if (int.TryParse(product.GetValue("Product Id"), out int productId)
               && chipsets.ContainsKey(productId))
             {
                 product.Add("Chipsets", string.Join(" ", chipsets[productId]));
@@ -783,7 +972,7 @@ WHERE APB.STATUS = 'A'
 
     private async Task FillCurrentBiosVersionAsync(CommonDataModel product)
     {
-        if (!int.TryParse(product.GetValue("ProductId"), out int productId))
+        if (!int.TryParse(product.GetValue("Product Id"), out int productId))
         {
             return;
         }
@@ -793,19 +982,19 @@ WHERE APB.STATUS = 'A'
 
         if (currentROM.ContainsKey(productId))
         {
-            product.Add("CurrentBIOSVersions", await GetTargetedVersionsAsync(productId,
-                                                                              product.GetValue("ProductStatus"),
-                                                                              currentROM[productId].Item1,
-                                                                              currentROM[productId].Item2,
-                                                                              biosVersion));
+            product.Add("Current BIOS Versions", await GetTargetedVersionsAsync(productId,
+                                                                                product.GetValue("ProductStatus"),
+                                                                                currentROM[productId].Item1,
+                                                                                currentROM[productId].Item2,
+                                                                                biosVersion));
         }
         else
         {
-            product.Add("CurrentBIOSVersions", await GetTargetedVersionsAsync(productId,
-                                                                              product.GetValue("ProductStatus"),
-                                                                              string.Empty,
-                                                                              string.Empty,
-                                                                              biosVersion));
+            product.Add("Current BIOS Versions", await GetTargetedVersionsAsync(productId,
+                                                                                product.GetValue("ProductStatus"),
+                                                                                string.Empty,
+                                                                                string.Empty,
+                                                                                biosVersion));
         }
     }
 
@@ -816,26 +1005,26 @@ WHERE APB.STATUS = 'A'
 
         foreach (CommonDataModel product in products)
         {
-            if (!int.TryParse(product.GetValue("ProductId"), out int productId))
+            if (!int.TryParse(product.GetValue("Product Id"), out int productId))
             {
                 continue;
             }
 
             if (currentROM.ContainsKey(productId))
             {
-                product.Add("CurrentBIOSVersions", await GetTargetedVersionsAsync(productId,
-                                                                                  product.GetValue("ProductStatus"),
-                                                                                  currentROM[productId].Item1,
-                                                                                  currentROM[productId].Item2,
-                                                                                  biosVersion));
+                product.Add("Current BIOS Versions", await GetTargetedVersionsAsync(productId,
+                                                                                    product.GetValue("ProductStatus"),
+                                                                                    currentROM[productId].Item1,
+                                                                                    currentROM[productId].Item2,
+                                                                                    biosVersion));
             }
             else
             {
-                product.Add("CurrentBIOSVersions", await GetTargetedVersionsAsync(productId,
-                                                                                  product.GetValue("ProductStatus"),
-                                                                                  string.Empty,
-                                                                                  string.Empty,
-                                                                                  biosVersion));
+                product.Add("Current BIOS Versions", await GetTargetedVersionsAsync(productId,
+                                                                                    product.GetValue("ProductStatus"),
+                                                                                    string.Empty,
+                                                                                    string.Empty,
+                                                                                    biosVersion));
             }
         }
     }
@@ -953,7 +1142,7 @@ WHERE APB.STATUS = 'A'
 
     private async Task FillAvDetailAsync(CommonDataModel product)
     {
-        if (int.TryParse(product.GetValue("ProductId"), out int productId))
+        if (int.TryParse(product.GetValue("Product Id"), out int productId))
         {
             using SqlConnection connection = new(_info.DatabaseConnectionString);
             await connection.OpenAsync();
@@ -985,7 +1174,7 @@ WHERE APB.STATUS = 'A'
             {
                 for (int i = 0; i < avDetail[productId].Count(); i++)
                 {
-                    product.Add("AvDetail " + i, avDetail[productId][i]);
+                    product.Add("Av Detail " + i, avDetail[productId][i]);
                 }
             }
         }
@@ -1021,12 +1210,12 @@ WHERE APB.STATUS = 'A'
 
         foreach (CommonDataModel product in products)
         {
-            if (int.TryParse(product.GetValue("ProductId"), out int productId)
+            if (int.TryParse(product.GetValue("Product Id"), out int productId)
                 && avDetail.ContainsKey(productId))
             {
                 for (int i = 0; i < avDetail[productId].Count(); i++)
                 {
-                    product.Add("AvDetail " + i, avDetail[productId][i]);
+                    product.Add("Av Detail " + i, avDetail[productId][i]);
                 }
             }
         }
@@ -1034,7 +1223,7 @@ WHERE APB.STATUS = 'A'
 
     private async Task FillFactoryNameAsync(CommonDataModel product)
     {
-        if (!int.TryParse(product.GetValue("ProductId"), out int productId))
+        if (!int.TryParse(product.GetValue("Product Id"), out int productId))
         {
             return;
         }
@@ -1068,7 +1257,7 @@ WHERE APB.STATUS = 'A'
         {
             for (int i = 0; i < factoryName[productId].Count; i++)
             {
-                product.Add("FactoryName" + i, factoryName[productId][i]);
+                product.Add("Factory " + i, factoryName[productId][i]);
             }
         }
     }
@@ -1102,13 +1291,775 @@ WHERE APB.STATUS = 'A'
 
         foreach (CommonDataModel product in products)
         {
-            if (int.TryParse(product.GetValue("ProductId"), out int productId)
+            if (int.TryParse(product.GetValue("Product Id"), out int productId)
               && factoryName.ContainsKey(productId))
             {
                 for (int i = 0; i < factoryName[productId].Count; i++)
                 {
-                    product.Add("FactoryName" + i, factoryName[productId][i]);
+                    product.Add("Factory " + i, factoryName[productId][i]);
                 }
+            }
+        }
+    }
+
+    private async Task FillReferencePlatformAsync(CommonDataModel product)
+    {
+        if (!int.TryParse(product.GetValue("Product Id"), out int productId))
+        {
+            return;
+        }
+
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetReferencePlatformText(), connection);
+        SqlParameter parameter = new("ProductId", productId);
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+
+        if (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["ProductId"].ToString(), out int dbProductId))
+            {
+                return;
+            }
+
+            if (dbProductId.Equals(productId))
+            {
+                product.Add("Reference Platform", reader["ReferencePlatform"].ToString());
+            }
+        }
+    }
+
+
+    private async Task FillReferencePlatformAsync(IEnumerable<CommonDataModel> products)
+    {
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetReferencePlatformText(), connection);
+        SqlParameter parameter = new("ProductId", "-1");
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, string> referencePlatform = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["ProductId"].ToString(), out int productId))
+            {
+                continue;
+            }
+
+            referencePlatform[productId] = reader["ReferencePlatform"].ToString();
+        }
+
+        foreach (CommonDataModel product in products)
+        {
+            if (int.TryParse(product.GetValue("Product Id"), out int productId)
+              && referencePlatform.ContainsKey(productId))
+            {
+                product.Add("Reference Platform", referencePlatform[productId]);
+            }
+        }
+    }
+
+    private async Task<Dictionary<int, List<CommonDataModel>>> GetMarketingNamesAndPHWebNamesAsync(int productId)
+    {
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetMarketingNamesAndPHWebNamesText(), connection);
+        SqlParameter parameter = new("ProductId", productId);
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, List<CommonDataModel>> marketingNamesAndPHWebNames = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["ProductId"].ToString(), out int dbProductId))
+            {
+                continue;
+            }
+
+            CommonDataModel dataModel = new();
+            int fieldCount = reader.FieldCount;
+
+            for (int i = 0; i < fieldCount; i++)
+            {
+                if (await reader.IsDBNullAsync(i))
+                {
+                    continue;
+                }
+
+                string columnName = reader.GetName(i);
+                string value = reader[i].ToString().Trim();
+
+                if (string.IsNullOrWhiteSpace(value)
+                    || string.Equals(value, "None")
+                    || columnName.Equals("ProductId", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                dataModel.Add(columnName, value);
+            }
+
+            if (!marketingNamesAndPHWebNames.ContainsKey(dbProductId))
+            {
+                marketingNamesAndPHWebNames[dbProductId] = new List<CommonDataModel> { dataModel };
+            }
+            else
+            {
+                marketingNamesAndPHWebNames[dbProductId].Add(dataModel);
+            }
+        }
+        return marketingNamesAndPHWebNames;
+    }
+
+    private async Task<Dictionary<int, List<CommonDataModel>>> GetMarketingNamesAndPHWebNamesAsync()
+    {
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetMarketingNamesAndPHWebNamesText(), connection);
+        SqlParameter parameter = new("ProductId", "-1");
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, List<CommonDataModel>> marketingNamesAndPHWebNames = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["ProductId"].ToString(), out int productId))
+            {
+                continue;
+            }
+
+            CommonDataModel dataModel = new();
+            int fieldCount = reader.FieldCount;
+
+            for (int i = 0; i < fieldCount; i++)
+            {
+                if (await reader.IsDBNullAsync(i))
+                {
+                    continue;
+                }
+
+                string columnName = reader.GetName(i);
+                string value = reader[i].ToString().Trim();
+
+                if (string.IsNullOrWhiteSpace(value)
+                    || string.Equals(value, "None")
+                    || columnName.Equals("ProductId", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                dataModel.Add(columnName, value);
+            }
+
+            if (!marketingNamesAndPHWebNames.ContainsKey(productId))
+            {
+                marketingNamesAndPHWebNames[productId] = new List<CommonDataModel> { dataModel };
+            }
+            else
+            {
+                marketingNamesAndPHWebNames[productId].Add(dataModel);
+            }
+        }
+        return marketingNamesAndPHWebNames;
+    }
+
+    private async Task FillMarketingNamesAndPHWebNamesAsync(CommonDataModel product)
+    {
+        if (!int.TryParse(product.GetValue("Product Id"), out int productId))
+        {
+            return;
+        }
+
+        Dictionary<int, List<CommonDataModel>> marketingNamesAndPHWebNames = await GetMarketingNamesAndPHWebNamesAsync(productId);
+
+        if (!marketingNamesAndPHWebNames.ContainsKey(productId)
+            || !bool.TryParse(product.GetValue("FusionRequirements"), out bool isPulsarProduct))
+        {
+            return;
+        }
+
+        List<CommonDataModel> documents = marketingNamesAndPHWebNames[productId];
+
+        for (int i = 0; i < documents.Count; i++)
+        {
+            if (!string.IsNullOrWhiteSpace(documents[i].GetValue("KMAT")))
+            {
+                await GetPHWebNamesAsync(product, documents[i], i);
+            }
+
+            await GetMarketingNamesAsync(product, documents[i], i, isPulsarProduct);
+        }
+
+        product.Delete("AllowFollowMarketingName");
+        product.Delete("FusionRequirements");
+
+    }
+
+    private async Task FillMarketingNamesAndPHWebNamesAsync(IEnumerable<CommonDataModel> products)
+    {
+        Dictionary<int, List<CommonDataModel>> marketingNamesAndPHWebNames = await GetMarketingNamesAndPHWebNamesAsync();
+
+        foreach (CommonDataModel product in products)
+        {
+            if (!int.TryParse(product.GetValue("Product Id"), out int productId)
+              || !marketingNamesAndPHWebNames.ContainsKey(productId)
+              || !bool.TryParse(product.GetValue("FusionRequirements"), out bool isPulsarProduct))
+            {
+                continue;
+            }
+
+            List<CommonDataModel> documents = marketingNamesAndPHWebNames[productId];
+
+            for (int i = 0; i < documents.Count; i++)
+            {
+                if (!string.IsNullOrWhiteSpace(documents[i].GetValue("KMAT")))
+                {
+                    await GetPHWebNamesAsync(product, documents[i], i);
+                }
+
+                await GetMarketingNamesAsync(product, documents[i], i, isPulsarProduct);
+            }
+
+            product.Delete("AllowFollowMarketingName");
+            product.Delete("FusionRequirements");
+        }
+    }
+
+    private async Task<CommonDataModel> GetMarketingNamesAsync(CommonDataModel product, CommonDataModel marketingNamesAndPHWebNamesDocuments, int docNumber, bool isPulsarProduct)
+    {
+        if (GetLongName(marketingNamesAndPHWebNamesDocuments, out string longName))
+        {
+            product.Add("Long Name " + docNumber, longName);
+        }
+
+        if (GetShortName(marketingNamesAndPHWebNamesDocuments, out string shortName))
+        {
+            product.Add("Short Name " + docNumber, shortName);
+        }
+
+        if (GetLogoName(marketingNamesAndPHWebNamesDocuments, marketingNamesAndPHWebNamesDocuments.GetValue("LogoBadge"), isPulsarProduct, out string logoBadge))
+        {
+            product.Add("Logo Badge C Cover " + docNumber, logoBadge);
+        }
+
+        if (GetMarketingNameValue(marketingNamesAndPHWebNamesDocuments.GetValue("ServiceTag"), out string serviceTag))
+        {
+            product.Add("HP Brand Name (Service Tag up) " + docNumber, serviceTag);
+        }
+
+        if (GetMarketingNameValue(marketingNamesAndPHWebNamesDocuments.GetValue("BIOSBranding"), out string biosBranding))
+        {
+            product.Add("BIOS Branding " + docNumber, biosBranding);
+        }
+
+        if (GetMarketingNameValue(marketingNamesAndPHWebNamesDocuments.GetValue("MasterLabel"), out string modelNumber))
+        {
+            product.Add("Model Number (Service Tag down) " + docNumber, modelNumber);
+        }
+
+        if (GetMarketingNameValue(marketingNamesAndPHWebNamesDocuments.GetValue("CTOModelNumber"), out string ctoModel))
+        {
+            product.Add("CTO Model Number " + docNumber, ctoModel);
+        }
+
+        return product;
+    }
+
+    private static bool GetLogoName(CommonDataModel item, string logoBadge, bool isPulsarProduct, out string resultValue)
+    {
+        resultValue = string.Empty;
+        string logoNameInnerValue = $"{item.GetValue("StreetName3")}";
+
+        if (item.GetValue("ShowSeriesNumberInLogoBadge").Equals("True", StringComparison.OrdinalIgnoreCase)
+            && item.GetValue("SplitSeriesForLogoAndBrand").Equals("True", StringComparison.OrdinalIgnoreCase))
+        {
+            logoNameInnerValue += $" {GetIntPrefix(item.GetValue("SeriesName"))}";
+        }
+        else if (item.GetValue("ShowSeriesNumberInLogoBadge").Equals("True", StringComparison.OrdinalIgnoreCase))
+        {
+            logoNameInnerValue += $"{item.GetValue("SeriesName")}";
+        }
+
+        StringBuilder stringBuilder = new StringBuilder();
+        if (string.IsNullOrEmpty(logoBadge))
+        {
+            logoNameInnerValue = $"{item.GetValue("StreetName3")}";
+
+            if (item.GetValue("ShowSeriesNumberInLogoBadge").Equals("True", StringComparison.OrdinalIgnoreCase))
+            {
+                if (item.GetValue("SplitSeriesForLogoAndBrand").Equals("True", StringComparison.OrdinalIgnoreCase))
+                {
+                    logoNameInnerValue += $" {GetIntPrefix(item.GetValue("SeriesName"))}";
+                }
+                else
+                {
+                    stringBuilder.Append(GetIntPrefix(item.GetValue("SeriesName")));
+                }
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(logoBadge) && !string.IsNullOrEmpty(logoNameInnerValue))
+        {
+            if (!isPulsarProduct)
+            {
+                resultValue = stringBuilder.Append($"{logoBadge.Trim()}").ToString();
+                return true;
+            }
+
+            resultValue = stringBuilder.Append(logoBadge.Trim()).ToString();
+            return true;
+        }
+        else if (!string.IsNullOrEmpty(logoNameInnerValue))
+        {
+            if (!isPulsarProduct)
+            {
+                resultValue = stringBuilder.Append($"{logoNameInnerValue.Trim()}").ToString();
+                return true;
+            }
+
+            resultValue = stringBuilder.Append(logoNameInnerValue.Trim()).ToString();
+            return true;
+        }
+        else if (!isPulsarProduct)
+        {
+            resultValue = stringBuilder.ToString();
+            if (!string.IsNullOrEmpty(resultValue))
+            {
+                return true;
+            }
+            return false;
+        }
+
+        resultValue = stringBuilder.Append(logoBadge).ToString();
+        return true;
+    }
+
+    public static int GetIntPrefix(string text)
+    {
+        if (!string.IsNullOrWhiteSpace(text))
+        {
+            text = text.TrimStart();
+            for (int size = text.Length; size > 0; size--)
+            {
+                if (int.TryParse(text.Substring(0, size), out int result))
+                {
+                    return result;
+                }
+            }
+        }
+
+        return 0;
+    }
+
+    private static bool GetShortName(CommonDataModel item, out string resultValue)
+    {
+        string shortNameInnerValue = string.Empty;
+
+        if (!string.IsNullOrEmpty(item.GetValue("ShortName")))
+        {
+            shortNameInnerValue = item.GetValue("ShortName");
+        }
+        else
+        {
+            shortNameInnerValue += $"{item.GetValue("StreetName2")} ";
+
+            //TODO - test item.GetValue("ShowSeriesNumberInShortName") value?
+            if (item.GetValue("ShowSeriesNumberInShortName").Equals("True", StringComparison.OrdinalIgnoreCase))
+            {
+                shortNameInnerValue += item.GetValue("SeriesName");
+            }
+        }
+        bool result = GetMarketingNameValue(shortNameInnerValue, out string markingNameResult);
+        resultValue = markingNameResult;
+        return result;
+    }
+
+    private static bool GetMarketingNameValue(string marketingName, out string resultValue)
+    {
+        resultValue = string.Empty;
+
+        if (!string.IsNullOrEmpty(marketingName))
+        {
+            resultValue = marketingName.Trim();
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool GetLongName(CommonDataModel item, out string longName)
+    {
+        longName = string.Empty;
+
+        if (!string.IsNullOrEmpty(item.GetValue("LongName")))
+        {
+            longName = item.GetValue("LongName");
+            return true;
+        }
+
+        if (!string.IsNullOrEmpty(item.GetValue("StreetName")))
+        {
+            longName = $"{item.GetValue("StreetName")} {item.GetValue("SeriesName")}";
+
+            if (!string.IsNullOrEmpty(item.GetValue("Suffix")))
+            {
+                longName += $" {item.GetValue("Suffix")}";
+            }
+        }
+
+        if (string.IsNullOrEmpty(longName))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private async Task<CommonDataModel> GetPHWebNamesAsync(CommonDataModel product, CommonDataModel marketingNamesAndPHWebNamesDocuments, int docNumber)
+    {
+        if (GetBrandName(marketingNamesAndPHWebNamesDocuments, out string brandName))
+        {
+            product.Add("Brand Name " + docNumber, brandName);
+        }
+
+        if (GetFamilyName(marketingNamesAndPHWebNamesDocuments, out string familyName))
+        {
+            product.Add("Family Name " + docNumber, familyName);
+        }
+
+        if (!string.IsNullOrEmpty(marketingNamesAndPHWebNamesDocuments.GetValue("KMAT")))
+        {
+            product.Add("KMAT " + docNumber, marketingNamesAndPHWebNamesDocuments.GetValue("KMAT"));
+        }
+
+        if (!string.IsNullOrEmpty(marketingNamesAndPHWebNamesDocuments.GetValue("LastPublishDt")))
+        {
+            product.Add("Last SCM Publish " + docNumber, marketingNamesAndPHWebNamesDocuments.GetValue("LastPublishDt"));
+        }
+
+        return product;
+    }
+
+    private static bool GetBrandName(CommonDataModel item, out string brandName)
+    {
+        if (string.IsNullOrEmpty(item.GetValue("BrandName")))
+        {
+            brandName = $"{item.GetValue("streetname")} {item.GetValue("SeriesName")}";
+
+            if (!string.IsNullOrEmpty(brandName))
+            {
+                return true;
+            }
+
+            return false;
+        }
+        else
+        {
+            brandName = item.GetValue("BrandName");
+            return true;
+        }
+    }
+
+    private static bool GetFamilyName(CommonDataModel item, out string familyName)
+    {
+        if (!string.IsNullOrEmpty(item.GetValue("FamilyName")))
+        {
+            familyName = item.GetValue("FamilyName");
+            return true;
+        }
+
+        if (string.IsNullOrEmpty(item.GetValue("ProductVersion")))
+        {
+            familyName = $"{item.GetValue("ProductName")} {item.GetValue("RASSegment")}-{item.GetValue("StreetName")} {item.GetValue("SeriesName")}";
+
+            if (!string.IsNullOrEmpty(familyName))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        if (item.GetValue("ProductFamily").Equals("davos", StringComparison.OrdinalIgnoreCase) && item.GetValue("ProductVersion").Substring(item.GetValue("ProductVersion").Length - 3, 3).Equals("1.0"))
+        {
+            familyName = $"{item.GetValue("ProductName")}X - {item.GetValue("StreetName")}";
+
+            if (!string.IsNullOrEmpty(familyName))
+            {
+                return true;
+            }
+
+            return false;
+        }
+        else if (int.TryParse(item.GetValue("ProductVersion").Substring(item.GetValue("ProductVersion").Length - 1, 1), out int number))
+        {
+            familyName = $"{item.GetValue("ProductName").Substring(0, item.GetValue("ProductName").Length - item.GetValue("ProductVersion").Length)} {item.GetValue("RASSegment")} {item.GetValue("ProductVersion").Substring(0, item.GetValue("ProductVersion").Length - 1)} X - {item.GetValue("StreetName")}";
+
+            if (!string.IsNullOrEmpty(familyName))
+            {
+                return true;
+            }
+
+            return false;
+        }
+        else if (item.GetValue("ProductVersion").Length > 1)
+        {
+            familyName = $"{item.GetValue("ProductName").Substring(0, item.GetValue("ProductName").Length - item.GetValue("ProductVersion").Length)} {item.GetValue("RASSegment")} {item.GetValue("ProductVersion").Substring(0, item.GetValue("ProductVersion").Length - 2)} X - {item.GetValue("StreetName")}";
+
+            if (!string.IsNullOrEmpty(familyName))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        familyName = $"{item.GetValue("ProductName").Substring(0, item.GetValue("ProductName").Length - item.GetValue("ProductVersion").Length)} {item.GetValue("RASSegment")} {item.GetValue("ProductVersion")} X - {item.GetValue("StreetName")}";
+
+        if (!string.IsNullOrEmpty(familyName))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private async Task FillKMATAsync(CommonDataModel product)
+    {
+        if (!int.TryParse(product.GetValue("Product Id"), out int productId))
+        {
+            return;
+        }
+
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetKMATText(), connection);
+        SqlParameter parameter = new("ProductId", productId);
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, List<(string, string)>> kmat = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["ProductId"].ToString(), out int dbProductId))
+            {
+                continue;
+            }
+
+            if (!kmat.ContainsKey(dbProductId))
+            {
+                kmat[dbProductId] = new List<(string, string)>() { (reader["KMAT"].ToString(), reader["Last SCM Publish"].ToString()) };
+            }
+            else
+            {
+                kmat[dbProductId].Add((reader["KMAT"].ToString(), reader["Last SCM Publish"].ToString()));
+            }
+        }
+
+        if (kmat.ContainsKey(productId))
+        {
+            for (int i = 0; i < kmat[productId].Count; i++)
+            {
+                if (!string.IsNullOrEmpty(kmat[productId][i].Item1))
+                {
+                    product.Add("KMAT " + i, kmat[productId][i].Item1);
+                }
+
+                if (!string.IsNullOrEmpty(kmat[productId][i].Item2))
+                {
+                    product.Add("Last SCM Publish " + i, kmat[productId][i].Item2);
+                }
+            }
+        }
+    }
+
+    private async Task FillKMATAsync(IEnumerable<CommonDataModel> products)
+    {
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetKMATText(), connection);
+        SqlParameter parameter = new("ProductId", "-1");
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, List<(string, string)>> kmat = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["ProductId"].ToString(), out int productId))
+            {
+                continue;
+            }
+
+            if (!kmat.ContainsKey(productId))
+            {
+                kmat[productId] = new List<(string, string)>() { (reader["KMAT"].ToString(), reader["Last SCM Publish"].ToString()) };
+            }
+            else
+            {
+                kmat[productId].Add((reader["KMAT"].ToString(), reader["Last SCM Publish"].ToString()));
+            }
+        }
+
+        foreach (CommonDataModel product in products)
+        {
+            if (int.TryParse(product.GetValue("Product Id"), out int productId)
+              && kmat.ContainsKey(productId))
+            {
+                for (int i = 0; i < kmat[productId].Count; i++)
+                {
+                    if (!string.IsNullOrEmpty(kmat[productId][i].Item1)
+                        && !string.IsNullOrWhiteSpace(kmat[productId][i].Item1))
+                    {
+                        product.Add("KMAT " + i, kmat[productId][i].Item1);
+                    }
+
+                    if (!string.IsNullOrEmpty(kmat[productId][i].Item2)
+                        && !string.IsNullOrWhiteSpace(kmat[productId][i].Item2))
+                    {
+                        product.Add("Last SCM Publish " + i, kmat[productId][i].Item2);
+                    }
+                }
+            }
+        }
+    }
+
+    private async Task<(Dictionary<int, string>, Dictionary<int, string>)> GetOperatingSystemAsync(int productId)
+    {
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetOperatingSystemText(), connection);
+        SqlParameter parameter = new("ProductId", productId);
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, string> operatingSystemPreinstall = new();
+        Dictionary<int, string> operatingSystemWeb = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["ProductId"].ToString(), out int dbProductId))
+            {
+                continue;
+            }
+
+            if (operatingSystemPreinstall.ContainsKey(dbProductId)
+                && string.Equals(reader["Preinstall"].ToString(), "True", StringComparison.OrdinalIgnoreCase))
+            {
+                operatingSystemPreinstall[dbProductId] += " , " + reader["ShortName"].ToString();
+            }
+            else if (!operatingSystemPreinstall.ContainsKey(dbProductId)
+                    && string.Equals(reader["Preinstall"].ToString(), "True", StringComparison.OrdinalIgnoreCase))
+            {
+                operatingSystemPreinstall[dbProductId] = reader["ShortName"].ToString();
+            }
+
+            if (operatingSystemWeb.ContainsKey(dbProductId)
+                && string.Equals(reader["Web"].ToString(), "True", StringComparison.OrdinalIgnoreCase))
+            {
+                operatingSystemWeb[dbProductId] += " , " + reader["ShortName"].ToString();
+            }
+            else if (!operatingSystemWeb.ContainsKey(dbProductId)
+                    && string.Equals(reader["Web"].ToString(), "True", StringComparison.OrdinalIgnoreCase))
+            {
+                operatingSystemWeb[dbProductId] = reader["ShortName"].ToString();
+            }
+
+        }
+        return (operatingSystemPreinstall, operatingSystemWeb);
+    }
+
+    private async Task FillOperatingSystemAsync(CommonDataModel product)
+    {
+        if (!int.TryParse(product.GetValue("Product Id"), out int productId))
+        {
+            return;
+        }
+
+        (Dictionary<int, string> preinstall, Dictionary<int, string> web) = await GetOperatingSystemAsync(productId);
+
+        if (preinstall.ContainsKey(productId)
+            && !string.IsNullOrEmpty(preinstall[productId])
+                && !string.IsNullOrWhiteSpace(preinstall[productId]))
+        {
+            product.Add("Operating System - Preinstall ", preinstall[productId]);
+        }
+
+        if (web.ContainsKey(productId)
+            && !string.IsNullOrEmpty(web[productId])
+                && !string.IsNullOrWhiteSpace(web[productId]))
+        {
+            product.Add("Operating System - Web ", web[productId]);
+        }
+    }
+
+    private async Task<(Dictionary<int, string>, Dictionary<int, string>)> GetOperatingSystemAsync()
+    {
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetOperatingSystemText(), connection);
+        SqlParameter parameter = new("ProductId", "-1");
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, string> operatingSystemPreinstall = new();
+        Dictionary<int, string> operatingSystemWeb = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["ProductId"].ToString(), out int productId))
+            {
+                continue;
+            }
+
+            if (operatingSystemPreinstall.ContainsKey(productId)
+                && string.Equals(reader["Preinstall"].ToString(), "True", StringComparison.OrdinalIgnoreCase))
+            {
+                operatingSystemPreinstall[productId] += " , " + reader["ShortName"].ToString();
+            }
+            else if (!operatingSystemPreinstall.ContainsKey(productId)
+                    && string.Equals(reader["Preinstall"].ToString(), "True", StringComparison.OrdinalIgnoreCase))
+            {
+                operatingSystemPreinstall[productId] = reader["ShortName"].ToString();
+            }
+
+            if (operatingSystemWeb.ContainsKey(productId)
+                && string.Equals(reader["Web"].ToString(), "True", StringComparison.OrdinalIgnoreCase))
+            {
+                operatingSystemWeb[productId] += " , " + reader["ShortName"].ToString();
+            }
+            else if (!operatingSystemWeb.ContainsKey(productId)
+                    && string.Equals(reader["Web"].ToString(), "True", StringComparison.OrdinalIgnoreCase))
+            {
+                operatingSystemWeb[productId] = reader["ShortName"].ToString();
+            }
+
+        }
+        return (operatingSystemPreinstall, operatingSystemWeb);
+    }
+
+    private async Task FillOperatingSystemAsync(IEnumerable<CommonDataModel> products)
+    {
+        (Dictionary<int, string> preinstall, Dictionary<int, string> web) = await GetOperatingSystemAsync();
+
+        foreach (CommonDataModel product in products)
+        {
+            if (!int.TryParse(product.GetValue("Product Id"), out int productId))
+            {
+                continue;
+            }
+
+            if (preinstall.ContainsKey(productId)
+                && !string.IsNullOrEmpty(preinstall[productId])
+                    && !string.IsNullOrWhiteSpace(preinstall[productId]))
+            {
+                product.Add("Operating System - Preinstall ", preinstall[productId]);
+            }
+
+            if (web.ContainsKey(productId)
+                && !string.IsNullOrEmpty(web[productId])
+                    && !string.IsNullOrWhiteSpace(web[productId]))
+            {
+                product.Add("Operating System - Web ", web[productId]);
             }
         }
     }

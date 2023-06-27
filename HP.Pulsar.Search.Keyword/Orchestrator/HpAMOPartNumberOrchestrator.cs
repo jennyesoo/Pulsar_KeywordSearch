@@ -8,19 +8,17 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator;
 
 internal class HpAMOPartNumberOrchestrator : IInitializationOrchestrator
 {
-    private KeywordSearchInfo KeywordSearchInfo { get; }
-    private MeiliSearchClient MeiliSearchClient { get; }
+    private KeywordSearchInfo _keywordSearchInfo { get; }
 
-    public HpAMOPartNumberOrchestrator(KeywordSearchInfo keywordSearchInfo, MeiliSearchClient meiliSearchClient)
+    public HpAMOPartNumberOrchestrator(KeywordSearchInfo keywordSearchInfo)
     {
-        KeywordSearchInfo = keywordSearchInfo;
-        MeiliSearchClient = meiliSearchClient;
+        _keywordSearchInfo = keywordSearchInfo;
     }
 
     public async Task InitializeAsync()
     {
         // read hpAMOPartNumber from database
-        HpAMOPartNumberReader reader = new(KeywordSearchInfo);
+        HpAMOPartNumberReader reader = new(_keywordSearchInfo);
         IEnumerable<CommonDataModel> hpAMOPartNumber = await reader.GetDataAsync();
 
         // data processing
@@ -28,10 +26,11 @@ internal class HpAMOPartNumberOrchestrator : IInitializationOrchestrator
         hpAMOPartNumber = transformer.Transform(hpAMOPartNumber);
 
         // summary property
-        ElementKeyContainer.Add(hpAMOPartNumber.SelectMany(p => p.GetKeys()).Distinct<string>());
+        ElementKeyContainer elementKeyContainer = new();
+        elementKeyContainer.Add(hpAMOPartNumber.SelectMany(p => p.GetKeys()).Distinct<string>());
 
         // write to meiliesearch
-        await MeiliSearchClient.SendElementsCreationAsync(hpAMOPartNumber);
+        MeiliSearchClient writer = new(_keywordSearchInfo.SearchEngineUrl, IndexName.AmoPartNumber);
+        await writer.InitializeIndexCreationStepsAsync(hpAMOPartNumber, elementKeyContainer.Get());
     }
 }
-

@@ -2,16 +2,16 @@
 
 namespace HP.Pulsar.Search.Keyword.SearchEngine;
 
-public static class ElementKeyContainer
+public class ElementKeyContainer
 {
-    private static ConcurrentHashSet<string> _hashSet;
+    private ConcurrentHashSet<string> _hashSet;
 
-    static ElementKeyContainer()
+    public ElementKeyContainer()
     {
         _hashSet = new ConcurrentHashSet<string>();
     }
 
-    public static void Add(IEnumerable<string> hashSet)
+    public void Add(IEnumerable<string> hashSet)
     {
         if (hashSet == null)
         {
@@ -34,15 +34,8 @@ public static class ElementKeyContainer
         }
     }
 
-    public static ISet<string> Get()
+    public IReadOnlyCollection<string> Get()
     {
-        HashSet<string> hashSet = new();
-
-        foreach (string item in _hashSet)
-        {
-            hashSet.Add(item);
-        }
-
-        return hashSet;
+        return _hashSet;
     }
 }
