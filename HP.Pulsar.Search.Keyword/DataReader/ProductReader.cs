@@ -2323,27 +2323,27 @@ WHERE (
         {
             if (GetLongName(marketingNamesAndPHWebNamesDocuments, out string longName))
             {
-                product.Add("Long Name " + docNumber, longName);
+                product.Add("Marketing Names - Long Name " + docNumber, longName);
             }
 
             if (GetShortName(marketingNamesAndPHWebNamesDocuments, out string shortName))
             {
-                product.Add("Short Name " + docNumber, shortName);
+                product.Add("Marketing Names - Short Name " + docNumber, shortName);
             }
 
             if (GetLogoName(marketingNamesAndPHWebNamesDocuments, marketingNamesAndPHWebNamesDocuments.GetValue("LogoBadge"), isPulsarProduct, out string logoBadge))
             {
-                product.Add("Logo Badge C Cover " + docNumber, logoBadge);
+                product.Add("Marketing Names - Logo Badge C Cover " + docNumber, logoBadge);
             }
 
             if (GetMarketingNameValue(marketingNamesAndPHWebNamesDocuments.GetValue("ServiceTag"), out string serviceTag))
             {
-                product.Add("HP Brand Name (Service Tag up) " + docNumber, serviceTag);
+                product.Add("Marketing Names - HP Brand Name (Service Tag up) " + docNumber, serviceTag);
             }
 
             if (GetMarketingNameValue(marketingNamesAndPHWebNamesDocuments.GetValue("BIOSBranding"), out string biosBranding))
             {
-                product.Add("BIOS Branding " + docNumber, biosBranding);
+                product.Add("Marketing Names - BIOS Branding " + docNumber, biosBranding);
             }
 
             if (string.Equals(product.GetValue("FusionRequirements"), "True", StringComparison.OrdinalIgnoreCase)
@@ -2351,12 +2351,12 @@ WHERE (
             {
                 if (GetMarketingNameValue(marketingNamesAndPHWebNamesDocuments.GetValue("MasterLabel"), out string modelNumber))
                 {
-                    product.Add("Model Number (Service Tag down) " + docNumber, modelNumber);
+                    product.Add("Marketing Names - Model Number (Service Tag down) " + docNumber, modelNumber);
                 }
 
                 if (GetMarketingNameValue(marketingNamesAndPHWebNamesDocuments.GetValue("CTOModelNumber"), out string ctoModel))
                 {
-                    product.Add("CTO Model Number " + docNumber, ctoModel);
+                    product.Add("Marketing Names - CTO Model Number " + docNumber, ctoModel);
                 }
             }
         }
@@ -2520,22 +2520,22 @@ WHERE (
         {
             if (GetBrandName(marketingNamesAndPHWebNamesDocuments, out string brandName))
             {
-                product.Add("Brand Name " + docNumber, brandName);
+                product.Add("PHweb Names - Brand Name " + docNumber, brandName);
             }
 
             if (GetFamilyName(marketingNamesAndPHWebNamesDocuments, out string familyName))
             {
-                product.Add("Family Name " + docNumber, familyName);
+                product.Add("PHweb Names - Family Name " + docNumber, familyName);
             }
 
             if (!string.IsNullOrEmpty(marketingNamesAndPHWebNamesDocuments.GetValue("KMAT")))
             {
-                product.Add("KMAT " + docNumber, marketingNamesAndPHWebNamesDocuments.GetValue("KMAT"));
+                product.Add("PHweb Names - KMAT " + docNumber, marketingNamesAndPHWebNamesDocuments.GetValue("KMAT"));
             }
 
             if (!string.IsNullOrEmpty(marketingNamesAndPHWebNamesDocuments.GetValue("LastPublishDt")))
             {
-                product.Add("Last SCM Publish " + docNumber, marketingNamesAndPHWebNamesDocuments.GetValue("LastPublishDt"));
+                product.Add("PHweb Names - Last SCM Publish " + docNumber, marketingNamesAndPHWebNamesDocuments.GetValue("LastPublishDt"));
             }
         }
     }
@@ -2664,12 +2664,12 @@ WHERE (
             {
                 if (!string.IsNullOrEmpty(kmat[productId][i].Item1))
                 {
-                    product.Add("KMAT " + i, kmat[productId][i].Item1);
+                    product.Add("KMAT/SCM - KMAT " + i, kmat[productId][i].Item1);
                 }
 
                 if (!string.IsNullOrEmpty(kmat[productId][i].Item2))
                 {
-                    product.Add("Last SCM Publish " + i, kmat[productId][i].Item2);
+                    product.Add("KMAT/SCM - Last SCM Publish " + i, kmat[productId][i].Item2);
                 }
             }
         }
@@ -2714,13 +2714,13 @@ WHERE (
                     if (!string.IsNullOrEmpty(kmat[productId][i].Item1)
                         && !string.IsNullOrWhiteSpace(kmat[productId][i].Item1))
                     {
-                        product.Add("KMAT " + i, kmat[productId][i].Item1);
+                        product.Add("KMAT/SCM - KMAT " + i, kmat[productId][i].Item1);
                     }
 
                     if (!string.IsNullOrEmpty(kmat[productId][i].Item2)
                         && !string.IsNullOrWhiteSpace(kmat[productId][i].Item2))
                     {
-                        product.Add("Last SCM Publish " + i, kmat[productId][i].Item2);
+                        product.Add("KMAT/SCM - Last SCM Publish " + i, kmat[productId][i].Item2);
                     }
                 }
             }
