@@ -1,9 +1,12 @@
-﻿using System.Reflection.Metadata;
+﻿using System;
+using System.Reflection.Metadata;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using HP.Pulsar.Search.Keyword.CommonDataStructure;
 using HP.Pulsar.Search.Keyword.Infrastructure;
 using Microsoft.Data.SqlClient;
+using static Azure.Core.HttpHeader;
 
 namespace HP.Pulsar.Search.Keyword.DataReader;
 
@@ -37,7 +40,8 @@ public class ProductReader : IKeywordSearchDataReader
             FillReferencePlatformAsync(product),
             FillMarketingNamesAndPHWebNamesAsync(product),
             FillKMATAsync(product),
-            FillOperatingSystemAsync(product)
+            FillOperatingSystemAsync(product),
+            FillBaseUnitGroupsAsync(product)
         };
 
         await Task.WhenAll(tasks);
@@ -61,7 +65,8 @@ public class ProductReader : IKeywordSearchDataReader
             FillReferencePlatformAsync(products),
             FillMarketingNamesAndPHWebNamesAsync(products),
             FillKMATAsync(products),
-            FillOperatingSystemAsync(products)
+            FillOperatingSystemAsync(products),
+            FillBaseUnitGroupsAsync(products)
         };
 
         await Task.WhenAll(tasks);
@@ -173,7 +178,7 @@ SELECT p.id AS 'Product Id',
     p.TypeId,
     p.ImagePO AS 'Current Image Part Number',
     p.AllowFollowMarketingName,
-    FusionRequirements = isnull(FusionRequirements, 0)
+    isnull(p.FusionRequirements, 0) AS 'FusionRequirements'
 FROM ProductVersion p
 LEFT JOIN ProductFamily pf ON p.ProductFamilyId = pf.id
 LEFT JOIN Partner partner ON partner.id = p.PartnerId
@@ -593,6 +598,782 @@ where po.osid = o.id
         OR po.productversionid = @ProductId
         )
 ";
+    }
+
+    private string GetPHWebFamilyNameText()
+    {
+        return @"
+SELECT DISTINCT pf.PlatformID ,
+        pf.PHWebFamilyName AS 'PHWeb Family Name',
+        ISNULL(pb.SCMNumber, 0) AS 'SCMNo',
+        pp.ProductVersionID AS 'ProductId',
+        pp.ProductBrandID AS 'PBId'
+FROM Platform pf 
+JOIN ProductVersion_Platform pp ON pf.PlatformID = pp.PlatformID 
+JOIN Product_Brand pb ON pp.ProductBrandID = pb.ID 
+WHERE (
+        @ProductId = - 1
+        OR pp.ProductVersionID = @ProductId
+        )
+";
+    }
+
+    private string GetBaseUnitGroupsPartTwoText()
+    {
+        return @"
+SELECT DISTINCT ip.platformid,  
+        ic.Description AS 'Base Unit Groups - Chassis', 
+        ip.IntroYear AS 'Base Unit Groups - Year', 
+        ISNULL(RTRIM(ip.PCA), '') AS 'Base Unit Groups - System Board', 
+        ip.MarketingName AS 'Base Unit Groups - Generic Name', 
+        mktNameMaster AS 'Base Unit Groups - Marketing Name', 
+        ip.SystemID AS 'Base Unit Groups - System Board ID', 
+        isnull(CASE isnull(pb.CombinedName, '') 
+                WHEN '' 
+                    THEN b.Name 
+                ELSE pb.CombinedName 
+                END, '') AS 'Base Unit Groups - Brand', 
+        ip.BrandName AS 'Base Unit Groups - Brand Name',
+        CASE  
+            WHEN ip.eMMConboard = 1 
+                THEN 'Yes' 
+            ELSE 'No' 
+            END AS 'Base Unit Groups - eMMC onboard', 
+        ip.MemoryOnboard AS 'Base Unit Groups - Memory Onboard', 
+        ip.PCAGraphicsType AS 'Base Unit Groups - PCA Graphics Type', 
+        ip.ModelNumber AS 'Base Unit Groups - Model Number ', 
+        ip.GraphicCapacity AS 'Base Unit Groups - Graphic Capacity', 
+        CASE  
+            WHEN ip.TouchID = 1 
+                THEN 'Touch' 
+            WHEN ip.TouchID = 2 
+                THEN 'Non-Touch' 
+            ELSE '' 
+            END AS 'Base Unit Groups - Display', 
+        ( 
+            SELECT count(1) 
+            FROM Feature FE 
+            INNER JOIN Alias A ON FE.AliasID = A.AliasID 
+            INNER JOIN Platform_Alias PA ON PA.AliasID = A.AliasID 
+            INNER JOIN ProductVersion_Platform pp WITH (NOLOCK) ON pp.PlatformID = PA.platformid 
+            INNER JOIN FeatureStatus ON FE.StatusID = FeatureStatus.StatusID 
+            WHERE FeatureStatus.Name = 'Active' 
+                AND pp.ProductVersionID = 3160 
+                AND pp.PlatformID = ip.PlatformID 
+                AND ltrim(rtrim(A.Name)) <> '' 
+            ) AS 'Base Unit Groups - Active Base Units', 
+        ip.Deployment AS 'Base Unit Groups - Deployment', 
+        ip.BrandName AS 'Base Unit Groups - PHWeb Brand Name',
+        pp.ProductBrandId,
+        pp.ProductVersionID AS 'ProductId',
+        p.AllowFollowMarketingName
+    FROM [Platform] ip WITH (NOLOCK) 
+    INNER JOIN Chassis ic WITH (NOLOCK) ON ic.ChassisID = ip.categoryid 
+    INNER JOIN ProductVersion_Platform pp WITH (NOLOCK) ON pp.PlatformID = ip.platformid
+    INNER JOIN ProductVersion p on p.Id = pp.ProductVersionID 
+    LEFT OUTER JOIN Product_Brand pb WITH (NOLOCK) ON pb.ID = pp.ProductBrandID 
+        AND pp.ProductVersionID = pb.ProductVersionID 
+    LEFT OUTER JOIN brand b WITH (NOLOCK) ON b.ID = pb.BrandID 
+    LEFT OUTER JOIN Series WITH (NOLOCK) ON pb.ID = Series.ProductBrandID 
+    LEFT JOIN (SELECT PlatformId, COUNT(PlatformId) ActivePrlChassisCount 
+             FROM Prl_Chassis  
+             GROUP BY PlatformId) apcc 
+       ON apcc.PlatformId = ip.PlatformId 
+    WHERE (
+            @ProductId = - 1
+            OR pp.ProductVersionID = @ProductId
+            )  
+            AND (
+                p.AllowFollowMarketingName != 1 
+                OR p.BusinessSegmentID != 1
+                )
+    ORDER BY ip.platformid
+";
+    }
+
+    private string GetBaseUnitGroupsPartOneText()
+    {
+        return @"
+SELECT DISTINCT ip.platformid,   
+        ic.Description AS 'Base Unit Groups - Chassis', 
+        ip.IntroYear AS 'Base Unit Groups - Year', 
+        ISNULL(RTRIM(ip.PCA), '') AS 'Base Unit Groups - System Board', 
+        ip.MarketingName AS 'Base Unit Groups - Generic Name', 
+        mktNameMaster AS 'Base Unit Groups - Marketing Name',
+        ip.SystemID AS 'Base Unit Groups - System Board ID', 
+        isnull(CASE isnull(pb.CombinedName, '') 
+                WHEN '' 
+                    THEN b.Name 
+                ELSE pb.CombinedName 
+                END, '') AS 'Base Unit Groups - Brand', 
+        ip.BrandName AS 'Base Unit Groups - Brand Name',
+        CASE  
+            WHEN ip.eMMConboard = 1 
+                THEN 'Yes' 
+            ELSE 'No' 
+            END AS 'Base Unit Groups - eMMC onboard', 
+        ip.MemoryOnboard AS 'Base Unit Groups - Memory Onboard', 
+        ip.PCAGraphicsType AS 'Base Unit Groups - PCA Graphics Type', 
+        ip.ModelNumber AS 'Base Unit Groups - Model Number', 
+        ip.GraphicCapacity AS 'Base Unit Groups - Graphic Capacity', 
+        CASE  
+            WHEN ip.TouchID = 1 
+                THEN 'Touch' 
+            WHEN ip.TouchID = 2 
+                THEN 'Non-Touch' 
+            ELSE '' 
+            END AS 'Base Unit Groups - Display', 
+        ( 
+            SELECT count(1) 
+            FROM Feature FE 
+            INNER JOIN Alias A ON FE.AliasID = A.AliasID 
+            INNER JOIN Platform_Alias PA ON PA.AliasID = A.AliasID 
+            INNER JOIN ProductVersion_Platform pp WITH (NOLOCK) ON pp.PlatformID = PA.platformid 
+            INNER JOIN FeatureStatus ON FE.StatusID = FeatureStatus.StatusID 
+            WHERE FeatureStatus.Name = 'Active' 
+                AND pp.ProductVersionID = 3160 
+                AND pp.PlatformID = ip.PlatformID 
+                AND ltrim(rtrim(A.Name)) <> '' 
+            ) AS 'Base Unit Groups - Active Base Units (Total)', 
+        ip.Deployment AS 'Base Unit Groups - Deployment', 
+        ip.BrandName AS 'Base Unit Groups - PHWeb Brand Name',
+        pp.ProductBrandId,
+        pp.ProductVersionID AS 'ProductId'
+    FROM [Platform] ip WITH (NOLOCK) 
+    INNER JOIN Chassis ic WITH (NOLOCK) ON ic.ChassisID = ip.categoryid 
+    INNER JOIN ProductVersion_Platform pp WITH (NOLOCK) ON pp.PlatformID = ip.platformid
+    INNER JOIN ProductVersion p on p.Id = pp.ProductVersionID
+    LEFT OUTER JOIN Product_Brand pb WITH (NOLOCK) ON pb.ID = pp.ProductBrandID 
+        AND pp.ProductVersionID = pb.ProductVersionID 
+    LEFT OUTER JOIN brand b WITH (NOLOCK) ON b.ID = pb.BrandID 
+    LEFT OUTER JOIN Series WITH (NOLOCK) ON pp.SeriesID = Series.ID 
+    LEFT JOIN (SELECT PlatformId, COUNT(PlatformId) ActivePrlChassisCount 
+             FROM Prl_Chassis 
+             GROUP BY PlatformId) apcc 
+       ON apcc.PlatformId = ip.PlatformId 
+    WHERE (
+            @ProductId = - 1
+            OR pp.ProductVersionID = @ProductId
+            )
+            AND(
+                p.AllowFollowMarketingName = 1 
+            AND p.BusinessSegmentID = 1
+            )
+    ORDER BY ip.platformid 
+";
+    }
+
+    private string GetBaseUnitGroupsPartThreeText()
+    {
+        return @"
+SELECT v.Id AS 'ProductId',
+    pp.PlatformID,
+    isnull(Series.LogoBadge, '') AS 'LogoBadge',
+    b.ShowSeriesNumberInLogoBadge, 
+    b.SplitSeriesForLogoAndBrand, 
+    b.streetname3, 
+    isnull(Series.Name, '') AS 'SeriesName', 
+    CASE  
+        WHEN pp.MasterLabel IS NULL 
+            THEN isnull(Series.MasterLabel, '') 
+        ELSE isnull(pp.MasterLabel, '') 
+        END AS 'MasterLabel',
+    CASE  
+        WHEN pp.CTOModelNumber IS NULL 
+            THEN isnull(Series.CTOModelNumber, '') 
+        ELSE isnull(pp.CTOModelNumber, '') 
+        END AS 'CTOModelNumber',
+    isnull(v.FusionRequirements, 0) AS 'FusionRequirements'
+FROM ProductVersion_Platform pp WITH (NOLOCK) 
+JOIN product_brand pb WITH (NOLOCK) ON pp.ProductBrandID = pb.ID 
+JOIN Brand b WITH (NOLOCK) ON pb.BrandID = b.ID 
+JOIN ProductVersion v WITH (NOLOCK) ON v.id = pp.ProductVersionID 
+JOIN Partner pn WITH (NOLOCK) ON pn.PartnerId = v.PartnerID 
+LEFT OUTER JOIN Series WITH (NOLOCK) ON pp.SeriesID = Series.ID 
+WHERE ( 
+            SELECT count(1) 
+            FROM ProductVersion_Platform WITH (NOLOCK) 
+            WHERE ProductVersionID = pp.ProductVersionID
+                AND PlatformID = pp.PlatformID
+                AND ISNULL(SeriesId, 0) > 0
+            ) > 0 
+        AND(
+        @ProductId = - 1
+        OR pp.ProductVersionID = @ProductId
+        )
+        
+UNION
+
+SELECT pp.productversionid AS 'ProductId',
+    pp.PlatformID, 
+    isnull(pb.LogoBadge, '') AS 'LogoBadge', 
+    b.ShowSeriesNumberInLogoBadge, 
+    b.SplitSeriesForLogoAndBrand, 
+    b.streetname3, 
+    '' AS 'SeriesName', 
+    CASE  
+        WHEN pp.MasterLabel IS NULL 
+            THEN isnull(pb.MasterLabel, '') 
+        ELSE isnull(pp.MasterLabel, '') 
+        END AS 'MasterLabel', 
+    CASE  
+        WHEN pp.CTOModelNumber IS NULL 
+            THEN isnull(pb.CTOModelNumber, '') 
+        ELSE isnull(pp.CTOModelNumber, '') 
+        END  AS 'CTOModelNumber',
+    isnull(v.FusionRequirements, 0) AS 'FusionRequirements'
+FROM ProductVersion_Platform pp WITH (NOLOCK) 
+JOIN Product_Brand pb WITH (NOLOCK) ON pp.ProductBrandID = pb.ID 
+JOIN Brand b WITH (NOLOCK) ON pb.BrandID = b.ID 
+JOIN ProductVersion v WITH (NOLOCK) ON v.id = pp.ProductVersionID 
+WHERE ( 
+            SELECT count(1) 
+            FROM ProductVersion_Platform WITH (NOLOCK) 
+            WHERE ProductVersionID = pp.ProductVersionID
+                AND PlatformID = pp.PlatformID
+                AND ISNULL(SeriesId, 0) > 0
+            ) = 0 
+        AND(
+        @ProductId = - 1
+        OR pp.ProductVersionID = @ProductId
+        )
+";
+    }
+
+    private async Task<Dictionary<int, List<CommonDataModel>>> GetBaseUnitGroupsPartTwoAsync(int productId)
+    {
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetBaseUnitGroupsPartTwoText(), connection);
+        SqlParameter parameter = new("ProductId", productId);
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, List<CommonDataModel>> baseUnitGroups = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["ProductId"].ToString(), out int dbProductId))
+            {
+                continue;
+            }
+
+            CommonDataModel rowData = new();
+            int fieldCount = reader.FieldCount;
+
+            for (int i = 0; i < fieldCount; i++)
+            {
+                if (await reader.IsDBNullAsync(i))
+                {
+                    continue;
+                }
+
+                string columnName = reader.GetName(i);
+                string value = reader[i].ToString().Trim();
+
+                if (string.IsNullOrWhiteSpace(value)
+                    || string.Equals(value, "None"))
+                {
+                    continue;
+                }
+                rowData.Add(columnName, value);
+            }
+
+            if (baseUnitGroups.ContainsKey(dbProductId))
+            {
+                baseUnitGroups[dbProductId].Add(rowData);
+            }
+            else
+            {
+                baseUnitGroups[dbProductId] = new List<CommonDataModel>() { rowData };
+            }
+        }
+
+        return baseUnitGroups;
+    }
+
+    private async Task<Dictionary<int, List<CommonDataModel>>> GetBaseUnitGroupsPartTwoAsync()
+    {
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetBaseUnitGroupsPartTwoText(), connection);
+        SqlParameter parameter = new("ProductId", "-1");
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, List<CommonDataModel>> baseUnitGroups = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["ProductId"].ToString(), out int productId))
+            {
+                continue;
+            }
+
+            CommonDataModel rowData = new();
+            int fieldCount = reader.FieldCount;
+
+            for (int i = 0; i < fieldCount; i++)
+            {
+                if (await reader.IsDBNullAsync(i))
+                {
+                    continue;
+                }
+
+                string columnName = reader.GetName(i);
+                string value = reader[i].ToString().Trim();
+
+                if (string.IsNullOrWhiteSpace(value)
+                    || string.Equals(value, "None"))
+                {
+                    continue;
+                }
+                rowData.Add(columnName, value);
+            }
+
+            if (baseUnitGroups.ContainsKey(productId))
+            {
+                baseUnitGroups[productId].Add(rowData);
+            }
+            else
+            {
+                baseUnitGroups[productId] = new List<CommonDataModel>() { rowData };
+            }
+        }
+
+        return baseUnitGroups;
+    }
+
+    private async Task<Dictionary<int, List<CommonDataModel>>> GetBaseUnitGroupsPartOneAsync(int productId)
+    {
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetBaseUnitGroupsPartOneText(), connection);
+        SqlParameter parameter = new("ProductId", productId);
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, List<CommonDataModel>> baseUnitGroups = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["ProductId"].ToString(), out int dbProductId))
+            {
+                continue;
+            }
+
+            CommonDataModel rowData = new();
+            int fieldCount = reader.FieldCount;
+
+            for (int i = 0; i < fieldCount; i++)
+            {
+                if (await reader.IsDBNullAsync(i))
+                {
+                    continue;
+                }
+
+                string columnName = reader.GetName(i);
+                string value = reader[i].ToString().Trim();
+
+                if (string.IsNullOrWhiteSpace(value)
+                    || string.Equals(value, "None"))
+                {
+                    continue;
+                }
+                rowData.Add(columnName, value);
+            }
+
+            if (baseUnitGroups.ContainsKey(dbProductId))
+            {
+                baseUnitGroups[dbProductId].Add(rowData);
+            }
+            else
+            {
+                baseUnitGroups[dbProductId] = new List<CommonDataModel>() { rowData };
+            }
+        }
+
+        return baseUnitGroups;
+    }
+
+    private async Task<Dictionary<int, List<CommonDataModel>>> GetBaseUnitGroupsPartOneAsync()
+    {
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetBaseUnitGroupsPartOneText(), connection);
+        SqlParameter parameter = new("ProductId", "-1");
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, List<CommonDataModel>> baseUnitGroups = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["ProductId"].ToString(), out int productId))
+            {
+                continue;
+            }
+
+            CommonDataModel rowData = new();
+            int fieldCount = reader.FieldCount;
+
+            for (int i = 0; i < fieldCount; i++)
+            {
+                if (await reader.IsDBNullAsync(i))
+                {
+                    continue;
+                }
+
+                string columnName = reader.GetName(i);
+                string value = reader[i].ToString().Trim();
+
+                if (string.IsNullOrWhiteSpace(value)
+                    || string.Equals(value, "None"))
+                {
+                    continue;
+                }
+                rowData.Add(columnName, value);
+            }
+
+            if (baseUnitGroups.ContainsKey(productId))
+            {
+                baseUnitGroups[productId].Add(rowData);
+            }
+            else
+            {
+                baseUnitGroups[productId] = new List<CommonDataModel>() { rowData };
+            }
+        }
+
+        return baseUnitGroups;
+    }
+
+    private async Task<Dictionary<string, CommonDataModel>> GetBaseUnitGroupsPartThreeAsync(int productId)
+    {
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetBaseUnitGroupsPartThreeText(), connection);
+        SqlParameter parameter = new("ProductId", productId);
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<string, CommonDataModel> baseUnitGroups = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["ProductId"].ToString(), out int dbProductId))
+            {
+                continue;
+            }
+
+            CommonDataModel rowData = new();
+            int fieldCount = reader.FieldCount;
+
+            for (int i = 0; i < fieldCount; i++)
+            {
+                if (await reader.IsDBNullAsync(i))
+                {
+                    continue;
+                }
+
+                string columnName = reader.GetName(i);
+                string value = reader[i].ToString().Trim();
+
+                if (string.IsNullOrWhiteSpace(value)
+                    || string.Equals(value, "None"))
+                {
+                    continue;
+                }
+                rowData.Add(columnName, value);
+            }
+
+            if (!baseUnitGroups.ContainsKey(dbProductId + reader["PlatformID"].ToString()))
+            {
+                baseUnitGroups[dbProductId + reader["PlatformID"].ToString()] = rowData;
+            }
+        }
+
+        return baseUnitGroups;
+    }
+
+    private async Task<Dictionary<string, CommonDataModel>> GetBaseUnitGroupsPartThreeAsync()
+    {
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetBaseUnitGroupsPartThreeText(), connection);
+        SqlParameter parameter = new("ProductId", "-1");
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<string, CommonDataModel> baseUnitGroups = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["ProductId"].ToString(), out int productId))
+            {
+                continue;
+            }
+
+            CommonDataModel rowData = new();
+            int fieldCount = reader.FieldCount;
+
+            for (int i = 0; i < fieldCount; i++)
+            {
+                if (await reader.IsDBNullAsync(i))
+                {
+                    continue;
+                }
+
+                string columnName = reader.GetName(i);
+                string value = reader[i].ToString().Trim();
+
+                if (string.IsNullOrWhiteSpace(value)
+                    || string.Equals(value, "None"))
+                {
+                    continue;
+                }
+                rowData.Add(columnName, value);
+            }
+
+            if (!baseUnitGroups.ContainsKey(productId + reader["PlatformID"].ToString()))
+            {
+                baseUnitGroups[productId + reader["PlatformID"].ToString()] = rowData;
+            }
+        }
+
+        return baseUnitGroups;
+    }
+
+    private async Task<Dictionary<string, (string, string, string)>> GetLogoModelCTOValueAsync(int productId)
+    {
+        Dictionary<string, CommonDataModel> baseUnitGroupsPartThree = await GetBaseUnitGroupsPartThreeAsync(productId);
+        Dictionary<string, (string, string, string)> logoModelCTOValue = new();
+        foreach (string item in baseUnitGroupsPartThree.Keys)
+        {
+            if (!bool.TryParse(baseUnitGroupsPartThree[item].GetValue("FusionRequirements"), out bool isPulsarProduct))
+            {
+                continue;
+            }
+
+            GetLogoName(baseUnitGroupsPartThree[item],
+                        baseUnitGroupsPartThree[item].GetValue("LogoBadge"),
+                        isPulsarProduct, out string logoBadge);
+
+            GetMarketingNameValue(baseUnitGroupsPartThree[item].GetValue("MasterLabel"),
+                                  out string modelNumber);
+
+            GetMarketingNameValue(baseUnitGroupsPartThree[item].GetValue("CTOModelNumber"),
+                                  out string ctoModel);
+
+            if (!logoModelCTOValue.ContainsKey(item))
+            {
+                logoModelCTOValue[item] = (logoBadge, modelNumber, ctoModel);
+            }
+        }
+        return logoModelCTOValue;
+    }
+
+    private async Task<Dictionary<string, (string, string, string)>> GetLogoModelCTOValueAsync()
+    {
+        Dictionary<string, CommonDataModel> baseUnitGroupsPartThree = await GetBaseUnitGroupsPartThreeAsync();
+        Dictionary<string, (string, string, string)> logoModelCTOValue = new();
+        foreach (string item in baseUnitGroupsPartThree.Keys)
+        {
+            if (!bool.TryParse(baseUnitGroupsPartThree[item].GetValue("FusionRequirements"), out bool isPulsarProduct))
+            {
+                continue;
+            }
+
+            GetLogoName(baseUnitGroupsPartThree[item],
+                        baseUnitGroupsPartThree[item].GetValue("LogoBadge"),
+                        isPulsarProduct, out string logoBadge);
+
+            GetMarketingNameValue(baseUnitGroupsPartThree[item].GetValue("MasterLabel"),
+                                  out string modelNumber);
+
+            GetMarketingNameValue(baseUnitGroupsPartThree[item].GetValue("CTOModelNumber"),
+                                  out string ctoModel);
+
+            if (!logoModelCTOValue.ContainsKey(item))
+            {
+                logoModelCTOValue[item] = (logoBadge, modelNumber, ctoModel);
+            }
+        }
+        return logoModelCTOValue;
+    }
+
+    private static CommonDataModel GetPlatformFollowMKTGridDataModel(Dictionary<int, List<CommonDataModel>> baseUnitGroupsDic,
+                                                                           Dictionary<int, (int, string, string, string)> phWebFamilyName,
+                                                                           Dictionary<string, (string, string, string)> logoModelCTOValue,
+                                                                           CommonDataModel product,
+                                                                           int num,
+                                                                           int productId)
+    {
+        if (!int.TryParse(baseUnitGroupsDic[productId][num].GetValue("ProductBrandId"), out int productBrandId))
+        {
+            return product;
+        }
+
+        if (phWebFamilyName.ContainsKey(productBrandId))
+        {
+            product.Add("Base Unit Groups - PHWeb Family Name " + num, phWebFamilyName[productBrandId].Item2);
+        }
+
+        if (logoModelCTOValue.ContainsKey(productId + baseUnitGroupsDic[productId][num].GetValue("platformid")))
+        {
+            if (!string.IsNullOrWhiteSpace(logoModelCTOValue[productId + baseUnitGroupsDic[productId][num].GetValue("platformid")].Item1))
+            {
+                product.Add("Base Unit Groups - Logo Badge C Cover " + num, logoModelCTOValue[productId + baseUnitGroupsDic[productId][num].GetValue("platformid")].Item1);
+            }
+
+            if (!string.IsNullOrWhiteSpace(logoModelCTOValue[productId + baseUnitGroupsDic[productId][num].GetValue("platformid")].Item2))
+            {
+                product.Add("Base Unit Groups - Model Number (Service Tag down) " + num, logoModelCTOValue[productId + baseUnitGroupsDic[productId][num].GetValue("platformid")].Item2);
+            }
+
+            if (!string.IsNullOrWhiteSpace(logoModelCTOValue[productId + baseUnitGroupsDic[productId][num].GetValue("platformid")].Item3))
+            {
+                product.Add("Base Unit Groups - CTO Model Number " + num, logoModelCTOValue[productId + baseUnitGroupsDic[productId][num].GetValue("platformid")].Item3);
+            }
+        }
+
+        if (baseUnitGroupsDic[productId][num].GetKeys().Contains("AllowFollowMarketingName"))
+        {
+            baseUnitGroupsDic[productId][num].Delete("AllowFollowMarketingName");
+        }
+
+        baseUnitGroupsDic[productId][num].Delete("ProductBrandId");
+        baseUnitGroupsDic[productId][num].Delete("ProductId");
+        baseUnitGroupsDic[productId][num].Delete("platformid");
+        baseUnitGroupsDic[productId][num].Delete("Base Unit Groups - Generic Name");
+        baseUnitGroupsDic[productId][num].Delete("Base Unit Groups - Display");
+        baseUnitGroupsDic[productId][num].Delete("Base Unit Groups - Deployment");
+
+        foreach (string item in baseUnitGroupsDic[productId][num].GetKeys())
+        {
+            product.Add(item + ' ' + num, baseUnitGroupsDic[productId][num].GetValue(item));
+        }
+        return product;
+    }
+
+    private static CommonDataModel GetPlatformUnFollowMKTGridDataModel(Dictionary<int, List<CommonDataModel>> baseUnitGroupsDic,
+                                                                       CommonDataModel product,
+                                                                       int num,
+                                                                       int productId)
+    {
+        baseUnitGroupsDic[productId][num].Delete("ProductBrandId");
+        baseUnitGroupsDic[productId][num].Delete("ProductId");
+        baseUnitGroupsDic[productId][num].Delete("platformid");
+        baseUnitGroupsDic[productId][num].Delete("AllowFollowMarketingName");
+        baseUnitGroupsDic[productId][num].Delete("Base Unit Groups - Brand Name");
+        baseUnitGroupsDic[productId][num].Delete("Base Unit Groups - PHWeb Brand Name");
+
+        foreach (string item in baseUnitGroupsDic[productId][num].GetKeys())
+        {
+            product.Add(item + ' ' + num, baseUnitGroupsDic[productId][num].GetValue(item));
+        }
+        return product;
+    }
+    private async Task FillBaseUnitGroupsAsync(CommonDataModel product)
+    {
+        if (!int.TryParse(product.GetValue("Product Id"), out int productId))
+        {
+            return;
+        }
+
+        Dictionary<int, List<CommonDataModel>> baseUnitGroupsPartTwo = await GetBaseUnitGroupsPartTwoAsync(productId);
+        Dictionary<int, List<CommonDataModel>> baseUnitGroupsPartOne = await GetBaseUnitGroupsPartOneAsync(productId);
+        Dictionary<int, (int, string, string, string)> phWebFamilyName = await GetPHWebFamilyNameAsync(productId);
+        Dictionary<string, (string, string, string)> logoModelCTOValue = await GetLogoModelCTOValueAsync(productId);
+
+        if (baseUnitGroupsPartOne.ContainsKey(productId))
+        {
+            for (int i = 0; i < baseUnitGroupsPartOne[productId].Count; i++)
+            {
+                GetPlatformFollowMKTGridDataModel(baseUnitGroupsPartOne,
+                                                  phWebFamilyName,
+                                                  logoModelCTOValue,
+                                                  product,
+                                                  i,
+                                                  productId);
+            }
+        }
+        else if (baseUnitGroupsPartTwo.ContainsKey(productId))
+        {
+            for (int i = 0; i < baseUnitGroupsPartTwo[productId].Count; i++)
+            {
+                if (!bool.TryParse(baseUnitGroupsPartTwo[productId][i].GetValue("AllowFollowMarketingName"), out bool allowFollowMarketingName))
+                {
+                    continue;
+                }
+
+                if (!allowFollowMarketingName)
+                {
+                    GetPlatformUnFollowMKTGridDataModel(baseUnitGroupsPartTwo,
+                                                        product,
+                                                        i,
+                                                        productId);
+                }
+                else
+                {
+                    GetPlatformFollowMKTGridDataModel(baseUnitGroupsPartTwo,
+                                                      phWebFamilyName,
+                                                      logoModelCTOValue,
+                                                      product,
+                                                      i,
+                                                      productId);
+                }
+            }
+        }
+    }
+    private async Task FillBaseUnitGroupsAsync(IEnumerable<CommonDataModel> products)
+    {
+        Dictionary<int, List<CommonDataModel>> baseUnitGroupsPartTwo = await GetBaseUnitGroupsPartTwoAsync();
+        Dictionary<int, List<CommonDataModel>> baseUnitGroupsPartOne = await GetBaseUnitGroupsPartOneAsync();
+        Dictionary<int, (int, string, string, string)> phWebFamilyName = await GetPHWebFamilyNameAsync();
+        Dictionary<string, (string, string, string)> logoModelCTOValue = await GetLogoModelCTOValueAsync();
+
+        foreach (CommonDataModel product in products)
+        {
+            if (!int.TryParse(product.GetValue("Product Id"), out int productId))
+            {
+                continue;
+            }
+
+            if (baseUnitGroupsPartOne.ContainsKey(productId))
+            {
+                for (int i = 0; i < baseUnitGroupsPartOne[productId].Count; i++)
+                {
+                    GetPlatformFollowMKTGridDataModel(baseUnitGroupsPartOne,
+                                                      phWebFamilyName,
+                                                      logoModelCTOValue,
+                                                      product,
+                                                      i,
+                                                      productId);
+                }
+            }
+            else if (baseUnitGroupsPartTwo.ContainsKey(productId))
+            {
+                for (int i = 0; i < baseUnitGroupsPartTwo[productId].Count; i++)
+                {
+                    if (!bool.TryParse(baseUnitGroupsPartTwo[productId][i].GetValue("AllowFollowMarketingName"), out bool allowFollowMarketingName))
+                    {
+                        continue;
+                    }
+
+                    if (!allowFollowMarketingName)
+                    {
+                        GetPlatformUnFollowMKTGridDataModel(baseUnitGroupsPartTwo,
+                                                            product,
+                                                            i,
+                                                            productId);
+                    }
+                    else
+                    {
+                        GetPlatformFollowMKTGridDataModel(baseUnitGroupsPartTwo,
+                                                          phWebFamilyName,
+                                                          logoModelCTOValue,
+                                                          product,
+                                                          i,
+                                                          productId);
+                    }
+                }
+            }
+        }
     }
 
     private async Task FillEndOfProductionDateAsync(CommonDataModel product)
@@ -1471,15 +2252,15 @@ where po.osid = o.id
 
     private async Task FillMarketingNamesAndPHWebNamesAsync(CommonDataModel product)
     {
-        if (!int.TryParse(product.GetValue("Product Id"), out int productId))
+        if (!int.TryParse(product.GetValue("Product Id"), out int productId)
+            || !bool.TryParse(product.GetValue("FusionRequirements"), out bool isPulsarProduct))
         {
             return;
         }
 
         Dictionary<int, List<CommonDataModel>> marketingNamesAndPHWebNames = await GetMarketingNamesAndPHWebNamesAsync(productId);
 
-        if (!marketingNamesAndPHWebNames.ContainsKey(productId)
-            || !bool.TryParse(product.GetValue("FusionRequirements"), out bool isPulsarProduct))
+        if (!marketingNamesAndPHWebNames.ContainsKey(productId))
         {
             return;
         }
@@ -1536,39 +2317,48 @@ where po.osid = o.id
                                     int docNumber,
                                     bool isPulsarProduct)
     {
-        if (GetLongName(marketingNamesAndPHWebNamesDocuments, out string longName))
+        if (!string.Equals(product.GetValue("FusionRequirements"), "True", StringComparison.OrdinalIgnoreCase)
+            || (string.Equals(product.GetValue("FusionRequirements"), "True", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(product.GetValue("AllowFollowMarketingName"), "True", StringComparison.OrdinalIgnoreCase)))
         {
-            product.Add("Long Name " + docNumber, longName);
-        }
+            if (GetLongName(marketingNamesAndPHWebNamesDocuments, out string longName))
+            {
+                product.Add("Long Name " + docNumber, longName);
+            }
 
-        if (GetShortName(marketingNamesAndPHWebNamesDocuments, out string shortName))
-        {
-            product.Add("Short Name " + docNumber, shortName);
-        }
+            if (GetShortName(marketingNamesAndPHWebNamesDocuments, out string shortName))
+            {
+                product.Add("Short Name " + docNumber, shortName);
+            }
 
-        if (GetLogoName(marketingNamesAndPHWebNamesDocuments, marketingNamesAndPHWebNamesDocuments.GetValue("LogoBadge"), isPulsarProduct, out string logoBadge))
-        {
-            product.Add("Logo Badge C Cover " + docNumber, logoBadge);
-        }
+            if (GetLogoName(marketingNamesAndPHWebNamesDocuments, marketingNamesAndPHWebNamesDocuments.GetValue("LogoBadge"), isPulsarProduct, out string logoBadge))
+            {
+                product.Add("Logo Badge C Cover " + docNumber, logoBadge);
+            }
 
-        if (GetMarketingNameValue(marketingNamesAndPHWebNamesDocuments.GetValue("ServiceTag"), out string serviceTag))
-        {
-            product.Add("HP Brand Name (Service Tag up) " + docNumber, serviceTag);
-        }
+            if (GetMarketingNameValue(marketingNamesAndPHWebNamesDocuments.GetValue("ServiceTag"), out string serviceTag))
+            {
+                product.Add("HP Brand Name (Service Tag up) " + docNumber, serviceTag);
+            }
 
-        if (GetMarketingNameValue(marketingNamesAndPHWebNamesDocuments.GetValue("BIOSBranding"), out string biosBranding))
-        {
-            product.Add("BIOS Branding " + docNumber, biosBranding);
-        }
+            if (GetMarketingNameValue(marketingNamesAndPHWebNamesDocuments.GetValue("BIOSBranding"), out string biosBranding))
+            {
+                product.Add("BIOS Branding " + docNumber, biosBranding);
+            }
 
-        if (GetMarketingNameValue(marketingNamesAndPHWebNamesDocuments.GetValue("MasterLabel"), out string modelNumber))
-        {
-            product.Add("Model Number (Service Tag down) " + docNumber, modelNumber);
-        }
+            if (string.Equals(product.GetValue("FusionRequirements"), "True", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(product.GetValue("AllowFollowMarketingName"), "True", StringComparison.OrdinalIgnoreCase))
+            {
+                if (GetMarketingNameValue(marketingNamesAndPHWebNamesDocuments.GetValue("MasterLabel"), out string modelNumber))
+                {
+                    product.Add("Model Number (Service Tag down) " + docNumber, modelNumber);
+                }
 
-        if (GetMarketingNameValue(marketingNamesAndPHWebNamesDocuments.GetValue("CTOModelNumber"), out string ctoModel))
-        {
-            product.Add("CTO Model Number " + docNumber, ctoModel);
+                if (GetMarketingNameValue(marketingNamesAndPHWebNamesDocuments.GetValue("CTOModelNumber"), out string ctoModel))
+                {
+                    product.Add("CTO Model Number " + docNumber, ctoModel);
+                }
+            }
         }
     }
 
@@ -1724,24 +2514,29 @@ where po.osid = o.id
 
     private void FillPHWebNames(CommonDataModel product, CommonDataModel marketingNamesAndPHWebNamesDocuments, int docNumber)
     {
-        if (GetBrandName(marketingNamesAndPHWebNamesDocuments, out string brandName))
+        if (!string.Equals(product.GetValue("FusionRequirements"), "True", StringComparison.OrdinalIgnoreCase)
+            || (string.Equals(product.GetValue("FusionRequirements"), "True", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(product.GetValue("AllowFollowMarketingName"), "True", StringComparison.OrdinalIgnoreCase)))
         {
-            product.Add("Brand Name " + docNumber, brandName);
-        }
+            if (GetBrandName(marketingNamesAndPHWebNamesDocuments, out string brandName))
+            {
+                product.Add("Brand Name " + docNumber, brandName);
+            }
 
-        if (GetFamilyName(marketingNamesAndPHWebNamesDocuments, out string familyName))
-        {
-            product.Add("Family Name " + docNumber, familyName);
-        }
+            if (GetFamilyName(marketingNamesAndPHWebNamesDocuments, out string familyName))
+            {
+                product.Add("Family Name " + docNumber, familyName);
+            }
 
-        if (!string.IsNullOrEmpty(marketingNamesAndPHWebNamesDocuments.GetValue("KMAT")))
-        {
-            product.Add("KMAT " + docNumber, marketingNamesAndPHWebNamesDocuments.GetValue("KMAT"));
-        }
+            if (!string.IsNullOrEmpty(marketingNamesAndPHWebNamesDocuments.GetValue("KMAT")))
+            {
+                product.Add("KMAT " + docNumber, marketingNamesAndPHWebNamesDocuments.GetValue("KMAT"));
+            }
 
-        if (!string.IsNullOrEmpty(marketingNamesAndPHWebNamesDocuments.GetValue("LastPublishDt")))
-        {
-            product.Add("Last SCM Publish " + docNumber, marketingNamesAndPHWebNamesDocuments.GetValue("LastPublishDt"));
+            if (!string.IsNullOrEmpty(marketingNamesAndPHWebNamesDocuments.GetValue("LastPublishDt")))
+            {
+                product.Add("Last SCM Publish " + docNumber, marketingNamesAndPHWebNamesDocuments.GetValue("LastPublishDt"));
+            }
         }
     }
 
@@ -1861,7 +2656,9 @@ where po.osid = o.id
             }
         }
 
-        if (kmat.ContainsKey(productId))
+        if (kmat.ContainsKey(productId)
+            && string.Equals(product.GetValue("FusionRequirements"), "True", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(product.GetValue("AllowFollowMarketingName"), "True", StringComparison.OrdinalIgnoreCase))
         {
             for (int i = 0; i < kmat[productId].Count; i++)
             {
@@ -1908,7 +2705,9 @@ where po.osid = o.id
         foreach (CommonDataModel product in products)
         {
             if (int.TryParse(product.GetValue("Product Id"), out int productId)
-              && kmat.ContainsKey(productId))
+                && kmat.ContainsKey(productId)
+                && string.Equals(product.GetValue("FusionRequirements"), "True", StringComparison.OrdinalIgnoreCase)
+                && string.Equals(product.GetValue("AllowFollowMarketingName"), "True", StringComparison.OrdinalIgnoreCase))
             {
                 for (int i = 0; i < kmat[productId].Count; i++)
                 {
@@ -1981,6 +2780,11 @@ where po.osid = o.id
 
         (Dictionary<int, string> preinstall, Dictionary<int, string> web) = await GetOperatingSystemAsync(productId);
 
+        if (string.Equals(product.GetValue("FusionRequirements"), "True", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
         if (preinstall.ContainsKey(productId)
             && !string.IsNullOrEmpty(preinstall[productId])
                 && !string.IsNullOrWhiteSpace(preinstall[productId]))
@@ -2051,6 +2855,11 @@ where po.osid = o.id
                 continue;
             }
 
+            if (string.Equals(product.GetValue("FusionRequirements"), "True", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
             if (preinstall.ContainsKey(productId)
                 && !string.IsNullOrEmpty(preinstall[productId])
                     && !string.IsNullOrWhiteSpace(preinstall[productId]))
@@ -2066,4 +2875,88 @@ where po.osid = o.id
             }
         }
     }
+
+    private async Task<Dictionary<int, (int, string, string, string)>> GetPHWebFamilyNameAsync(int productId)
+    {
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetPHWebFamilyNameText(), connection);
+        SqlParameter parameter = new("ProductId", productId);
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, (int, string, string, string)> phWebFamilyName = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (string.IsNullOrWhiteSpace(reader["PHWeb Family Name"].ToString())
+                || !int.TryParse(reader["PBId"].ToString(), out int pbId)
+                || !int.TryParse(reader["PlatformID"].ToString(), out int platformID))
+            {
+                continue;
+            }
+
+            if (phWebFamilyName.ContainsKey(pbId)
+                && string.Equals(phWebFamilyName[pbId].Item4, reader["ProductId"].ToString())
+                && string.Equals(phWebFamilyName[pbId].Item3, reader["SCMNo"].ToString())
+                && phWebFamilyName[pbId].Item1 > platformID)
+            {
+                phWebFamilyName[pbId] = (platformID,
+                                         reader["PHWeb Family Name"].ToString(),
+                                         reader["SCMNo"].ToString(),
+                                         reader["ProductId"].ToString());
+            }
+            else if (!phWebFamilyName.ContainsKey(pbId))
+            {
+                phWebFamilyName[pbId] = (platformID,
+                                         reader["PHWeb Family Name"].ToString(),
+                                         reader["SCMNo"].ToString(),
+                                         reader["ProductId"].ToString());
+            }
+        }
+
+        return phWebFamilyName;
+    }
+
+    private async Task<Dictionary<int, (int, string, string, string)>> GetPHWebFamilyNameAsync()
+    {
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetPHWebFamilyNameText(), connection);
+        SqlParameter parameter = new("ProductId", "-1");
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, (int, string, string, string)> phWebFamilyName = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (string.IsNullOrWhiteSpace(reader["PHWeb Family Name"].ToString())
+                || !int.TryParse(reader["PBId"].ToString(), out int pbId)
+                || !int.TryParse(reader["PlatformID"].ToString(), out int platformID))
+            {
+                continue;
+            }
+
+            if (phWebFamilyName.ContainsKey(pbId)
+                && string.Equals(phWebFamilyName[pbId].Item4, reader["ProductId"].ToString())
+                && string.Equals(phWebFamilyName[pbId].Item3, reader["SCMNo"].ToString())
+                && phWebFamilyName[pbId].Item1 > platformID)
+            {
+                phWebFamilyName[pbId] = (platformID,
+                                         reader["PHWeb Family Name"].ToString(),
+                                         reader["SCMNo"].ToString(),
+                                         reader["ProductId"].ToString());
+            }
+            else if (!phWebFamilyName.ContainsKey(pbId))
+            {
+                phWebFamilyName[pbId] = (platformID,
+                                         reader["PHWeb Family Name"].ToString(),
+                                         reader["SCMNo"].ToString(),
+                                         reader["ProductId"].ToString());
+            }
+        }
+
+        return phWebFamilyName;
+    }
+
+
 }
