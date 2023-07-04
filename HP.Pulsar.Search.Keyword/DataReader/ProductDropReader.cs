@@ -1,4 +1,5 @@
-﻿using HP.Pulsar.Search.Keyword.CommonDataStructure;
+﻿using System.Xml.Linq;
+using HP.Pulsar.Search.Keyword.CommonDataStructure;
 using HP.Pulsar.Search.Keyword.Infrastructure;
 using Microsoft.Data.SqlClient;
 
@@ -23,11 +24,13 @@ internal class ProductDropReader : IKeywordSearchDataReader
         }
 
         HandlePropertyValue(productDrop);
+        FillProductPath(productDrop);
 
         List<Task> tasks = new()
         {
             FillOwnerbyAsync(productDrop),
-            FillMlNameAsync(productDrop)
+            FillMlNameAsync(productDrop),
+            FillSystemBoardsAsync(productDrop)
         };
 
         await Task.WhenAll(tasks);
@@ -39,11 +42,14 @@ internal class ProductDropReader : IKeywordSearchDataReader
     {
         IEnumerable<CommonDataModel> productDrop = await GetProductDropAsync();
 
+        FillProductPath(productDrop);
+
         List<Task> tasks = new()
         {
             FillOwnerbysAsync(productDrop),
             FillMlNamesAsync(productDrop),
-            HandlePropertyValueAsync(productDrop)
+            HandlePropertyValueAsync(productDrop),
+            FillSystemBoardsAsync(productDrop)
         };
 
         await Task.WhenAll(tasks);
@@ -92,7 +98,16 @@ SELECT pd.ProductDropId as 'Product Drop Id',
         WHEN bs.BusinessId = 1
             THEN ''
         ELSE rtrim(isnull(pvr.Name, ''))
-        END AS 'Release Name'
+        END AS 'Release Name',
+    rtrim(isnull(bs.Name, '')) + ' / ' + 
+        '***' + ' / ' +
+            rtrim(isnull(PF.Name, '')) + ' - ' + 
+            rtrim(isnull(Pv.ProductName, '')) +  
+            CASE WHEN bs.BusinessId = 1 
+                THEN '' 
+                ELSE ' (' + rtrim(isnull(pvr.Name, '')) + ')'  
+                END +
+            ' / ' + rtrim(isnull(PD.Name, '')) AS 'Product Path'
 FROM ProductDrop AS pd
 LEFT JOIN ProductdropStatus ps ON ps.statusid = pd.StatusID
 LEFT JOIN ProductVersion_Release P WITH (NOLOCK) ON P.ID = pd.ProductversionReleaseID
@@ -146,6 +161,414 @@ WHERE (
         )
 GROUP BY ml2.ProductDropId
 ";
+    }
+
+    private string GetProductIDAndProductReleaseIDCommandText()
+    {
+        return @"
+select pd.ProductdropID,
+    productversion.ID AS 'ProductId',
+    pd.ProductversionReleaseID AS 'ProductReleaseId'
+from productversion with (Nolock) 
+inner join ProductVersion_Release with (Nolock) on productversion.ID = ProductVersion_Release.ProductVersionID 
+inner join productdrop pd with (nolock) on ProductVersion_Release.ID=pd.ProductversionReleaseID 
+WHERE (
+        @ProductDropId = - 1
+        OR pd.ProductdropID = @ProductDropId
+        )
+";
+    }
+
+    private string GetProductReleaseIDToProductIDCommandText()
+    {
+        return @"
+select productversionID AS 'ProductId',
+    ProductversionReleaseID AS 'ProductReleaseId' 
+from ProductExplorer_CombinedProducts 
+";
+    }
+
+    private string GetSystenBoardsCommandText()
+    {
+        return @"
+select distinct  
+    pf.PlatformID, 
+    pf.ProductFamily AS 'System Boards - Product Family', 
+    pf.PCA AS 'System Boards - System Board', 
+    pf.SystemID AS 'System Boards - System Board ID', 
+    rtrim(pf.MktNameMaster) AS 'System Boards - Marketing Name', 
+    PlatformChassisCategory.Chassis AS 'System Boards - Chassis', 
+    isnull(convert(varchar(10), pf.softpaqNeedDate, 101), '') AS 'System Boards - Softpaq Need Date',
+    isnull(PM.PRODUCT_NAME_NAME, '') AS 'System Boards - SOAR Product Description' ,
+    pp.ProductDropID,
+    pvp.ProductVersionID AS 'ProductId'
+from 	Platform pf with (nolock)  
+inner join PlatformChassisCategory on pf.PlatformID = PlatformChassisCategory.PlatformID 
+inner join ProductVersion_Platform  pvp  on pf.PlatformID = pvp.PlatformID 
+left outer join ProductDrop_Platform pp on pf.PlatformID = pp.PlatformID 
+LEFT OUTER JOIN (PMaster_Product PM INNER JOIN 
+                SOAR_Mapping SOAR ON PM.PRODUCT_NAME_OID = SOAR.OID and SOAR.ObjectTypeID=209) ON pf.PlatformID = SOAR.ObjectID  
+where (case when pp.PlatformID is null then 0 else 1 end) != 0
+    AND (
+        @ProductDropId = - 1
+        OR pp.ProductdropID = @ProductDropId
+        )
+";
+    }
+
+    private async Task<Dictionary<int, int>> GetProductReleaseIDToProductIDAsync()
+    {
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+
+        SqlCommand command = new(GetProductReleaseIDToProductIDCommandText(), connection);
+        using SqlDataReader reader = command.ExecuteReader();
+
+        Dictionary<int,int> productReleaseIDToProductID = new Dictionary<int,int>();
+
+        while (reader.Read())
+        {
+            if (!int.TryParse(reader["ProductReleaseId"].ToString(), out int productReleaseId))
+            {
+                continue;
+            }
+
+            if (int.TryParse(reader["ProductId"].ToString(), out int productId)
+                && !productReleaseIDToProductID.ContainsKey(productReleaseId))
+            {
+                productReleaseIDToProductID[productReleaseId] = productId;
+            }
+            else
+            {
+                Console.WriteLine("fail");
+            }
+        }
+
+        return productReleaseIDToProductID;
+    }
+
+    private async Task<Dictionary<int, List<int>>> GetProductDropToProductIDProductReleaseIDAsync(int productDropId)
+    {
+        Dictionary<int, int> productReleaseIDToProductID = await GetProductReleaseIDToProductIDAsync();
+
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+
+        SqlCommand command = new(GetProductIDAndProductReleaseIDCommandText(), connection);
+        SqlParameter parameter = new("ProductDropId", productDropId);
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+
+        Dictionary<int, List<int>> productDropToProductID = new Dictionary<int, List<int>>();
+
+        while (reader.Read())
+        {
+            if (int.TryParse(reader["ProductdropID"].ToString(), out int dbProductDropId)
+                || int.TryParse(reader["ProductId"].ToString(), out int productId)
+                || int.TryParse(reader["ProductReleaseId"].ToString(), out int productReleaseId))
+            {
+                continue;
+            }
+
+            if (productDropToProductID.ContainsKey(dbProductDropId))
+            {
+                productDropToProductID[dbProductDropId].Add(productId);
+            }
+            else
+            {
+                productDropToProductID[dbProductDropId] = new List<int>() { productId };
+            }
+
+            if (productReleaseIDToProductID.ContainsKey(productReleaseId))
+            {
+                productDropToProductID[dbProductDropId].Add(productReleaseIDToProductID[productReleaseId]);
+            }
+        }
+
+        return productDropToProductID;
+    }
+
+    private async Task<Dictionary<int, List<int>>> GetProductDropToProductIDProductReleaseIDAsync()
+    {
+        Dictionary<int, int> productReleaseIDToProductID = await GetProductReleaseIDToProductIDAsync();
+
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+
+        SqlCommand command = new(GetProductIDAndProductReleaseIDCommandText(), connection);
+        SqlParameter parameter = new("ProductDropId", "-1");
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+
+        Dictionary<int, List<int>> productDropToProductID = new Dictionary<int, List<int>>();
+
+        while (reader.Read())
+        {
+            if (int.TryParse(reader["ProductdropID"].ToString(), out int productDropId)
+                || int.TryParse(reader["ProductId"].ToString(), out int productId)
+                || int.TryParse(reader["ProductReleaseId"].ToString(), out int productReleaseId))
+            {
+                continue;
+            }
+
+            if (productDropToProductID.ContainsKey(productDropId))
+            {
+                productDropToProductID[productDropId].Add(productId);
+            }
+            else
+            {
+                productDropToProductID[productDropId] = new List<int>() { productId };
+            }
+
+            if (productReleaseIDToProductID.ContainsKey(productReleaseId))
+            {
+                productDropToProductID[productDropId].Add(productReleaseIDToProductID[productReleaseId]);
+            }
+        }
+
+        return productDropToProductID;
+    }
+
+    private async Task<Dictionary<string, CommonDataModel>> GetSystemBoardsAsync()
+    {
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+
+        SqlCommand command = new(GetSystenBoardsCommandText(), connection);
+        SqlParameter parameter = new("ProductDropId", "-1");
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+
+        Dictionary<string, CommonDataModel> systemBoards = new Dictionary<string, CommonDataModel>();
+
+        while (reader.Read())
+        {
+            if (!int.TryParse(reader["ProductDropID"].ToString(), out int productDropID))
+            {
+                continue;
+            }
+            
+            CommonDataModel item = new();
+            int fieldCount = reader.FieldCount;
+
+            for (int i = 0; i < fieldCount; i++)
+            {
+                if (await reader.IsDBNullAsync(i))
+                {
+                    continue;
+                }
+
+                string columnName = reader.GetName(i);
+                string value = reader[i].ToString().Trim();
+
+                if (string.IsNullOrWhiteSpace(value)
+                    || string.Equals(value, "None"))
+                {
+                    continue;
+                }
+
+                item.Add(columnName, value);
+            }
+            systemBoards[productDropID + item.GetValue("ProductId")] = item;
+        }
+
+        return systemBoards;
+    }
+
+    private async Task<Dictionary<string, CommonDataModel>> GetSystemBoardsAsync(int productDropId)
+    {
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+
+        SqlCommand command = new(GetSystenBoardsCommandText(), connection);
+        SqlParameter parameter = new("ProductDropId", productDropId);
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+
+        Dictionary<string, CommonDataModel> systemBoards = new Dictionary<string, CommonDataModel>();
+
+        if (reader.Read())
+        {
+            if (!int.TryParse(reader["ProductDropID"].ToString(), out int productDropID))
+            {
+                return systemBoards;
+            }
+
+            CommonDataModel item = new();
+            int fieldCount = reader.FieldCount;
+
+            for (int i = 0; i < fieldCount; i++)
+            {
+                if (await reader.IsDBNullAsync(i))
+                {
+                    continue;
+                }
+
+                string columnName = reader.GetName(i);
+                string value = reader[i].ToString().Trim();
+
+                if (string.IsNullOrWhiteSpace(value)
+                    || string.Equals(value, "None"))
+                {
+                    continue;
+                }
+
+                item.Add(columnName, value);
+            }
+            systemBoards[productDropID + item.GetValue("ProductId")] = item;
+        }
+
+        return systemBoards;
+    }
+
+    private async Task<CommonDataModel> FillSystemBoardsAsync(CommonDataModel productDrop)
+    {
+        if (!int.TryParse(productDrop.GetValue("Product Drop Id"), out int productDropId))
+        {
+            return productDrop;
+        }
+
+        Dictionary<int, List<int>> productDropToProductID = await GetProductDropToProductIDProductReleaseIDAsync(productDropId);
+        Dictionary<string, CommonDataModel> systemBoards = await GetSystemBoardsAsync(productDropId);
+
+        if (!productDropToProductID.ContainsKey(productDropId))
+        {
+            return productDrop;
+        }
+
+        for (int i = 0; i < productDropToProductID[productDropId].Count; i++)
+        {
+            if (!systemBoards.ContainsKey(productDropId + productDropToProductID[productDropId][i].ToString()))
+            {
+                continue;
+            }
+
+            CommonDataModel item = systemBoards[productDropId + productDropToProductID[productDropId][i].ToString()];
+
+            if (!string.IsNullOrWhiteSpace(item.GetValue("System Boards - Product Family")))
+            {
+                productDrop.Add("System Boards - Product Family " + i, item.GetValue("System Boards - Product Family"));
+            }
+
+            if (!string.IsNullOrWhiteSpace(item.GetValue("System Boards - System Board")))
+            {
+                productDrop.Add("System Boards - System Board " + i, item.GetValue("System Boards - System Board"));
+            }
+
+            if (!string.IsNullOrWhiteSpace(item.GetValue("System Boards - System Board ID")))
+            {
+                productDrop.Add("System Boards - System Board ID " + i, item.GetValue("System Boards - System Board ID"));
+            }
+
+            if (!string.IsNullOrWhiteSpace(item.GetValue("System Boards - Marketing Name")))
+            {
+                productDrop.Add("System Boards - Marketing Name " + i, item.GetValue("System Boards - Marketing Name"));
+            }
+
+            if (!string.IsNullOrWhiteSpace(item.GetValue("System Boards - Chassis")))
+            {
+                productDrop.Add("System Boards - Chassis " + i, item.GetValue("System Boards - Chassis"));
+            }
+
+            if (!string.IsNullOrWhiteSpace(item.GetValue("System Boards - Softpaq Need Date")))
+            {
+                productDrop.Add("System Boards - Softpaq Need Date " + i, item.GetValue("System Boards - Softpaq Need Date"));
+            }
+
+            if (!string.IsNullOrWhiteSpace(item.GetValue("System Boards - SOAR Product Description")))
+            {
+                productDrop.Add("System Boards - SOAR Product Description " + i, item.GetValue("System Boards - SOAR Product Descriptiony"));
+            }
+        }
+
+        return productDrop;
+    }
+
+    private async Task<IEnumerable<CommonDataModel>> FillSystemBoardsAsync(IEnumerable<CommonDataModel> productDrop)
+    {
+        Dictionary<int, List<int>> productDropToProductID = await GetProductDropToProductIDProductReleaseIDAsync();
+        Dictionary<string, CommonDataModel> systemBoards = await GetSystemBoardsAsync();
+
+        foreach (CommonDataModel pd in productDrop)
+        {
+            if (!int.TryParse(pd.GetValue("Product Drop Id"), out int productDropId)
+                || !productDropToProductID.ContainsKey(productDropId))
+            {
+                continue;
+            }
+
+            for (int i = 0; i < productDropToProductID[productDropId].Count; i++)
+            {
+                if (!systemBoards.ContainsKey(productDropId + productDropToProductID[productDropId][i].ToString()))
+                {
+                    continue;
+                }
+
+                CommonDataModel item = systemBoards[productDropId + productDropToProductID[productDropId][i].ToString()];
+
+                if (!string.IsNullOrWhiteSpace(item.GetValue("System Boards - Product Family")))
+                {
+                    pd.Add("System Boards - Product Family " + i, item.GetValue("System Boards - Product Family"));
+                }
+
+                if (!string.IsNullOrWhiteSpace(item.GetValue("System Boards - System Board")))
+                {
+                    pd.Add("System Boards - System Board " + i, item.GetValue("System Boards - System Board"));
+                }
+
+                if (!string.IsNullOrWhiteSpace(item.GetValue("System Boards - System Board ID")))
+                {
+                    pd.Add("System Boards - System Board ID " + i, item.GetValue("System Boards - System Board ID"));
+                }
+
+                if (!string.IsNullOrWhiteSpace(item.GetValue("System Boards - Marketing Name")))
+                {
+                    pd.Add("System Boards - Marketing Name " + i, item.GetValue("System Boards - Marketing Name"));
+                }
+
+                if (!string.IsNullOrWhiteSpace(item.GetValue("System Boards - Chassis")))
+                {
+                    pd.Add("System Boards - Chassis " + i, item.GetValue("System Boards - Chassis"));
+                }
+
+                if (!string.IsNullOrWhiteSpace(item.GetValue("System Boards - Softpaq Need Date")))
+                {
+                    pd.Add("System Boards - Softpaq Need Date " + i, item.GetValue("System Boards - Softpaq Need Date"));
+                }
+
+                if (!string.IsNullOrWhiteSpace(item.GetValue("System Boards - SOAR Product Description")))
+                {
+                    pd.Add("System Boards - SOAR Product Description " + i, item.GetValue("System Boards - SOAR Product Descriptiony"));
+                }
+            }
+        }
+
+        return productDrop;
+    }
+
+    private static CommonDataModel FillProductPath(CommonDataModel productDrop)
+    {
+        if (!string.IsNullOrWhiteSpace(productDrop.GetValue("Product Path"))
+            && !string.IsNullOrWhiteSpace(productDrop.GetValue("Release Year")))
+        {
+            productDrop.Add("Product Path", productDrop.GetValue("Product Path").Replace("***", productDrop.GetValue("Release Year")));
+        }
+
+        return productDrop;
+    }
+
+    private static IEnumerable<CommonDataModel> FillProductPath(IEnumerable<CommonDataModel> productDrop)
+    {
+        foreach (CommonDataModel pd in productDrop)
+        {
+            if (!string.IsNullOrWhiteSpace(pd.GetValue("Product Path"))
+                && !string.IsNullOrWhiteSpace(pd.GetValue("Release Year")))
+            {
+                pd.Add("Product Path", pd.GetValue("Product Path").Replace("***", pd.GetValue("Release Year")));
+            }
+        }
+
+        return productDrop;
     }
 
     private async Task<CommonDataModel> GetProductDropAsync(int productDropId)

@@ -23,7 +23,14 @@ public class FeatureReader
         }
 
         HandlePropertyValue(feature);
-        await FillComponentInitiatedLinkageAsync(feature);
+        List<Task> tasks = new()
+        {
+            FillComponentInitiatedLinkageAsync(feature),
+            FillBusinessSegmentAsync(feature),
+            FillComboFeatureAsync(feature)
+        };
+
+        await Task.WhenAll(tasks);
 
         return feature;
     }
@@ -35,7 +42,9 @@ public class FeatureReader
         List<Task> tasks = new()
         {
             FillComponentInitiatedLinkagesAsync(features),
-            HandlePropertyValueAsync(features)
+            FillBusinessSegmentAsync(features),
+            HandlePropertyValueAsync(features),
+            FillComboFeatureAsync(features)
         };
 
         await Task.WhenAll(tasks);
@@ -211,6 +220,214 @@ WHERE (
         OR fril.FeatureId = @FeatureId
         )
 ";
+    }
+
+    private string GetBusinessSegmentCommandText()
+    {
+        return @"
+select	fbs.FeatureId, bs.Name AS 'Business Segment Name'
+from	BusinessSegment bs 
+inner join Feature_BusinessSegment fbs on bs.BusinessSegmentID = fbs.BusinessSegmentId
+WHERE (
+        @FeatureId = - 1
+        OR fbs.FeatureId = @FeatureId
+        ) 
+";
+    }
+
+    private string GetComboFeatureCommandText()
+    {
+        return @"
+SELECT Feature_Combo.FeatureID ,
+    Feature.FeatureName,
+    Feature_Combo.Quantity ,
+    Feature_Combo.ParentFeatureID
+From Feature_Combo 
+inner join Feature on Feature_Combo.FeatureID = Feature.FeatureID 
+where (
+        @FeatureId = - 1
+        OR Feature_Combo.ParentFeatureID = @FeatureId
+        ) 
+";
+    }
+
+    private async Task FillComboFeatureAsync(CommonDataModel feature)
+    {
+        if (!int.TryParse(feature.GetValue("Feature Id"), out int featureId))
+        {
+            return;
+        }
+
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+
+        SqlCommand command = new(GetComboFeatureCommandText(), connection);
+        SqlParameter parameter = new("FeatureId", featureId);
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, List<(string, string, string)>> comboFeature = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["ParentFeatureID"].ToString(), out int parentFeatureID))
+            {
+                continue;
+            }
+
+            if (comboFeature.ContainsKey(parentFeatureID))
+            {
+                comboFeature[parentFeatureID].Add((reader["FeatureName"].ToString(),
+                                                   reader["FeatureID"].ToString(),
+                                                   reader["Quantity"].ToString()));
+            }
+            else
+            {
+                comboFeature[parentFeatureID] = new List<(string, string, string)>() { (reader["FeatureName"].ToString(),
+                                                                                        reader["FeatureID"].ToString(),
+                                                                                        reader["Quantity"].ToString()) };
+            }
+        }
+
+        if (comboFeature.ContainsKey(featureId))
+        {
+            for (int i = 0; i < comboFeature[featureId].Count; i++)
+            {
+                feature.Add("Combo Feature - Feature Name " + i, comboFeature[featureId][i].Item1);
+                feature.Add("Combo Feature - Feature ID " + i, comboFeature[featureId][i].Item2);
+                feature.Add("Combo Feature - Quantity " + i, comboFeature[featureId][i].Item3);
+            }
+        }
+    }
+
+    private async Task FillComboFeatureAsync(IEnumerable<CommonDataModel> features)
+    {
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+
+        SqlCommand command = new(GetComboFeatureCommandText(), connection);
+        SqlParameter parameter = new("FeatureId", "-1");
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, List<(string, string, string)>> comboFeature = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["ParentFeatureID"].ToString(), out int parentFeatureID))
+            {
+                continue;
+            }
+
+            if (comboFeature.ContainsKey(parentFeatureID))
+            {
+                comboFeature[parentFeatureID].Add((reader["FeatureName"].ToString(),
+                                                   reader["FeatureID"].ToString(),
+                                                   reader["Quantity"].ToString()));
+            }
+            else
+            {
+                comboFeature[parentFeatureID] = new List<(string, string, string)>() { (reader["FeatureName"].ToString(),
+                                                                                        reader["FeatureID"].ToString(),
+                                                                                        reader["Quantity"].ToString()) };
+            }
+        }
+
+        foreach (CommonDataModel feature in features)
+        {
+            if (int.TryParse(feature.GetValue("Feature Id"), out int featureId)
+                && comboFeature.ContainsKey(featureId))
+            {
+                for (int i = 0; i < comboFeature[featureId].Count; i++)
+                {
+                    feature.Add("Combo Feature - Feature Name " + i, comboFeature[featureId][i].Item1);
+                    feature.Add("Combo Feature - Feature ID " + i, comboFeature[featureId][i].Item2);
+                    feature.Add("Combo Feature - Quantity " + i, comboFeature[featureId][i].Item3);
+                }
+            }
+        }
+    }
+
+    private async Task FillBusinessSegmentAsync(CommonDataModel feature)
+    {
+        if (!int.TryParse(feature.GetValue("Feature Id"), out int featureId))
+        {
+            return;
+        }
+
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+
+        SqlCommand command = new(GetBusinessSegmentCommandText(), connection);
+        SqlParameter parameter = new("FeatureId", featureId);
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, List<string>> businessSegment = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["FeatureId"].ToString(), out int dbFeatureId))
+            {
+                continue;
+            }
+
+            if (businessSegment.ContainsKey(dbFeatureId))
+            {
+                businessSegment[dbFeatureId].Add(reader["Business Segment Name"].ToString());
+            }
+            else
+            {
+                businessSegment[dbFeatureId] = new List<string>() { reader["Business Segment Name"].ToString() };
+            }
+        }
+
+        if (businessSegment.ContainsKey(featureId))
+        {
+            for (int i = 0; i < businessSegment[featureId].Count; i++)
+            {
+                feature.Add("Business Segment Name " + i, businessSegment[featureId][i]);
+            }
+        }
+
+    }
+
+    private async Task FillBusinessSegmentAsync(IEnumerable<CommonDataModel> features)
+    {
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+
+        SqlCommand command = new(GetBusinessSegmentCommandText(), connection);
+        SqlParameter parameter = new("FeatureId", "-1");
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, List<string>> businessSegment = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["FeatureId"].ToString(), out int featureId))
+            {
+                continue;
+            }
+
+            if (businessSegment.ContainsKey(featureId))
+            {
+                businessSegment[featureId].Add(reader["Business Segment Name"].ToString());
+            }
+            else
+            {
+                businessSegment[featureId] = new List<string>() { reader["Business Segment Name"].ToString() };
+            }
+        }
+
+        foreach (CommonDataModel feature in features)
+        {
+            if (int.TryParse(feature.GetValue("Feature Id"), out int featureId)
+                && businessSegment.ContainsKey(featureId))
+            {
+                for (int i = 0; i < businessSegment[featureId].Count; i++)
+                {
+                    feature.Add("Business Segment Name " + i, businessSegment[featureId][i]);
+                }
+            }
+        }
     }
 
     private async Task FillComponentInitiatedLinkageAsync(CommonDataModel feature)

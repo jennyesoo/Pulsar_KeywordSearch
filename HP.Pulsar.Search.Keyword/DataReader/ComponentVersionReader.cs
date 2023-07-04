@@ -225,7 +225,9 @@ public class ComponentVersionReader : IKeywordSearchDataReader
             THEN 'Low'
          END AS 'Samples Confidence',
     Dv.CVASubPath AS 'CVA Path',
-    Dv.ServiceEOADate AS 'Service Team - Available Until'
+    Dv.ServiceEOADate AS 'Service Team - Available Until Date',
+    Dv.Path2Location As 'Component Location - FileName',
+    cv.FactoryEOADate AS 'Engineering Team - Available Until Date'
 FROM DeliverableVersion Dv
 LEFT JOIN ComponentPrismSWType CPSW ON CPSW.PRISMTypeID = Dv.PrismSWType
 LEFT JOIN userinfo user1 ON user1.userid = Dv.DeveloperID
@@ -236,6 +238,7 @@ LEFT JOIN SWSetupCategory sws ON sws.ID = Dv.SWSetupCategoryID
 LEFT JOIN ComponentTransferServer cts ON cts.Id = Dv.TransferServerId
 LEFT JOIN GreenSpec gs ON gs.id = Dv.GreenSpecID
 LEFT JOIN DeliverableRoot root ON root.id = Dv.DeliverableRootID
+LEFT JOIN ComponentVersion cv ON cv.componentversionid = Dv.ID 
 WHERE (
         @ComponentVersionId = - 1
         OR Dv.ID = @ComponentVersionId
