@@ -2460,7 +2460,6 @@ WHERE (
         {
             shortNameInnerValue += $"{item.GetValue("StreetName2")} ";
 
-            //TODO - test item.GetValue("ShowSeriesNumberInShortName") value?
             if (item.GetValue("ShowSeriesNumberInShortName").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
                 shortNameInnerValue += item.GetValue("SeriesName");
