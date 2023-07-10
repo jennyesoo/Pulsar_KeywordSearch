@@ -25,6 +25,7 @@ public class ComponentVersionReader : IKeywordSearchDataReader
 
         HandlePropertyValue(componentVersion);
         HandleDifferentPropertyNameBasedOnCategory(componentVersion);
+
         return componentVersion;
     }
 
@@ -37,7 +38,9 @@ public class ComponentVersionReader : IKeywordSearchDataReader
                 HandlePropertyValuesAsync(componentVersions),
                 HandleDifferentPropertyNameBasedOnCategoryAsync(componentVersions)
             };
+
         await Task.WhenAll(tasks);
+
         return componentVersions;
     }
 

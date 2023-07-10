@@ -45,6 +45,7 @@ public class ProductReader : IKeywordSearchDataReader
         };
 
         await Task.WhenAll(tasks);
+        DeleteProperty(product);
 
         return product;
     }
@@ -70,6 +71,7 @@ public class ProductReader : IKeywordSearchDataReader
         };
 
         await Task.WhenAll(tasks);
+        DeleteProperty(products);
 
         return products;
     }
@@ -2276,10 +2278,6 @@ WHERE (
 
             FillMarketingNames(product, documents[i], i, isPulsarProduct);
         }
-
-        product.Delete("AllowFollowMarketingName");
-        product.Delete("FusionRequirements");
-
     }
 
     private async Task FillMarketingNamesAndPHWebNamesAsync(IEnumerable<CommonDataModel> products)
@@ -2306,9 +2304,6 @@ WHERE (
 
                 FillMarketingNames(product, documents[i], i, isPulsarProduct);
             }
-
-            product.Delete("AllowFollowMarketingName");
-            product.Delete("FusionRequirements");
         }
     }
 
@@ -2957,5 +2952,21 @@ WHERE (
         return phWebFamilyName;
     }
 
+    private static IEnumerable<CommonDataModel> DeleteProperty(IEnumerable<CommonDataModel> products)
+    {
+        foreach (CommonDataModel product in products)
+        {
+            product.Delete("AllowFollowMarketingName");
+            product.Delete("FusionRequirements");
+        }
+        return products;
+    }
 
+    private static CommonDataModel DeleteProperty(CommonDataModel product)
+    {
+        product.Delete("AllowFollowMarketingName");
+        product.Delete("FusionRequirements");
+        
+        return product;
+    }
 }
