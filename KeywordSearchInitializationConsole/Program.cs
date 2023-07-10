@@ -15,13 +15,17 @@ internal class Program
 
         KeywordSearchInfo info = new()
         {
-            DatabaseConnectionString = "server=TdcPulsarItgDb.tpc.rd.hpicorp.net;initial catalog=PRS;integrated security=SSPI",
+            DatabaseConnectionString = "server=TdcPulsarItgDb.tpc.rd.hpicorp.net;initial catalog=PRS;integrated security=SSPI;TrustServerCertificate=True",
             SearchEngineUrl = "http://15.36.147.177:7702/"
         };
 
         // init
         //InitializationClient init = new(info);
         //await init.InitAsync();
+
+        //update
+        TestForUpdate update = new(info);
+        await update.UpdateAsync();
 
         // search
         SearchClient searchClient = new(info);
