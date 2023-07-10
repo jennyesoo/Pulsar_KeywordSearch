@@ -92,7 +92,7 @@ SELECT p.id AS 'Product Id',
     END AS 'Development Center',
     Brands,
     p.SystemBoardId as 'System Board Id',
-    vw_GetEndOfServiceLifeDate.EndOfServiceLifeDate as 'End Of Service',
+    vw_GetEndOfServiceLifeDate.EndOfServiceLifeDate as 'End Of Service Date',
     ps.Name AS 'Product Phase',
     sg.Name AS 'Business Segment',
     p.CreatedBy AS 'Creator Name',
@@ -475,7 +475,7 @@ and v2.id = v.referenceid
         return @"
 SELECT p.ProductVersionID AS 'ProductId',
     isnull(p.KMAT, '') AS 'KMAT', 
-    p.LastPublishDt AS 'Last SCM Publish'
+    p.LastPublishDt AS 'Last SCM Publish Date'
 FROM Product_Brand p WITH (NOLOCK) 
 left join ProductVersion pv on pv.ProductVersionID = p.ProductVersionID 
 where pv.AllowFollowMarketingName =1
@@ -1420,16 +1420,16 @@ WHERE (
             {
                 if (eopDates1.ContainsKey(productId))
                 {
-                    product.Add("End Of Production", eopDates1[productId].ToString("yyyy/MM/dd"));
-                    product.Add("End Of Sales", GetEndOfSalesDate(eopDates1[productId]));
+                    product.Add("End Of Production Date", eopDates1[productId].ToString("yyyy/MM/dd"));
+                    product.Add("End Of Sales Date", GetEndOfSalesDate(eopDates1[productId]));
                 }
             }
             else
             {
                 if (eopDates2.ContainsKey(productId))
                 {
-                    product.Add("End Of Production", eopDates2[productId].ToString("yyyy/MM/dd"));
-                    product.Add("End Of Sales", GetEndOfSalesDate(eopDates2[productId]));
+                    product.Add("End Of Production Date", eopDates2[productId].ToString("yyyy/MM/dd"));
+                    product.Add("End Of Sales Date", GetEndOfSalesDate(eopDates2[productId]));
                 }
             }
         }
@@ -1486,16 +1486,16 @@ WHERE (
             {
                 if (eopDates1.ContainsKey(productId))
                 {
-                    product.Add("End Of Production", eopDates1[productId].ToString("yyyy/MM/dd"));
-                    product.Add("End Of Sales", GetEndOfSalesDate(eopDates1[productId]));
+                    product.Add("End Of Production Date", eopDates1[productId].ToString("yyyy/MM/dd"));
+                    product.Add("End Of Sales Date", GetEndOfSalesDate(eopDates1[productId]));
                 }
             }
             else
             {
                 if (eopDates2.ContainsKey(productId))
                 {
-                    product.Add("End Of Production", eopDates2[productId].ToString("yyyy/MM/dd"));
-                    product.Add("End Of Sales", GetEndOfSalesDate(eopDates2[productId]));
+                    product.Add("End Of Production Date", eopDates2[productId].ToString("yyyy/MM/dd"));
+                    product.Add("End Of Sales Date", GetEndOfSalesDate(eopDates2[productId]));
                 }
             }
             product.Delete("TypeId");
@@ -2534,7 +2534,7 @@ WHERE (
 
             if (!string.IsNullOrEmpty(marketingNamesAndPHWebNamesDocuments.GetValue("LastPublishDt")))
             {
-                product.Add("PHweb Names - Last SCM Publish " + docNumber, marketingNamesAndPHWebNamesDocuments.GetValue("LastPublishDt"));
+                product.Add("PHweb Names - Last SCM Publish Date " + docNumber, marketingNamesAndPHWebNamesDocuments.GetValue("LastPublishDt"));
             }
         }
     }
@@ -2647,11 +2647,11 @@ WHERE (
 
             if (!kmat.ContainsKey(dbProductId))
             {
-                kmat[dbProductId] = new List<(string, string)>() { (reader["KMAT"].ToString(), reader["Last SCM Publish"].ToString()) };
+                kmat[dbProductId] = new List<(string, string)>() { (reader["KMAT"].ToString(), reader["Last SCM Publish Date"].ToString()) };
             }
             else
             {
-                kmat[dbProductId].Add((reader["KMAT"].ToString(), reader["Last SCM Publish"].ToString()));
+                kmat[dbProductId].Add((reader["KMAT"].ToString(), reader["Last SCM Publish Date"].ToString()));
             }
         }
 
@@ -2668,7 +2668,7 @@ WHERE (
 
                 if (!string.IsNullOrEmpty(kmat[productId][i].Item2))
                 {
-                    product.Add("KMAT/SCM - Last SCM Publish " + i, kmat[productId][i].Item2);
+                    product.Add("KMAT/SCM - Last SCM Publish Date " + i, kmat[productId][i].Item2);
                 }
             }
         }
@@ -2693,11 +2693,11 @@ WHERE (
 
             if (!kmat.ContainsKey(productId))
             {
-                kmat[productId] = new List<(string, string)>() { (reader["KMAT"].ToString(), reader["Last SCM Publish"].ToString()) };
+                kmat[productId] = new List<(string, string)>() { (reader["KMAT"].ToString(), reader["Last SCM Publish Date"].ToString()) };
             }
             else
             {
-                kmat[productId].Add((reader["KMAT"].ToString(), reader["Last SCM Publish"].ToString()));
+                kmat[productId].Add((reader["KMAT"].ToString(), reader["Last SCM Publish Date"].ToString()));
             }
         }
 
@@ -2719,7 +2719,7 @@ WHERE (
                     if (!string.IsNullOrEmpty(kmat[productId][i].Item2)
                         && !string.IsNullOrWhiteSpace(kmat[productId][i].Item2))
                     {
-                        product.Add("KMAT/SCM - Last SCM Publish " + i, kmat[productId][i].Item2);
+                        product.Add("KMAT/SCM - Last SCM Publish Date " + i, kmat[productId][i].Item2);
                     }
                 }
             }

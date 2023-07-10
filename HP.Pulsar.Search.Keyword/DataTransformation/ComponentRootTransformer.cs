@@ -4,7 +4,7 @@ namespace HP.Pulsar.Search.Keyword.DataTransformation;
 
 internal class ComponentRootTransformer : IDataTransformer
 {
-    private static readonly List<string> _datePropertyList = new() { "created", "Deleted", "updated" };
+    private static readonly List<string> _datePropertyList = new() { "created Date", "Deleted Date", "updated Date" };
     private static readonly List<string> _userNamePropertyList = new() { "Deleted by", "Updated by", "Created by" };
 
     public IEnumerable<CommonDataModel> Transform(IEnumerable<CommonDataModel> componentRoots)

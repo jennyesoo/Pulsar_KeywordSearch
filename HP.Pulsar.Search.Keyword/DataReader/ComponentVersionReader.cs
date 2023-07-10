@@ -181,7 +181,7 @@ public class ComponentVersionReader : IKeywordSearchDataReader
     Dv.PreinstallROM as 'ROM Component Preinstall',
     Dv.CAB,
     Dv.IsSoftPaqInPreinstall as 'SoftPaq In Preinstall',
-    Dv.SampleDate as 'Samples Available',
+    Dv.SampleDate as 'Samples Available Date',
     Dv.ModelNumber as 'Model Number',
     Dv.PartNumber as 'HP Part Number',
     Dv.CodeName as 'Code Name',
@@ -844,7 +844,7 @@ WHERE (
 
         if (!string.IsNullOrWhiteSpace(componentVersion.GetValue("Intro Date")))
         {
-            componentVersion.Add("Mass Production", componentVersion.GetValue("Intro Date"));
+            componentVersion.Add("Mass Production Date", componentVersion.GetValue("Intro Date"));
         }
 
         componentVersion.Delete("Version");
@@ -881,7 +881,7 @@ WHERE (
 
             if (!string.IsNullOrWhiteSpace(version.GetValue("Intro Date")))
             {
-                version.Add("Mass Production", version.GetValue("Intro Date"));
+                version.Add("Mass Production Date", version.GetValue("Intro Date"));
             }
 
             version.Delete("Version");

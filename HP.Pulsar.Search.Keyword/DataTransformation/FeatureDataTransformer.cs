@@ -5,7 +5,7 @@ namespace HP.Pulsar.Search.Keyword.DataTransformation;
 
 public class FeatureDataTransformer
 {
-    private static readonly List<string> _datePropertyList = new() { "created", "updated" };
+    private static readonly List<string> _datePropertyList = new() { "created Date", "updated Date" };
     private static readonly List<string> _userNamePropertyList = new() { "Created by", "Updated by" };
 
     public IEnumerable<CommonDataModel> Transform(IEnumerable<CommonDataModel> features)
