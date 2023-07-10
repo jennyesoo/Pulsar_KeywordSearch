@@ -24,6 +24,7 @@ internal class ChangeRequestReader : IKeywordSearchDataReader
 
         HandlePropertyValue(changeRequest);
         await FillApproverAsync(changeRequest);
+
         return changeRequest;
     }
 
@@ -38,6 +39,7 @@ internal class ChangeRequestReader : IKeywordSearchDataReader
         };
 
         await Task.WhenAll(tasks);
+
         return changeRequest;
     }
 
