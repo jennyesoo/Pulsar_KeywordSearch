@@ -3121,12 +3121,40 @@ where (
                 continue;
             }
 
-            string[] splitItems = item.Split(new string[] { "^" }, StringSplitOptions.RemoveEmptyEntries);
-            sb.Append(", ").Append(splitItems[0]);
-
-            if (splitItems.Length > 1)
+            if (item.Contains("^^"))
             {
-                sb.Append($" ({splitItems[1]})");
+                string[] splitItem = item.Split(new string[] { "^^" }, StringSplitOptions.None);
+
+                if (splitItem.Length == 2
+                    && !string.IsNullOrWhiteSpace(splitItem[0]))
+                {
+                    if (splitItem[0].Contains(":"))
+                    {
+                        string[] splitItem1 = splitItem[0].Split(new string[] { ":" }, StringSplitOptions.None);
+                        sb.Append(", ").Append(splitItem1[0]);
+                        continue;
+                    }
+                    sb.Append(", ").Append(splitItem[0]);
+                }
+            }
+            else
+            {
+                string[] splitItems = item.Split(new string[] { "^" }, StringSplitOptions.RemoveEmptyEntries);
+
+                if (splitItems[0].Contains(":"))
+                {
+                    string[] splitItem1 = splitItems[0].Split(new string[] { ":" }, StringSplitOptions.None);
+                    sb.Append(", ").Append(splitItem1[0]);
+                }
+                else
+                {
+                    sb.Append(", ").Append(splitItems[0]);
+                }
+
+                if (splitItems.Length > 1)
+                {
+                    sb.Append($" ({splitItems[1]})");
+                }
             }
         }
 
