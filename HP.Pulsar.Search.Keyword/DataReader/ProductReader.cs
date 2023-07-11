@@ -41,10 +41,12 @@ public class ProductReader : IKeywordSearchDataReader
             FillMarketingNamesAndPHWebNamesAsync(product),
             FillKMATAsync(product),
             FillOperatingSystemAsync(product),
-            FillBaseUnitGroupsAsync(product)
+            FillBaseUnitGroupsAsync(product),
+            FillWHQLAsync(product)
         };
 
         await Task.WhenAll(tasks);
+        SystemBoardId(product);
         DeleteProperty(product);
 
         return product;
@@ -67,10 +69,12 @@ public class ProductReader : IKeywordSearchDataReader
             FillMarketingNamesAndPHWebNamesAsync(products),
             FillKMATAsync(products),
             FillOperatingSystemAsync(products),
-            FillBaseUnitGroupsAsync(products)
+            FillBaseUnitGroupsAsync(products),
+            FillWHQLAsync(products)
         };
 
         await Task.WhenAll(tasks);
+        SystemBoardId(products);
         DeleteProperty(products);
 
         return products;
@@ -92,8 +96,7 @@ SELECT p.id AS 'Product Id',
         WHEN p.DevCenter = 8 THEN 'No Dev. Center'
         WHEN p.DevCenter = 9 THEN 'Fort Collins'
     END AS 'Development Center',
-    Brands,
-    p.SystemBoardId as 'System Board Id',
+    p.SystemboardComments,
     vw_GetEndOfServiceLifeDate.EndOfServiceLifeDate as 'End Of Service Date',
     ps.Name AS 'Product Phase',
     sg.Name AS 'Business Segment',
@@ -180,7 +183,8 @@ SELECT p.id AS 'Product Id',
     p.TypeId,
     p.ImagePO AS 'Current Image Part Number',
     p.AllowFollowMarketingName,
-    isnull(p.FusionRequirements, 0) AS 'FusionRequirements'
+    isnull(p.FusionRequirements, 0) AS 'FusionRequirements',
+    RoHS.Name AS 'Minimum RoHS Level'
 FROM ProductVersion p
 LEFT JOIN ProductFamily pf ON p.ProductFamilyId = pf.id
 LEFT JOIN Partner partner ON partner.id = p.PartnerId
@@ -205,6 +209,8 @@ LEFT JOIN UserInfo user_ProPM ON user_ProPM.userid = p.ProcurementPMID
 LEFT JOIN UserInfo user_SWM ON user_SWM.userid = p.SwMarketingId
 LEFT JOIN ProductLine pl ON pl.Id = p.ProductLineId
 LEFT JOIN vw_GetEndOfServiceLifeDate on vw_GetEndOfServiceLifeDate.productId = p.Id
+LEFT JOIN RoHS WITH (NOLOCK) ON p.MinRoHSLevel = RoHS.ID 
+
 WHERE (
         @ProductId = - 1
         OR p.Id = @ProductId
@@ -842,6 +848,20 @@ WHERE (
 ";
     }
 
+    private string GetWHQLText()
+    {
+        return @"
+SELECT ProductVersionID AS 'ProductId'
+FROM ProductWHQL with(NOLOCK)
+where (
+        @ProductId = - 1
+        OR ProductVersionID = @ProductId
+        )
+";
+    }
+
+
+
     private async Task<Dictionary<int, List<CommonDataModel>>> GetBaseUnitGroupsPartTwoAsync(int productId)
     {
         using SqlConnection connection = new(_info.DatabaseConnectionString);
@@ -1423,7 +1443,11 @@ WHERE (
                 if (eopDates1.ContainsKey(productId))
                 {
                     product.Add("End Of Production Date", eopDates1[productId].ToString("yyyy/MM/dd"));
-                    product.Add("End Of Sales Date", GetEndOfSalesDate(eopDates1[productId]));
+
+                    if (string.Equals(product.GetValue("FusionRequirements"), "True", StringComparison.OrdinalIgnoreCase))
+                    {
+                        product.Add("End Of Sales Date", GetEndOfSalesDate(eopDates1[productId]));
+                    }
                 }
             }
             else
@@ -1431,7 +1455,11 @@ WHERE (
                 if (eopDates2.ContainsKey(productId))
                 {
                     product.Add("End Of Production Date", eopDates2[productId].ToString("yyyy/MM/dd"));
-                    product.Add("End Of Sales Date", GetEndOfSalesDate(eopDates2[productId]));
+
+                    if (string.Equals(product.GetValue("FusionRequirements"), "True", StringComparison.OrdinalIgnoreCase))
+                    {
+                        product.Add("End Of Sales Date", GetEndOfSalesDate(eopDates2[productId]));
+                    }
                 }
             }
         }
@@ -1489,7 +1517,11 @@ WHERE (
                 if (eopDates1.ContainsKey(productId))
                 {
                     product.Add("End Of Production Date", eopDates1[productId].ToString("yyyy/MM/dd"));
-                    product.Add("End Of Sales Date", GetEndOfSalesDate(eopDates1[productId]));
+
+                    if (string.Equals(product.GetValue("FusionRequirements"), "True", StringComparison.OrdinalIgnoreCase))
+                    {
+                        product.Add("End Of Sales Date", GetEndOfSalesDate(eopDates1[productId]));
+                    }
                 }
             }
             else
@@ -1497,7 +1529,11 @@ WHERE (
                 if (eopDates2.ContainsKey(productId))
                 {
                     product.Add("End Of Production Date", eopDates2[productId].ToString("yyyy/MM/dd"));
-                    product.Add("End Of Sales Date", GetEndOfSalesDate(eopDates2[productId]));
+
+                    if (string.Equals(product.GetValue("FusionRequirements"), "True", StringComparison.OrdinalIgnoreCase))
+                    {
+                        product.Add("End Of Sales Date", GetEndOfSalesDate(eopDates2[productId]));
+                    }
                 }
             }
             product.Delete("TypeId");
@@ -2956,17 +2992,165 @@ WHERE (
     {
         foreach (CommonDataModel product in products)
         {
-            product.Delete("AllowFollowMarketingName");
-            product.Delete("FusionRequirements");
+            DeleteProperty(product);
         }
+
         return products;
     }
 
     private static CommonDataModel DeleteProperty(CommonDataModel product)
     {
+        if (string.Equals(product.GetValue("Development Center"), "Taiwan - Consumer", StringComparison.OrdinalIgnoreCase))
+        {
+            product.Delete("Lead Product");
+        }
+        else
+        {
+            product.Delete("Reference Platform");
+        }
+
+        if (string.Equals(product.GetValue("FusionRequirements"), "True", StringComparison.OrdinalIgnoreCase))
+        {
+            product.Delete("Minimum RoHS Level");
+        }
+        else
+        {
+            product.Delete("Releases");
+            product.Delete("Chipsets");
+        }
+
         product.Delete("AllowFollowMarketingName");
         product.Delete("FusionRequirements");
-        
+
+        return product;
+    }
+
+    private async Task FillWHQLAsync(CommonDataModel product)
+    {
+        if (!int.TryParse(product.GetValue("Product Id"), out int productId))
+        {
+            return;
+        }
+
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetWHQLText(), connection);
+        SqlParameter parameter = new("ProductId", productId);
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        List<int> whql = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["ProductId"].ToString(), out int dbProductId))
+            {
+                continue;
+            }
+
+            if (!whql.Contains(dbProductId))
+            {
+                whql.Add(dbProductId);
+            }
+        }
+
+        if (whql.Contains(productId))
+        {
+            product.Add("WHQL Statu", "Unknown");
+        }
+        else
+        {
+            product.Add("WHQL Statu", "incomplete");
+        }
+    }
+
+    private async Task FillWHQLAsync(IEnumerable<CommonDataModel> products)
+    {
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetWHQLText(), connection);
+        SqlParameter parameter = new("ProductId", "-1");
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        List<int> whql = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["ProductId"].ToString(), out int productId))
+            {
+                continue;
+            }
+
+            if (!whql.Contains(productId))
+            {
+                whql.Add(productId);
+            }
+        }
+
+        foreach (CommonDataModel product in products)
+        {
+            if (!int.TryParse(product.GetValue("Product Id"), out int productId))
+            {
+                continue;
+            }
+
+            if (whql.Contains(productId))
+            {
+                product.Add("WHQL Statu", "Unknown");
+            }
+            else
+            {
+                product.Add("WHQL Statu", "incomplete");
+            }
+        }
+    }
+
+    private static string FormatSystemId(string comments)
+    {
+        if (!comments.Contains("^") && !comments.Contains("|"))
+        {
+            return comments;
+        }
+
+        StringBuilder sb = new StringBuilder();
+
+        foreach (string item in comments.Split(new string[] { "|" }, StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (!item.Contains("^"))
+            {
+                sb.Append(", ").Append(item);
+                continue;
+            }
+
+            string[] splitItems = item.Split(new string[] { "^" }, StringSplitOptions.RemoveEmptyEntries);
+            sb.Append(", ").Append(splitItems[0]);
+
+            if (splitItems.Length > 1)
+            {
+                sb.Append($" ({splitItems[1]})");
+            }
+        }
+
+        string result = sb.ToString();
+        return !string.IsNullOrEmpty(result) && result.Length > 2 ? result.Substring(2) : string.Empty;
+    }
+
+    private static IEnumerable<CommonDataModel> SystemBoardId(IEnumerable<CommonDataModel> products)
+    {
+        foreach (CommonDataModel product in products)
+        {
+            SystemBoardId(product);
+        }
+        return products;
+    }
+
+    private static CommonDataModel SystemBoardId(CommonDataModel product)
+    {
+        if (!string.IsNullOrWhiteSpace(product.GetValue("SystemboardComments")))
+        {
+            product.Add("System Board Id", FormatSystemId(product.GetValue("SystemboardComments")));
+            product.Delete("SystemboardComments");
+        }
+
         return product;
     }
 }
