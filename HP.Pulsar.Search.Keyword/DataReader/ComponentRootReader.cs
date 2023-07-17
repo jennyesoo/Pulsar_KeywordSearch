@@ -23,8 +23,6 @@ internal class ComponentRootReader : IKeywordSearchDataReader
             return null;
         }
 
-        HandlePropertyValue(componentRoot);
-
         List<Task> tasks = new()
         {
             FillTrulyLinkedFeatureAsync(componentRoot),
@@ -33,6 +31,9 @@ internal class ComponentRootReader : IKeywordSearchDataReader
         };
 
         await Task.WhenAll(tasks);
+        HandlePropertyValue(componentRoot);
+        DeleteProperty(componentRoot);
+
         return componentRoot;
     }
 
@@ -49,6 +50,8 @@ internal class ComponentRootReader : IKeywordSearchDataReader
         };
 
         await Task.WhenAll(tasks);
+        DeleteProperty(componentRoot);
+
         return componentRoot;
     }
 
@@ -59,6 +62,7 @@ internal class ComponentRootReader : IKeywordSearchDataReader
     root.Description,
     vendor.Name AS Vendor,
     cate.name AS Category,
+    cate.RequiredPrismSWType,
     user1.FirstName + ' ' + user1.LastName AS 'Component PM',
     user1.Email AS 'Component PM Email',
     user2.FirstName + ' ' + user2.LastName AS Developer,
@@ -134,7 +138,12 @@ internal class ComponentRootReader : IKeywordSearchDataReader
     root.PreinstallROM as 'ROM Components Preinstall',
     root.CAB,
     root.Softpaq AS 'ROM component Softpaq',
-    ns.name AS 'Naming Standard'
+    ns.name AS 'Naming Standard',
+    root.FtpSitePath AS 'FTP Site',
+    root.Replicater AS 'CDs Replicated By',
+    cr.CDFiles AS 'CD Types : CD Files - Files copied from a CD will be released',
+    root.IsoImage AS 'CD Types : ISO Image -An ISO image of a CD will be released',
+    root.Ar AS 'CD Types : Replicator Only - Only available from the Replicator'
 FROM DeliverableRoot root
 LEFT JOIN vendor ON root.vendorid = vendor.id
 LEFT JOIN componentCategory cate ON cate.CategoryId = root.categoryid
@@ -149,6 +158,7 @@ LEFT JOIN ComponentTransferServer cts ON cts.Id = root.TransferServerId
 LEFT JOIN SoftpaqCategory Sc ON Sc.id = root.SoftpaqCategoryID
 LEFT JOIN OTSFVTOrganizations og ON root.OTSFVTOrganizationID = og.id
 LEFT JOIN NamingStandard ns ON ns.NamingStandardID = root.NamingStandardId
+LEFT JOIN ComponentRoot cr on cr.ComponentRootid = root.id 
 WHERE (
         @ComponentRootId = - 1
         OR root.id = @ComponentRootId
@@ -959,6 +969,34 @@ WHERE (
                     root.Add("Packaging", root.GetValue("Packaging") + ", CD");
                 }
             }
+
+            if (root.GetValue("CD Types : CD Files - Files copied from a CD will be released").Equals("1", StringComparison.OrdinalIgnoreCase))
+            {
+                root.Add("CD Types : CD Files - Files copied from a CD will be released", "CD Types : CD Files - Files copied from a CD will be released");
+            }
+            else
+            {
+                root.Delete("CD Types : CD Files - Files copied from a CD will be released");
+            }
+
+            if (root.GetValue("CD Types : Replicator Only - Only available from the Replicator").Equals("1", StringComparison.OrdinalIgnoreCase))
+            {
+                root.Add("CD Types : Replicator Only - Only available from the Replicator", "Active");
+            }
+            else
+            {
+                root.Delete("CD Types : Replicator Only - Only available from the Replicator");
+            }
+
+            if (root.GetValue("CD Types : ISO Image -An ISO image of a CD will be released").Equals("1", StringComparison.OrdinalIgnoreCase))
+            {
+                root.Add("CD Types : ISO Image -An ISO image of a CD will be released", "CD Types : ISO Image -An ISO image of a CD will be released");
+            }
+            else
+            {
+                root.Delete("CD Types : ISO Image -An ISO image of a CD will be released");
+            }
+
             root.Delete("CDImage");
             root.Delete("ISOImage");
             root.Delete("AR");
@@ -1254,5 +1292,32 @@ WHERE (
                 }
             }
         }
+    }
+
+    private static IEnumerable<CommonDataModel> DeleteProperty(IEnumerable<CommonDataModel>  roots)
+    { 
+        foreach (CommonDataModel root in roots) 
+        {
+            DeleteProperty(root);
+        }
+
+        return roots;
+    }
+
+    private static CommonDataModel DeleteProperty(CommonDataModel root)
+    {
+        if (!string.Equals(root.GetValue("RequiredPrismSWType"), "True", StringComparison.OrdinalIgnoreCase))
+        {
+            root.Delete("Prism SW Type");
+        }
+
+        //if (!string.Equals(root.GetValue("FccRequired"), "True", StringComparison.OrdinalIgnoreCase))
+        //{
+        //    root.Delete("Recovery Option");
+        //}
+
+        root.Delete("RequiredPrismSWType");
+
+        return root;
     }
 }
