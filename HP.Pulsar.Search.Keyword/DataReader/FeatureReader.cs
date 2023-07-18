@@ -545,6 +545,40 @@ where (
             feature.Delete("Requires a Root");
         }
 
+        if (feature.GetValue("Global Series").Equals("True", StringComparison.OrdinalIgnoreCase))
+        {
+            feature.Add("Global Series", "Global Series");
+        }
+        else
+        {
+            feature.Delete("Global Series");
+        }
+
+        if (!string.Equals(feature.GetValue("Feature Category"), "Ports - USB", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(feature.GetValue("Feature Category"), "Connectors", StringComparison.OrdinalIgnoreCase))
+        {
+            feature.Delete("Panel Location A");
+            feature.Delete("Panel Location B");
+            feature.Delete("Keyboard Location A");
+            feature.Delete("Keyboard Location A");
+        }
+
+        if (string.Equals(feature.GetValue("Delivery Type"), "New AMO", StringComparison.OrdinalIgnoreCase))
+        {
+            feature.Delete("Rule ID");
+            feature.Delete("China GP Identifier");
+        }
+
+        if (!string.Equals(feature.GetValue("Feature Category"), "OS - Image", StringComparison.OrdinalIgnoreCase))
+        {
+            feature.Delete("Linked Operating System");
+        }
+
+        if (!string.Equals(feature.GetValue("Feature Category"), "OS - Image Version", StringComparison.OrdinalIgnoreCase))
+        {
+            feature.Delete("Linked Operating System Release");
+        }
+
         return feature;
     }
 
