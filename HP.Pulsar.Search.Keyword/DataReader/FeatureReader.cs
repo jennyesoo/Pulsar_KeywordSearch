@@ -100,7 +100,15 @@ SELECT F.FeatureId as 'Feature Id',
     F.GPGPHweb40_AMO AS 'GPG-PHweb (40c) for AMO',
     F.GPSy40_AMO AS 'GPSy (40c) for AMO',
     F.PMG100_AMO AS 'PMG (100c) for AMO',
-    F.PMG250_AMO AS 'PMG (250c) for AMO'
+    F.PMG250_AMO AS 'PMG (250c) for AMO',
+    F.PanelLocationA AS 'Panel Location A',
+    F.PanelLocationB AS 'Panel Location B',
+    F.KeyboardLocationA AS 'Keyboard Location A',
+    F.KeyboardLocationB AS 'Keyboard Location B',
+    osr.Abbreviation AS 'Linked Operating System Release',
+    F.GlobalSeries AS 'Global Series',
+    F.SpecControlAdditionalInfoA AS 'Spec Control Additional Information (A)',
+    F.SpecControlAdditionalInfoB AS 'Spec Control Additional Information (B)'
 FROM Feature F
 LEFT JOIN FeatureCategory Fc ON Fc.FeatureCategoryID = F.FeatureCategoryID
 LEFT JOIN DeliveryType Dt ON Dt.DeliveryTypeID = F.DeliveryTypeID
@@ -108,6 +116,7 @@ LEFT JOIN FeatureStatus Fs ON Fs.StatusID = F.StatusID
 LEFT JOIN PlatformChassisCategory pcc ON pcc.PlatformID = f.PlatformID
 LEFT JOIN OSLookup o ON o.id = F.osid
 LEFT JOIN NamingStandard ns on ns.NamingStandardID = F.NamingStandardId
+LEFT JOIN OSRelease osr on osr.id = F.LinkedOperatingSystemReleaseId
 WHERE (
         @FeatureId = - 1
         OR F.FeatureId = @FeatureId
@@ -348,7 +357,8 @@ where (
 
     private async Task FillBusinessSegmentAsync(CommonDataModel feature)
     {
-        if (!int.TryParse(feature.GetValue("Feature Id"), out int featureId))
+        if (!int.TryParse(feature.GetValue("Feature Id"), out int featureId)
+            || string.Equals(feature.GetValue("Delivery Type"), "New AMO", StringComparison.OrdinalIgnoreCase))
         {
             return;
         }
@@ -419,6 +429,11 @@ where (
 
         foreach (CommonDataModel feature in features)
         {
+            if (string.Equals(feature.GetValue("Delivery Type"), "New AMO", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
             if (int.TryParse(feature.GetValue("Feature Id"), out int featureId)
                 && businessSegment.ContainsKey(featureId))
             {
@@ -549,6 +564,40 @@ where (
             else
             {
                 feature.Delete("Requires a Root");
+            }
+
+            if (feature.GetValue("Global Series").Equals("True", StringComparison.OrdinalIgnoreCase))
+            {
+                feature.Add("Global Series", "Global Series");
+            }
+            else
+            {
+                feature.Delete("Global Series");
+            }
+
+            if (!string.Equals(feature.GetValue("Feature Category"), "Ports - USB", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(feature.GetValue("Feature Category"), "Connectors", StringComparison.OrdinalIgnoreCase))
+            {
+                feature.Delete("Panel Location A");
+                feature.Delete("Panel Location B");
+                feature.Delete("Keyboard Location A");
+                feature.Delete("Keyboard Location A");
+            }
+
+            if (string.Equals(feature.GetValue("Delivery Type"), "New AMO", StringComparison.OrdinalIgnoreCase))
+            {
+                feature.Delete("Rule ID");
+                feature.Delete("China GP Identifier");
+            }
+
+            if (!string.Equals(feature.GetValue("Feature Category"), "OS - Image", StringComparison.OrdinalIgnoreCase))
+            {
+                feature.Delete("Linked Operating System");
+            }
+
+            if (!string.Equals(feature.GetValue("Feature Category"), "OS - Image Version", StringComparison.OrdinalIgnoreCase))
+            {
+                feature.Delete("Linked Operating System Release");
             }
         }
 
