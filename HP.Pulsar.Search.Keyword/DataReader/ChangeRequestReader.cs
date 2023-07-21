@@ -75,10 +75,10 @@ SELECT di.id AS 'Change Request Id',
     us.Email as 'Submitter Email',
     di.Created AS 'Date Submitted',
     di.actualDate AS 'Date Closed',
-    pv.Dotsname AS Product(s),
+    pv.Dotsname AS 'Product(s)',
     di.ProductVersionId, 
 	di.ProductVersionRelease,
-    di.DraftProducts
+    di.DraftProducts,
     DR.Name AS 'Deliverable Root',
     di.summary AS Summary,
     AStatus.Name AS Status,
@@ -201,7 +201,7 @@ where i.ChangeType != 2
     private string GetDCRSiblingsCommandText()
     {
         return @"
-SELECT DcrId = i.Id AS 'ChangeRequestId', 
+SELECT ChangeRequestId = i.Id, 
     ProductId = i.ProductVersionId, 
     ProductName = pv.DotsName, 
     ReleaseName = i.ProductVersionRelease, 
@@ -448,11 +448,17 @@ ORDER BY i.Id
         if (string.Equals(changeRequest.GetValue("Change Type"), "Dcr", StringComparison.OrdinalIgnoreCase)
             && string.Equals(changeRequest.GetValue("Status"), "Draft", StringComparison.OrdinalIgnoreCase))
         {
-            List<string> result = AnalyzeProducts(changeRequest.GetValue("DraftProducts"));
-
-            for (int i = 0; 0 < result.Count; i++)
+            if (!string.IsNullOrWhiteSpace(changeRequest.GetValue("DraftProducts")))
             {
-                changeRequest.Add("Product(s) Table " + i, result[i]);
+                List<string> result = AnalyzeProducts(changeRequest.GetValue("DraftProducts"));
+
+                if (result.Any())
+                {
+                    for (int i = 0; i < result.Count; i++)
+                    {
+                        changeRequest.Add("Product(s) Table " + i, result[i]);
+                    }
+                }
             }
 
             changeRequest.Delete("Product(s)");
@@ -471,6 +477,12 @@ ORDER BY i.Id
             changeRequest.Delete("BIOS PM");
         }
 
+        if (string.Equals(changeRequest.GetValue("Status"), "Draft", StringComparison.OrdinalIgnoreCase))
+        {
+            changeRequest.Delete("Owner");
+            changeRequest.Delete("Owner Email");
+        }
+
         changeRequest.Delete("ZSRP Ready Date Required");
         changeRequest.Delete("AV Required");
         changeRequest.Delete("Qualification Required");
@@ -479,7 +491,7 @@ ORDER BY i.Id
         changeRequest.Delete("LA");
         changeRequest.Delete("EMEA");
         changeRequest.Delete("APJ");
-    
+
         return changeRequest;
 
     }
@@ -622,11 +634,19 @@ ORDER BY i.Id
             if (string.Equals(changeRequest.GetValue("Change Type"), "Dcr", StringComparison.OrdinalIgnoreCase)
                 && string.Equals(changeRequest.GetValue("Status"), "Draft", StringComparison.OrdinalIgnoreCase))
             {
-                List<string> result = AnalyzeProducts(changeRequest.GetValue("DraftProducts"));
-
-                for (int i = 0; 0 < result.Count; i++)
+                if (!string.IsNullOrWhiteSpace(changeRequest.GetValue("DraftProducts")))
                 {
-                    changeRequest.Add("Product(s) Table " + i, result[i]);
+                    List<string> result = AnalyzeProducts(changeRequest.GetValue("DraftProducts"));
+
+                    if (!result.Any())
+                    {
+                        continue;
+                    }
+
+                    for (int i = 0; i < result.Count; i++)
+                    {
+                        changeRequest.Add("Product(s) Table " + i, result[i]);
+                    }
                 }
 
                 changeRequest.Delete("Product(s)");
@@ -645,7 +665,12 @@ ORDER BY i.Id
                 changeRequest.Delete("BIOS PM");
             }
 
-            changeRequest.Delete("ZSRP Ready Date Required");
+            if (string.Equals(changeRequest.GetValue("Status"), "Draft", StringComparison.OrdinalIgnoreCase))
+            {
+                changeRequest.Delete("Owner");
+                changeRequest.Delete("Owner Email");
+            }
+
             changeRequest.Delete("AV Required");
             changeRequest.Delete("Qualification Required");
             changeRequest.Delete("Global Series Required");
@@ -660,13 +685,15 @@ ORDER BY i.Id
 
     private static List<string> AnalyzeProducts(string jsonValue)
     {
-        Dictionary<int, string> products = new Dictionary<int, string>();
+        Dictionary<int, List<(string, string, string)>> products = new Dictionary<int, List<(string, string, string)>>();
 
         JsonDocument doc = JsonDocument.Parse(jsonValue);
 
-        foreach (JsonElement id in doc.RootElement.EnumerateArray())
+        foreach (JsonProperty id in doc.RootElement.EnumerateObject())
         {
-            foreach (JsonElement item in id.EnumerateArray())
+            JsonElement idElement = doc.RootElement.GetProperty(id.Name);
+
+            foreach (JsonElement item in idElement.EnumerateArray())
             {
                 if (!item.TryGetProperty("ProductId", out JsonElement productId))
                 {
@@ -685,20 +712,48 @@ ORDER BY i.Id
 
                 if (products.ContainsKey(productId.GetInt32()))
                 {
-                    Console.WriteLine(productId.ToString());
+                    products[productId.GetInt32()].Add((productId.ToString(), productName.ToString(), releaseName.ToString()));
                 }
                 else
                 {
-                    products[productId.GetInt32()] = productId.ToString() + " " + productName.ToString() + " ( " + releaseName.ToString() + " ) ";
+                    products[productId.GetInt32()] = new List<(string, string, string)>() { (productId.ToString(), productName.ToString(), releaseName.ToString()) };
                 }
             }
         }
 
         List<string> results = new List<string>();
 
+
+        if (!products.Any())
+        {
+            return results;
+        }
+
         foreach (int item in products.Keys)
         {
-            results.Add(products[item]);
+            if (string.Equals(products[item].Count, 1))
+            {
+                string finalProduct = $"{products[item].First().Item1} {products[item].First().Item2} ({products[item].First().Item3})";
+                results.Add(finalProduct);
+            }
+            else
+            {
+                string summaryReleaseName = string.Empty;
+
+                foreach ((string id, string name, string release) in products[item])
+                {
+                    if (!string.IsNullOrEmpty(summaryReleaseName))
+                    {
+                        summaryReleaseName += " , " + release;
+                    }
+                    else
+                    {
+                        summaryReleaseName = release;
+                    }
+                }
+
+                results.Add($"{products[item].First().Item1} {products[item].First().Item2} ({summaryReleaseName})");
+            }
         }
 
         return results;
@@ -923,11 +978,6 @@ ORDER BY i.Id
         Dictionary<int, string> groupId = await GetGroupIdAsync(changeRequestId);
         (Dictionary<int, List<string>> dcrSiblings, Dictionary<string, List<string>> groupIdSiblings) = await GetDCRSiblingsAsync();
 
-        if (int.TryParse(changeRequest.GetValue("Change Request Id"), out int dbChangeRequestId))
-        {
-            return;
-        }
-
         int number = 0;
 
         if (dcrSiblings.ContainsKey(changeRequestId))
@@ -977,7 +1027,7 @@ ORDER BY i.Id
         {
             changeRequest.Add("Product(s)", firstProduct);
         }
-        
+
     }
 
     private async Task FillProductSiblingsAsync(IEnumerable<CommonDataModel> changeRequests)
