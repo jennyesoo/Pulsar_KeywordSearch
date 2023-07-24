@@ -723,7 +723,6 @@ ORDER BY i.Id
 
         List<string> results = new List<string>();
 
-
         if (!products.Any())
         {
             return results;

@@ -27,7 +27,8 @@ internal class ComponentRootReader : IKeywordSearchDataReader
         {
             FillTrulyLinkedFeatureAsync(componentRoot),
             FillLinkedFeatureAsync(componentRoot),
-            FillComponentInitiatedLinkageAsync(componentRoot)
+            FillComponentInitiatedLinkageAsync(componentRoot),
+            FillFunctionalTestGroupOdmsAsync(componentRoot)
         };
 
         await Task.WhenAll(tasks);
@@ -46,7 +47,8 @@ internal class ComponentRootReader : IKeywordSearchDataReader
             HandlePropertyValueAsync(componentRoot),
             FillTrulyLinkedFeaturesAsync(componentRoot),
             FillLinkedFeaturesAsync(componentRoot),
-            FillComponentInitiatedLinkageAsync(componentRoot)
+            FillComponentInitiatedLinkageAsync(componentRoot),
+            FillFunctionalTestGroupOdmsAsync(componentRoot)
         };
 
         await Task.WhenAll(tasks);
@@ -60,9 +62,15 @@ internal class ComponentRootReader : IKeywordSearchDataReader
         return @"SELECT root.id AS 'Component Root Id',
     root.name AS 'Component Root Name',
     root.Description,
+    Case When root.AgencyLead= 'WLAN' Then 'Wireless LAN'
+         When root.AgencyLead= 'WiGig' Then 'WiGig'
+         When root.AgencyLead= 'BT' Then 'BT'
+         End As 'Agency Lead',
     vendor.Name AS Vendor,
     cate.name AS Category,
     cate.RequiredPrismSWType,
+    cate.Abbreviation,
+    cate.FccRequired,
     user1.FirstName + ' ' + user1.LastName AS 'Component PM',
     user1.Email AS 'Component PM Email',
     user2.FirstName + ' ' + user2.LastName AS Developer,
@@ -103,8 +111,6 @@ internal class ComponentRootReader : IKeywordSearchDataReader
     root.DeliverableSpec AS 'Functional Spec',
     root.IconInfoCenter as 'Info Center',
     cts.Name AS 'Transfer Server',
-    root.Patch,
-    root.SystemBoardID as 'System Board ID',
     root.CreatedBy as 'Created by',
     root.Updated AS 'Updated Date',
     root.UpdatedBy as 'Updated by',
@@ -221,6 +227,26 @@ WHERE (
 ";
     }
 
+    private string GetFunctionalTestGroupOdmsCommandText()
+    {
+        return @"
+select crp.ComponentRoot_ComponentRootId AS 'ComponentRootId',
+        (p.Name +
+        case when p.IrsOdmId is not Null Then ' (Desktop and Notebook)'
+        when p.IrsOdmId is Null Then ' (Notebook)'
+        End ) AS 'Partner Name'
+from ComponentRootPartners crp
+left join Partner p on crp.Partner_PartnerId = p.PartnerId
+left join DeliverableRoot root on root.id = crp.ComponentRoot_ComponentRootId
+where root.LimitFuncTestGroupVisability = 1 
+    and 
+    (
+        @ComponentRootId = - 1
+        OR crp.ComponentRoot_ComponentRootId = @ComponentRootId
+        )
+";
+    }
+
     private async Task<CommonDataModel> GetComponentRootAsync(int componentRootId)
     {
         using SqlConnection connection = new(_info.DatabaseConnectionString);
@@ -326,7 +352,9 @@ WHERE (
             }
         }
 
-        if (componentRoot.GetValue("DrDvd").Equals("True", StringComparison.OrdinalIgnoreCase))
+        if (componentRoot.GetValue("DrDvd").Equals("True", StringComparison.OrdinalIgnoreCase)
+            && (string.Equals(componentRoot.GetValue("Component Type"),"Software",StringComparison.OrdinalIgnoreCase)
+                || string.Equals(componentRoot.GetValue("Component Type"), "Documentation", StringComparison.OrdinalIgnoreCase)))
         {
             if (string.IsNullOrEmpty(componentRoot.GetValue("Packaging")))
             {
@@ -350,7 +378,8 @@ WHERE (
             }
         }
 
-        if (componentRoot.GetValue("Ms Store").Equals("True", StringComparison.OrdinalIgnoreCase))
+        if (componentRoot.GetValue("Ms Store").Equals("True", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(componentRoot.GetValue("Component Type"),"Software",StringComparison.OrdinalIgnoreCase))
         {
             if (string.IsNullOrEmpty(componentRoot.GetValue("Packaging")))
             {
@@ -372,15 +401,6 @@ WHERE (
             {
                 componentRoot.Add("Packaging", componentRoot.GetValue("Packaging") + ", Internal Tool");
             }
-        }
-
-        if (componentRoot.GetValue("Patch").Equals("1", StringComparison.OrdinalIgnoreCase))
-        {
-            componentRoot.Add("Patch", "Patch");
-        }
-        else
-        {
-            componentRoot.Delete("Patch");
         }
 
         if (componentRoot.GetValue("Binary").Equals("1", StringComparison.OrdinalIgnoreCase))
@@ -572,7 +592,8 @@ WHERE (
             componentRoot.Delete("WHQL Certification Require");
         }
 
-        if (componentRoot.GetValue("Limit partner visibility").Equals("True", StringComparison.OrdinalIgnoreCase))
+        if (componentRoot.GetValue("Limit partner visibility").Equals("True", StringComparison.OrdinalIgnoreCase)
+            && !string.IsNullOrWhiteSpace(componentRoot.GetValue("Si Function Test Group")))
         {
             componentRoot.Add("Limit partner visibility", "Limit partner visibility");
         }
@@ -624,7 +645,42 @@ WHERE (
             {
                 componentRoot.Add("Packaging", componentRoot.GetValue("Packaging") + ", CD");
             }
+
+            if (componentRoot.GetValue("CD Types : CD Files - Files copied from a CD will be released").Equals("1", StringComparison.OrdinalIgnoreCase))
+            {
+                componentRoot.Add("CD Types : CD Files - Files copied from a CD will be released", "CD Types : CD Files - Files copied from a CD will be released");
+            }
+            else
+            {
+                componentRoot.Delete("CD Types : CD Files - Files copied from a CD will be released");
+            }
+
+            if (componentRoot.GetValue("CD Types : Replicator Only - Only available from the Replicator").Equals("1", StringComparison.OrdinalIgnoreCase))
+            {
+                componentRoot.Add("CD Types : Replicator Only - Only available from the Replicator", "CD Types : Replicator Only - Only available from the Replicator");
+            }
+            else
+            {
+                componentRoot.Delete("CD Types : Replicator Only - Only available from the Replicator");
+            }
+
+            if (componentRoot.GetValue("CD Types : ISO Image -An ISO image of a CD will be released").Equals("1", StringComparison.OrdinalIgnoreCase))
+            {
+                componentRoot.Add("CD Types : ISO Image -An ISO image of a CD will be released", "CD Types : ISO Image -An ISO image of a CD will be released");
+            }
+            else
+            {
+                componentRoot.Delete("CD Types : ISO Image -An ISO image of a CD will be released");
+            }
         }
+        else
+        {
+            componentRoot.Delete("CD Types : CD Files - Files copied from a CD will be released");
+            componentRoot.Delete("CD Types : Replicator Only - Only available from the Replicator");
+            componentRoot.Delete("CD Types : ISO Image -An ISO image of a CD will be released");
+            componentRoot.Delete("FTP Site");
+        }
+
         componentRoot.Delete("CDImage");
         componentRoot.Delete("ISOImage");
         componentRoot.Delete("AR");
@@ -670,7 +726,9 @@ WHERE (
                 }
             }
 
-            if (root.GetValue("DrDvd").Equals("True", StringComparison.OrdinalIgnoreCase))
+            if (root.GetValue("DrDvd").Equals("True", StringComparison.OrdinalIgnoreCase)
+            && (string.Equals(root.GetValue("Component Type"), "Software", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(root.GetValue("Component Type"), "Documentation", StringComparison.OrdinalIgnoreCase)))
             {
                 if (string.IsNullOrEmpty(root.GetValue("Packaging")))
                 {
@@ -694,7 +752,8 @@ WHERE (
                 }
             }
 
-            if (root.GetValue("Ms Store").Equals("True", StringComparison.OrdinalIgnoreCase))
+            if (root.GetValue("Ms Store").Equals("True", StringComparison.OrdinalIgnoreCase) 
+                && string.Equals(root.GetValue("Component Type"), "Software", StringComparison.OrdinalIgnoreCase))
             {
                 if (string.IsNullOrEmpty(root.GetValue("Packaging")))
                 {
@@ -716,15 +775,6 @@ WHERE (
                 {
                     root.Add("Packaging", root.GetValue("Packaging") + ", Internal Tool");
                 }
-            }
-
-            if (root.GetValue("Patch").Equals("1", StringComparison.OrdinalIgnoreCase))
-            {
-                root.Add("Patch", "Patch");
-            }
-            else
-            {
-                root.Delete("Patch");
             }
 
             if (root.GetValue("Binary").Equals("1", StringComparison.OrdinalIgnoreCase))
@@ -916,7 +966,8 @@ WHERE (
                 root.Delete("WHQL Certification Require");
             }
 
-            if (root.GetValue("Limit partner visibility").Equals("True", StringComparison.OrdinalIgnoreCase))
+            if (root.GetValue("Limit partner visibility").Equals("True", StringComparison.OrdinalIgnoreCase) 
+                && !string.IsNullOrWhiteSpace(root.GetValue("Si Function Test Group")))
             {
                 root.Add("Limit partner visibility", "Limit partner visibility");
             }
@@ -968,34 +1019,43 @@ WHERE (
                 {
                     root.Add("Packaging", root.GetValue("Packaging") + ", CD");
                 }
-            }
 
-            if (root.GetValue("CD Types : CD Files - Files copied from a CD will be released").Equals("1", StringComparison.OrdinalIgnoreCase))
-            {
-                root.Add("CD Types : CD Files - Files copied from a CD will be released", "CD Types : CD Files - Files copied from a CD will be released");
+                if (root.GetValue("CD Types : CD Files - Files copied from a CD will be released").Equals("1", StringComparison.OrdinalIgnoreCase))
+                {
+                    root.Add("CD Types : CD Files - Files copied from a CD will be released", "CD Types : CD Files - Files copied from a CD will be released");
+                }
+                else
+                {
+                    root.Delete("CD Types : CD Files - Files copied from a CD will be released");
+                }
+
+                if (root.GetValue("CD Types : Replicator Only - Only available from the Replicator").Equals("1", StringComparison.OrdinalIgnoreCase))
+                {
+                    root.Add("CD Types : Replicator Only - Only available from the Replicator", "CD Types : Replicator Only - Only available from the Replicator");
+                }
+                else
+                {
+                    root.Delete("CD Types : Replicator Only - Only available from the Replicator");
+                }
+
+                if (root.GetValue("CD Types : ISO Image -An ISO image of a CD will be released").Equals("1", StringComparison.OrdinalIgnoreCase))
+                {
+                    root.Add("CD Types : ISO Image -An ISO image of a CD will be released", "CD Types : ISO Image -An ISO image of a CD will be released");
+                }
+                else
+                {
+                    root.Delete("CD Types : ISO Image -An ISO image of a CD will be released");
+                }
             }
             else
             {
                 root.Delete("CD Types : CD Files - Files copied from a CD will be released");
-            }
-
-            if (root.GetValue("CD Types : Replicator Only - Only available from the Replicator").Equals("1", StringComparison.OrdinalIgnoreCase))
-            {
-                root.Add("CD Types : Replicator Only - Only available from the Replicator", "Active");
-            }
-            else
-            {
                 root.Delete("CD Types : Replicator Only - Only available from the Replicator");
+                root.Delete("CD Types : ISO Image -An ISO image of a CD will be released");
+                root.Delete("FTP Site");
             }
 
-            if (root.GetValue("CD Types : ISO Image -An ISO image of a CD will be released").Equals("1", StringComparison.OrdinalIgnoreCase))
-            {
-                root.Add("CD Types : ISO Image -An ISO image of a CD will be released", "CD Types : ISO Image -An ISO image of a CD will be released");
-            }
-            else
-            {
-                root.Delete("CD Types : ISO Image -An ISO image of a CD will be released");
-            }
+
 
             root.Delete("CDImage");
             root.Delete("ISOImage");
@@ -1311,13 +1371,129 @@ WHERE (
             root.Delete("Prism SW Type");
         }
 
-        //if (!string.Equals(root.GetValue("FccRequired"), "True", StringComparison.OrdinalIgnoreCase))
-        //{
-        //    root.Delete("Recovery Option");
-        //}
+        if (string.Equals(root.GetValue("Component Type"), "Hardware", StringComparison.OrdinalIgnoreCase)
+            || !string.Equals(root.GetValue("FccRequired"), "True", StringComparison.OrdinalIgnoreCase))
+        {
+            root.Delete("Recovery Option");
+        }
 
+        if (string.Equals(root.GetValue("Abbreviation"), "SBD", StringComparison.OrdinalIgnoreCase))
+        {
+            root.Add("System Board",root.GetValue("Component Root Name"));
+        }
+
+        if (!string.Equals(root.GetValue("Agency Lead"), "WLAN", StringComparison.OrdinalIgnoreCase))
+        {
+            root.Delete("Agency Lead");
+        }
+
+        if (string.Equals(root.GetValue("Component Type"), "Hardware", StringComparison.OrdinalIgnoreCase))
+        {
+            root.Delete("Target Partition");
+            root.Delete("Packaging");
+        }
+
+        if (!string.Equals(root.GetValue("Component Type"), "Firmware", StringComparison.OrdinalIgnoreCase))
+        {
+            root.Delete("ROM Family");
+            root.Delete("Packaging");
+        }
+
+        if (!string.Equals(root.GetValue("Component Type"), "Software", StringComparison.OrdinalIgnoreCase))
+        {
+            root.Delete("Property Tabs Added");
+        }
+
+        if (!root.GetValue("CD Types : Replicator Only - Only available from the Replicator").Equals("CD Types : Replicator Only - Only available from the Replicator", StringComparison.OrdinalIgnoreCase)
+            && !root.GetValue("CD Types : ISO Image -An ISO image of a CD will be released").Equals("CD Types : ISO Image -An ISO image of a CD will be released", StringComparison.OrdinalIgnoreCase))
+        {
+            root.Delete("CDs Replicated By");
+        }
+
+        root.Delete("Abbreviation");
         root.Delete("RequiredPrismSWType");
 
         return root;
+    }
+
+    private async Task FillFunctionalTestGroupOdmsAsync(IEnumerable<CommonDataModel> roots)
+    {
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetFunctionalTestGroupOdmsCommandText(), connection);
+        SqlParameter parameter = new("ComponentRootId", "-1");
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, List<string>> odm = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["ComponentRootId"].ToString(), out int componentRootId))
+            {
+                continue;
+            }
+
+            if (odm.ContainsKey(componentRootId))
+            {
+                odm[componentRootId].Add(reader["Partner Name"].ToString());
+            }
+            else
+            {
+                odm[componentRootId] = new List<string>() { reader["Partner Name"].ToString() };
+            }
+        }
+
+        foreach (CommonDataModel root in roots)
+        {
+            if (int.TryParse(root.GetValue("Component Root Id"), out int componentRootId)
+              && odm.ContainsKey(componentRootId))
+            {
+                for (int i = 0; i < odm[componentRootId].Count; i++)
+                {
+                    root.Add("Partners that can see this Component in Sudden Impact - Selected " + i, odm[componentRootId][i]);
+                }
+            }
+        }
+    }
+
+    private async Task FillFunctionalTestGroupOdmsAsync(CommonDataModel root)
+    {
+        if (!int.TryParse(root.GetValue("Component Root Id"), out int componentRootId))
+        {
+            return;
+        }
+
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetFunctionalTestGroupOdmsCommandText(), connection);
+        SqlParameter parameter = new("ComponentRootId", componentRootId);
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, List<string>> odm = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["ComponentRootId"].ToString(), out int dbComponentRootId))
+            {
+                continue;
+            }
+
+            if (odm.ContainsKey(dbComponentRootId))
+            {
+                odm[dbComponentRootId].Add(reader["Partner Name"].ToString());
+            }
+            else
+            {
+                odm[dbComponentRootId] = new List<string>() { reader["Partner Name"].ToString() };
+            }
+        }
+
+        if (odm.ContainsKey(componentRootId))
+        {
+            for (int i = 0; i < odm[componentRootId].Count; i++)
+            {
+                root.Add("Partners that can see this Component in Sudden Impact - Selected " + i, odm[componentRootId][i]);
+            }
+        }
     }
 }
