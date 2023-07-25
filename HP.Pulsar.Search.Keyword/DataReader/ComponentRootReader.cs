@@ -70,7 +70,6 @@ internal class ComponentRootReader : IKeywordSearchDataReader
     cate.name AS Category,
     cate.RequiredPrismSWType,
     cate.Abbreviation,
-    cate.FccRequired,
     user1.FirstName + ' ' + user1.LastName AS 'Component PM',
     user1.Email AS 'Component PM Email',
     user2.FirstName + ' ' + user2.LastName AS Developer,
@@ -119,9 +118,8 @@ internal class ComponentRootReader : IKeywordSearchDataReader
     user4.FirstName + ' ' + user4.LastName AS 'SIO Approver',
     root.KoreanCertificationRequired as 'Korean Certification Required',
     root.SubmissionPath as 'Submission Path',
-    root.IRSBasePartNumber as 'IRS Base Part Number',
     CPSW.Description AS 'Prism SW Type',
-    root.LimitFuncTestGroupVisability as 'Limit Partner Visibility ',
+    root.LimitFuncTestGroupVisability as 'Limit Partner Visibility',
     root.IconTile as 'Start Menu Tile',
     root.IconTaskBarIcon as 'Taskbar Pinned Icon',
     root.SettingFWML as 'FWML',
@@ -353,7 +351,7 @@ where root.LimitFuncTestGroupVisability = 1
         }
 
         if (componentRoot.GetValue("DrDvd").Equals("True", StringComparison.OrdinalIgnoreCase)
-            && (string.Equals(componentRoot.GetValue("Component Type"),"Software",StringComparison.OrdinalIgnoreCase)
+            && (string.Equals(componentRoot.GetValue("Component Type"), "Software", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(componentRoot.GetValue("Component Type"), "Documentation", StringComparison.OrdinalIgnoreCase)))
         {
             if (string.IsNullOrEmpty(componentRoot.GetValue("Packaging")))
@@ -379,7 +377,7 @@ where root.LimitFuncTestGroupVisability = 1
         }
 
         if (componentRoot.GetValue("Ms Store").Equals("True", StringComparison.OrdinalIgnoreCase)
-            && string.Equals(componentRoot.GetValue("Component Type"),"Software",StringComparison.OrdinalIgnoreCase))
+            && string.Equals(componentRoot.GetValue("Component Type"), "Software", StringComparison.OrdinalIgnoreCase))
         {
             if (string.IsNullOrEmpty(componentRoot.GetValue("Packaging")))
             {
@@ -592,17 +590,17 @@ where root.LimitFuncTestGroupVisability = 1
             componentRoot.Delete("WHQL Certification Require");
         }
 
-        if (componentRoot.GetValue("Limit partner visibility").Equals("True", StringComparison.OrdinalIgnoreCase)
+        if (componentRoot.GetValue("Limit Partner Visibility").Equals("True", StringComparison.OrdinalIgnoreCase)
             && !string.IsNullOrWhiteSpace(componentRoot.GetValue("Si Function Test Group")))
         {
-            componentRoot.Add("Limit partner visibility", "Limit partner visibility");
+            componentRoot.Add("Limit Partner Visibility", "Limit Partner Visibility");
         }
         else
         {
-            componentRoot.Delete("Limit partner visibility");
+            componentRoot.Delete("Limit Partner Visibility");
         }
 
-        if (componentRoot.GetValue("Visibility").Equals("True", StringComparison.OrdinalIgnoreCase))
+        if (componentRoot.GetValue("Visibility").Equals("1", StringComparison.OrdinalIgnoreCase))
         {
             componentRoot.Add("Visibility", "Active");
         }
@@ -752,7 +750,7 @@ where root.LimitFuncTestGroupVisability = 1
                 }
             }
 
-            if (root.GetValue("Ms Store").Equals("True", StringComparison.OrdinalIgnoreCase) 
+            if (root.GetValue("Ms Store").Equals("True", StringComparison.OrdinalIgnoreCase)
                 && string.Equals(root.GetValue("Component Type"), "Software", StringComparison.OrdinalIgnoreCase))
             {
                 if (string.IsNullOrEmpty(root.GetValue("Packaging")))
@@ -966,17 +964,17 @@ where root.LimitFuncTestGroupVisability = 1
                 root.Delete("WHQL Certification Require");
             }
 
-            if (root.GetValue("Limit partner visibility").Equals("True", StringComparison.OrdinalIgnoreCase) 
+            if (root.GetValue("Limit Partner Visibility").Equals("True", StringComparison.OrdinalIgnoreCase)
                 && !string.IsNullOrWhiteSpace(root.GetValue("Si Function Test Group")))
             {
-                root.Add("Limit partner visibility", "Limit partner visibility");
+                root.Add("Limit Partner Visibility", "Limit Partner Visibility");
             }
             else
             {
-                root.Delete("Limit partner visibility");
+                root.Delete("Limit Partner Visibility");
             }
 
-            if (root.GetValue("Visibility").Equals("True", StringComparison.OrdinalIgnoreCase))
+            if (root.GetValue("Visibility").Equals("1", StringComparison.OrdinalIgnoreCase))
             {
                 root.Add("Visibility", "Active");
             }
@@ -1354,9 +1352,9 @@ where root.LimitFuncTestGroupVisability = 1
         }
     }
 
-    private static IEnumerable<CommonDataModel> DeleteProperty(IEnumerable<CommonDataModel>  roots)
-    { 
-        foreach (CommonDataModel root in roots) 
+    private static IEnumerable<CommonDataModel> DeleteProperty(IEnumerable<CommonDataModel> roots)
+    {
+        foreach (CommonDataModel root in roots)
         {
             DeleteProperty(root);
         }
@@ -1371,15 +1369,14 @@ where root.LimitFuncTestGroupVisability = 1
             root.Delete("Prism SW Type");
         }
 
-        if (string.Equals(root.GetValue("Component Type"), "Hardware", StringComparison.OrdinalIgnoreCase)
-            || !string.Equals(root.GetValue("FccRequired"), "True", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(root.GetValue("Component Type"), "Hardware", StringComparison.OrdinalIgnoreCase))
         {
             root.Delete("Recovery Option");
         }
 
         if (string.Equals(root.GetValue("Abbreviation"), "SBD", StringComparison.OrdinalIgnoreCase))
         {
-            root.Add("System Board",root.GetValue("Component Root Name"));
+            root.Add("System Board", root.GetValue("Component Root Name"));
             root.Delete("Kit Number");
             root.Delete("Kit Description");
         }
