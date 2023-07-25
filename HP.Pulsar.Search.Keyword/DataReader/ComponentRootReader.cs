@@ -95,7 +95,6 @@ internal class ComponentRootReader : IKeywordSearchDataReader
     root.BINARY,
     root.CertRequired AS 'WHQL Certification Require',
     root.ScriptPaq AS 'Packaging Softpaq',
-    Sc.name AS 'Softpaq Category',
     root.Created As 'Created Date',
     root.IconDesktop as 'Desktop',
     root.IconMenu as 'Start Menu',
@@ -346,7 +345,7 @@ where root.LimitFuncTestGroupVisability = 1
             }
             else
             {
-                componentRoot.Add("Packaging", componentRoot.GetValue("Packaging") + ", Preinstall");
+                componentRoot.Add("Packagings", componentRoot.GetValue("Packaging") + ", Preinstall");
             }
         }
 
@@ -360,7 +359,7 @@ where root.LimitFuncTestGroupVisability = 1
             }
             else
             {
-                componentRoot.Add("Packaging", componentRoot.GetValue("Packaging") + ", DRDVD");
+                componentRoot.Add("Packagings", componentRoot.GetValue("Packaging") + ", DRDVD");
             }
         }
 
@@ -372,7 +371,7 @@ where root.LimitFuncTestGroupVisability = 1
             }
             else
             {
-                componentRoot.Add("Packaging", componentRoot.GetValue("Packaging") + ", Softpaq");
+                componentRoot.Add("Packagings", componentRoot.GetValue("Packaging") + ", Softpaq");
             }
         }
 
@@ -385,7 +384,7 @@ where root.LimitFuncTestGroupVisability = 1
             }
             else
             {
-                componentRoot.Add("Packaging", componentRoot.GetValue("Packaging") + ", Ms Store");
+                componentRoot.Add("Packagings", componentRoot.GetValue("Packaging") + ", Ms Store");
             }
         }
 
@@ -397,7 +396,7 @@ where root.LimitFuncTestGroupVisability = 1
             }
             else
             {
-                componentRoot.Add("Packaging", componentRoot.GetValue("Packaging") + ", Internal Tool");
+                componentRoot.Add("Packagings", componentRoot.GetValue("Packaging") + ", Internal Tool");
             }
         }
 
@@ -617,7 +616,7 @@ where root.LimitFuncTestGroupVisability = 1
             }
             else
             {
-                componentRoot.Add("Packaging", componentRoot.GetValue("Packaging") + ", SoftPaq In Preinstall");
+                componentRoot.Add("Packagings", componentRoot.GetValue("Packaging") + ", SoftPaq In Preinstall");
             }
         }
 
@@ -641,7 +640,7 @@ where root.LimitFuncTestGroupVisability = 1
             }
             else
             {
-                componentRoot.Add("Packaging", componentRoot.GetValue("Packaging") + ", CD");
+                componentRoot.Add("Packagings", componentRoot.GetValue("Packaging") + ", CD");
             }
 
             if (componentRoot.GetValue("CD Types : CD Files - Files copied from a CD will be released").Equals("1", StringComparison.OrdinalIgnoreCase))
@@ -720,7 +719,7 @@ where root.LimitFuncTestGroupVisability = 1
                 }
                 else
                 {
-                    root.Add("Packaging", root.GetValue("Packaging") + ", Preinstall");
+                    root.Add("Packagings", root.GetValue("Packaging") + ", Preinstall");
                 }
             }
 
@@ -734,7 +733,7 @@ where root.LimitFuncTestGroupVisability = 1
                 }
                 else
                 {
-                    root.Add("Packaging", root.GetValue("Packaging") + ", DRDVD");
+                    root.Add("Packagings", root.GetValue("Packaging") + ", DRDVD");
                 }
             }
 
@@ -746,7 +745,7 @@ where root.LimitFuncTestGroupVisability = 1
                 }
                 else
                 {
-                    root.Add("Packaging", root.GetValue("Packaging") + ", Softpaq");
+                    root.Add("Packagings", root.GetValue("Packaging") + ", Softpaq");
                 }
             }
 
@@ -759,7 +758,7 @@ where root.LimitFuncTestGroupVisability = 1
                 }
                 else
                 {
-                    root.Add("Packaging", root.GetValue("Packaging") + ", Ms Store");
+                    root.Add("Packagings", root.GetValue("Packaging") + ", Ms Store");
                 }
             }
 
@@ -771,7 +770,7 @@ where root.LimitFuncTestGroupVisability = 1
                 }
                 else
                 {
-                    root.Add("Packaging", root.GetValue("Packaging") + ", Internal Tool");
+                    root.Add("Packagings", root.GetValue("Packaging") + ", Internal Tool");
                 }
             }
 
@@ -991,7 +990,7 @@ where root.LimitFuncTestGroupVisability = 1
                 }
                 else
                 {
-                    root.Add("Packaging", root.GetValue("Packaging") + ", SoftPaq In Preinstall");
+                    root.Add("Packagings", root.GetValue("Packaging") + ", SoftPaq In Preinstall");
                 }
             }
 
@@ -1015,7 +1014,7 @@ where root.LimitFuncTestGroupVisability = 1
                 }
                 else
                 {
-                    root.Add("Packaging", root.GetValue("Packaging") + ", CD");
+                    root.Add("Packagings", root.GetValue("Packaging") + ", CD");
                 }
 
                 if (root.GetValue("CD Types : CD Files - Files copied from a CD will be released").Equals("1", StringComparison.OrdinalIgnoreCase))
@@ -1389,7 +1388,7 @@ where root.LimitFuncTestGroupVisability = 1
         if (string.Equals(root.GetValue("Component Type"), "Hardware", StringComparison.OrdinalIgnoreCase))
         {
             root.Delete("Target Partition");
-            root.Delete("Packaging");
+            root.Delete("Packagings");
             root.Delete("WHQL Certification Require");
             root.Delete("Touch Points");
             root.Delete("Other Setting");
@@ -1406,8 +1405,11 @@ where root.LimitFuncTestGroupVisability = 1
         if (!string.Equals(root.GetValue("Component Type"), "Firmware", StringComparison.OrdinalIgnoreCase))
         {
             root.Delete("ROM Family");
-            root.Delete("Packaging");
             root.Delete("ROM Components");
+        }
+        else
+        {
+            root.Delete("Packagings");
         }
 
         if (!string.Equals(root.GetValue("Component Type"), "Software", StringComparison.OrdinalIgnoreCase))
