@@ -1380,6 +1380,8 @@ where root.LimitFuncTestGroupVisability = 1
         if (string.Equals(root.GetValue("Abbreviation"), "SBD", StringComparison.OrdinalIgnoreCase))
         {
             root.Add("System Board",root.GetValue("Component Root Name"));
+            root.Delete("Kit Number");
+            root.Delete("Kit Description");
         }
 
         if (!string.Equals(root.GetValue("Agency Lead"), "WLAN", StringComparison.OrdinalIgnoreCase))
@@ -1391,12 +1393,24 @@ where root.LimitFuncTestGroupVisability = 1
         {
             root.Delete("Target Partition");
             root.Delete("Packaging");
+            root.Delete("WHQL Certification Require");
+            root.Delete("Touch Points");
+            root.Delete("Other Setting");
+            root.Delete("Transfer Server");
+            root.Delete("Submission Path");
+        }
+        else
+        {
+            root.Delete("Special Notes");
+            root.Delete("Kit Number");
+            root.Delete("Kit Description");
         }
 
         if (!string.Equals(root.GetValue("Component Type"), "Firmware", StringComparison.OrdinalIgnoreCase))
         {
             root.Delete("ROM Family");
             root.Delete("Packaging");
+            root.Delete("ROM Components");
         }
 
         if (!string.Equals(root.GetValue("Component Type"), "Software", StringComparison.OrdinalIgnoreCase))
@@ -1408,6 +1422,24 @@ where root.LimitFuncTestGroupVisability = 1
             && !root.GetValue("CD Types : ISO Image -An ISO image of a CD will be released").Equals("CD Types : ISO Image -An ISO image of a CD will be released", StringComparison.OrdinalIgnoreCase))
         {
             root.Delete("CDs Replicated By");
+        }
+
+        if (root.GetValue("CD Types : Replicator Only - Only available from the Replicator").Equals("CD Types : Replicator Only - Only available from the Replicator", StringComparison.OrdinalIgnoreCase)
+            || root.GetValue("CD Types : ISO Image -An ISO image of a CD will be released").Equals("CD Types : ISO Image -An ISO image of a CD will be released", StringComparison.OrdinalIgnoreCase)
+            || root.GetValue("CD Types : CD Files - Files copied from a CD will be released").Equals("CD Types : CD Files - Files copied from a CD will be released", StringComparison.OrdinalIgnoreCase))
+        {
+            root.Delete("Submission Path");
+        }
+
+        if (root.GetValue("Packagings").Contains("Internal Tool"))
+        {
+            root.Delete("Touch Points");
+            root.Delete("Other Setting");
+        }
+
+        if (root.GetValue("Packagings").Contains("CD"))
+        {
+            root.Delete("Submission Path");
         }
 
         root.Delete("Abbreviation");
