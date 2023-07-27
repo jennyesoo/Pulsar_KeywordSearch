@@ -71,6 +71,7 @@ internal class ComponentRootReader : IKeywordSearchDataReader
     cate.name AS Category,
     cate.RequiredPrismSWType,
     cate.Abbreviation,
+    cate.IrsCategoryId, 
     user1.FirstName + ' ' + user1.LastName AS 'Component PM',
     user1.Email AS 'Component PM Email',
     user2.FirstName + ' ' + user2.LastName AS Developer,
@@ -1364,7 +1365,9 @@ where root.LimitFuncTestGroupVisability = 1
 
     private static CommonDataModel DeleteProperty(CommonDataModel root)
     {
-        if (!string.Equals(root.GetValue("RequiredPrismSWType"), "True", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(root.GetValue("RequiredPrismSWType"), "True", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(root.GetValue("Component Type"), "Hardware", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(root.GetValue("IrsCategoryId"), "0", StringComparison.OrdinalIgnoreCase))
         {
             root.Delete("Prism SW Type");
         }
@@ -1450,6 +1453,7 @@ where root.LimitFuncTestGroupVisability = 1
 
         root.Delete("Abbreviation");
         root.Delete("RequiredPrismSWType");
+        root.Delete("IrsCategoryId");
 
         return root;
     }
