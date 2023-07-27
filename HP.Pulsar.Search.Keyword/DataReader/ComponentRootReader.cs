@@ -67,6 +67,7 @@ internal class ComponentRootReader : IKeywordSearchDataReader
          When root.AgencyLead= 'BT' Then 'BT'
          End As 'Agency Lead',
     vendor.Name AS Vendor,
+    root.SystemBoardID As 'System Board ID',
     cate.name AS Category,
     cate.RequiredPrismSWType,
     cate.Abbreviation,
@@ -1439,6 +1440,12 @@ where root.LimitFuncTestGroupVisability = 1
         if (root.GetValue("Packagings").Contains("CD"))
         {
             root.Delete("Submission Path");
+        }
+
+        if (!string.Equals(root.GetValue("Component Type"), "Hardware", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(root.GetValue("Category"), "Base Unit", StringComparison.OrdinalIgnoreCase))
+        {
+            root.Delete("System Board ID");
         }
 
         root.Delete("Abbreviation");
