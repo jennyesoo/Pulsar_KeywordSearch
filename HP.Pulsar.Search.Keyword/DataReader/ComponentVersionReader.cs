@@ -23,7 +23,14 @@ public class ComponentVersionReader : IKeywordSearchDataReader
             return null;
         }
 
-        await FillSystemBoardAsync(componentVersion);
+        List<Task> tasks = new()
+            {
+                FillSystemBoardAsync(componentVersion),
+                FillIsWorkflowCompletedAsync(componentVersion)
+            };
+
+        await Task.WhenAll(tasks);
+
         HandlePropertyValue(componentVersion);
         HandleDifferentPropertyNameBasedOnCategory(componentVersion);
         DeleteProperty(componentVersion);
@@ -39,7 +46,8 @@ public class ComponentVersionReader : IKeywordSearchDataReader
             {
                 HandlePropertyValuesAsync(componentVersions),
                 HandleDifferentPropertyNameBasedOnCategoryAsync(componentVersions),
-                FillSystemBoardAsync(componentVersions)
+                FillSystemBoardAsync(componentVersions),
+                FillIsWorkflowCompletedAsync(componentVersions)
             };
 
         await Task.WhenAll(tasks);
@@ -167,9 +175,6 @@ public class ComponentVersionReader : IKeywordSearchDataReader
     Dv.Scriptpaq as 'Softpaq', 
     Dv.MsStore as 'Ms Store',
     Dv.FloppyDisk as 'Internal Tool',
-    Dv.CDImage,
-    Dv.ISOImage,
-    Dv.AR,
     Dv.IconDesktop as 'Desktop',
     Dv.IconMenu as 'Start Menu',
     Dv.IconTray as 'System Tray',
@@ -246,7 +251,22 @@ public class ComponentVersionReader : IKeywordSearchDataReader
         WHEN Dv.BiosIntegrationType is null Then ''
         End AS 'This is for BIOS Integration',
     DV.HFCN AS 'This is an HFCN release',
-    cate.Abbreviation
+    cate.Abbreviation,
+    cate.FccRequired,
+    cv.CDFiles AS 'CD Types : CD Files - Files copied from a CD will be released',
+    Dv.IsoImage AS 'CD Types : ISO Image -An ISO image of a CD will be released',
+    Dv.Ar AS 'CD Types : Replicator Only - Only available from the Replicator',
+    cv.SWPartNumber,
+    Dv.FtpSitePath AS 'FTP Site',
+    Dv.Replicater AS 'CDs Replicated By',
+    Dv.CDKitNumber AS 'Kit Number',
+    Dv.CdPartNumber AS 'CD/DVD Part Number',
+    Dv.KoreanCertificationId,
+    Dv.KoreanCertificationRequired,
+    cate.RequiresTTS,
+    Dv.edid + ' MHZ' AS 'WWAN EDID'
+
+
 FROM DeliverableVersion Dv
 LEFT JOIN ComponentPrismSWType CPSW ON CPSW.PRISMTypeID = Dv.PrismSWType
 LEFT JOIN userinfo user1 ON user1.userid = Dv.DeveloperID
@@ -259,6 +279,7 @@ LEFT JOIN GreenSpec gs ON gs.id = Dv.GreenSpecID
 LEFT JOIN DeliverableRoot root ON root.id = Dv.DeliverableRootID
 LEFT JOIN ComponentVersion cv ON cv.componentversionid = Dv.ID
 LEFT JOIN componentCategory cate ON cate.CategoryId = root.categoryid
+LEFT JOIN ComponentVersion cv on cv.ComponentVersionid = Dv.id 
 WHERE (
         @ComponentVersionId = - 1
         OR Dv.ID = @ComponentVersionId
@@ -281,6 +302,24 @@ where cate.Abbreviation = 'SBD'
                 OR Dv.ID = @ComponentVersionId
                 )
 order by sysBoard.SystemId desc
+";
+    }
+
+    private static string GetIsWorkflowCompletedCommandText()
+    {
+        return @"
+select  ws.ComponentVersionID,
+        Case When ws.StatusID = 3 Then 'true'
+        When ws.StatusID !=3 Then 'false'
+        End AS IsWorkFlowCompleted
+from ComponentVersionWorkflowStep ws
+where ws.MilestoneOrder = (select min(ws1.MilestoneOrder) 
+                            from ComponentVersionWorkflowStep ws1
+                            where ws1.ComponentVersionID = ws.ComponentVersionID)
+        AND (
+                @ComponentVersionId = - 1
+                OR ws.ComponentVersionID = @ComponentVersionId
+                )
 ";
     }
 
@@ -534,6 +573,42 @@ order by sysBoard.SystemId desc
             {
                 componentVersion.Add("Packaging", componentVersion.GetValue("Packaging") + ", CD");
             }
+
+            if (componentVersion.GetValue("CD Types : CD Files - Files copied from a CD will be released").Equals("1", StringComparison.OrdinalIgnoreCase))
+            {
+                componentVersion.Add("CD Types : CD Files - Files copied from a CD will be released", "CD Types : CD Files - Files copied from a CD will be released");
+            }
+            else
+            {
+                componentVersion.Delete("CD Types : CD Files - Files copied from a CD will be released");
+            }
+
+            if (componentVersion.GetValue("CD Types : Replicator Only - Only available from the Replicator").Equals("1", StringComparison.OrdinalIgnoreCase))
+            {
+                componentVersion.Add("CD Types : Replicator Only - Only available from the Replicator", "CD Types : Replicator Only - Only available from the Replicator");
+            }
+            else
+            {
+                componentVersion.Delete("CD Types : Replicator Only - Only available from the Replicator");
+            }
+
+            if (componentVersion.GetValue("CD Types : ISO Image -An ISO image of a CD will be released").Equals("1", StringComparison.OrdinalIgnoreCase))
+            {
+                componentVersion.Add("CD Types : ISO Image -An ISO image of a CD will be released", "CD Types : ISO Image -An ISO image of a CD will be released");
+            }
+            else
+            {
+                componentVersion.Delete("CD Types : ISO Image -An ISO image of a CD will be released");
+            }
+        }
+        else
+        {
+            componentVersion.Delete("CD Types : CD Files - Files copied from a CD will be released");
+            componentVersion.Delete("CD Types : Replicator Only - Only available from the Replicator");
+            componentVersion.Delete("CD Types : ISO Image -An ISO image of a CD will be released");
+            componentVersion.Delete("FTP Site");
+            componentVersion.Delete("Kit Number");
+            componentVersion.Delete("CD/DVD Part Number");
         }
 
         if (componentVersion.GetValue("This is an HFCN release").Equals("True", StringComparison.OrdinalIgnoreCase))
@@ -545,9 +620,6 @@ order by sysBoard.SystemId desc
             componentVersion.Delete("This is an HFCN release");
         }
 
-        componentVersion.Delete("CDImage");
-        componentVersion.Delete("ISOImage");
-        componentVersion.Delete("AR");
         componentVersion.Delete("Packaging Preinstall");
         componentVersion.Delete("DrDvd");
         componentVersion.Delete("Softpaq");
@@ -822,6 +894,43 @@ order by sysBoard.SystemId desc
                 {
                     version.Add("Packaging", version.GetValue("Packaging") + ", CD");
                 }
+
+                if (version.GetValue("CD Types : CD Files - Files copied from a CD will be released").Equals("1", StringComparison.OrdinalIgnoreCase))
+                {
+                    version.Add("CD Types : CD Files - Files copied from a CD will be released", "CD Types : CD Files - Files copied from a CD will be released");
+                }
+                else
+                {
+                    version.Delete("CD Types : CD Files - Files copied from a CD will be released");
+                }
+
+                if (version.GetValue("CD Types : Replicator Only - Only available from the Replicator").Equals("1", StringComparison.OrdinalIgnoreCase))
+                {
+                    version.Add("CD Types : Replicator Only - Only available from the Replicator", "CD Types : Replicator Only - Only available from the Replicator");
+                }
+                else
+                {
+                    version.Delete("CD Types : Replicator Only - Only available from the Replicator");
+                }
+
+                if (version.GetValue("CD Types : ISO Image -An ISO image of a CD will be released").Equals("1", StringComparison.OrdinalIgnoreCase))
+                {
+                    version.Add("CD Types : ISO Image -An ISO image of a CD will be released", "CD Types : ISO Image -An ISO image of a CD will be released");
+                }
+                else
+                {
+                    version.Delete("CD Types : ISO Image -An ISO image of a CD will be released");
+                }
+            }
+            else
+            {
+                version.Delete("CD Types : CD Files - Files copied from a CD will be released");
+                version.Delete("CD Types : Replicator Only - Only available from the Replicator");
+                version.Delete("CD Types : ISO Image -An ISO image of a CD will be released");
+                version.Delete("FTP Site");
+                version.Delete("Kit Number");
+                version.Delete("CD/DVD Part Number");
+                version.Delete("Component Location - FileName");
             }
 
             if (version.GetValue("This is an HFCN release").Equals("True", StringComparison.OrdinalIgnoreCase))
@@ -833,9 +942,6 @@ order by sysBoard.SystemId desc
                 version.Delete("This is an HFCN release");
             }
 
-            version.Delete("CDImage");
-            version.Delete("ISOImage");
-            version.Delete("AR");
             version.Delete("Packaging Preinstall");
             version.Delete("DrDvd");
             version.Delete("Softpaq");
@@ -862,17 +968,17 @@ order by sysBoard.SystemId desc
 
     private static Task<int> GetCdAsync(CommonDataModel rootversion)
     {
-        if (rootversion.GetValue("CDImage").Equals("1", StringComparison.OrdinalIgnoreCase))
+        if (rootversion.GetValue("CD Types : CD Files - Files copied from a CD will be released").Equals("1", StringComparison.OrdinalIgnoreCase))
         {
             return Task.FromResult(1);
         }
 
-        if (rootversion.GetValue("ISOImage").Equals("1", StringComparison.OrdinalIgnoreCase))
+        if (rootversion.GetValue("CD Types : ISO Image -An ISO image of a CD will be released").Equals("1", StringComparison.OrdinalIgnoreCase))
         {
             return Task.FromResult(1);
         }
 
-        if (rootversion.GetValue("AR").Equals("1", StringComparison.OrdinalIgnoreCase))
+        if (rootversion.GetValue("CD Types : Replicator Only - Only available from the Replicator").Equals("1", StringComparison.OrdinalIgnoreCase))
         {
             return Task.FromResult(1);
         }
@@ -959,7 +1065,7 @@ order by sysBoard.SystemId desc
         {
             return;
         }
-        
+
         using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();
         SqlCommand command = new(GetSystemBoardCommandText(), connection);
@@ -1020,6 +1126,73 @@ order by sysBoard.SystemId desc
         }
     }
 
+    private async Task FillIsWorkflowCompletedAsync(CommonDataModel root)
+    {
+        if (!int.TryParse(root.GetValue("Component Version Id"), out int componentVersionId))
+        {
+            return;
+        }
+
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetIsWorkflowCompletedCommandText(), connection);
+        SqlParameter parameter = new("ComponentVersionId", componentVersionId);
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, string> isWorkflowCompleted = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["ComponentVersionId"].ToString(), out int dbComponentVersionId))
+            {
+                continue;
+            }
+
+            if (!isWorkflowCompleted.ContainsKey(dbComponentVersionId))
+            {
+                isWorkflowCompleted[dbComponentVersionId] = reader["IsWorkflowCompleted"].ToString();
+            }
+        }
+
+        if (isWorkflowCompleted.ContainsKey(componentVersionId))
+        {
+            root.Add("IsWorkflowCompleted", isWorkflowCompleted[componentVersionId]);
+        }
+    }
+
+    private async Task FillIsWorkflowCompletedAsync(IEnumerable<CommonDataModel> roots)
+    {
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetIsWorkflowCompletedCommandText(), connection);
+        SqlParameter parameter = new("ComponentVersionId", "-1");
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, string> isWorkflowCompleted = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["ComponentVersionId"].ToString(), out int componentVersionId))
+            {
+                continue;
+            }
+
+            if (!isWorkflowCompleted.ContainsKey(componentVersionId))
+            {
+                isWorkflowCompleted[componentVersionId] = reader["IsWorkflowCompleted"].ToString();
+            }
+        }
+
+        foreach (CommonDataModel root in roots)
+        {
+            if (int.TryParse(root.GetValue("Component Version Id"), out int componentVersionId)
+              && isWorkflowCompleted.ContainsKey(componentVersionId))
+            {
+                root.Add("IsWorkflowCompleted", isWorkflowCompleted[componentVersionId]);
+            }
+        }
+    }
+
     private static IEnumerable<CommonDataModel> DeleteProperty(IEnumerable<CommonDataModel> roots)
     {
         foreach (CommonDataModel root in roots)
@@ -1044,11 +1217,9 @@ order by sysBoard.SystemId desc
         //    root.Delete("Recovery Option");
         //}
 
-        //if (!string.Equals(root.GetValue("Abbreviation"), "SBD", StringComparison.OrdinalIgnoreCase))
+        //if (string.Equals(root.GetValue("Abbreviation"), "SBD", StringComparison.OrdinalIgnoreCase))
         //{
-        //    root.Add("System Board", root.GetValue("Component Root Name"));
         //    root.Delete("Kit Number");
-        //    root.Delete("Kit Description");
         //}
 
         //if (!string.Equals(root.GetValue("Agency Lead"), "WLAN", StringComparison.OrdinalIgnoreCase))
@@ -1064,7 +1235,7 @@ order by sysBoard.SystemId desc
         //    root.Delete("Touch Points");
         //    root.Delete("Other Setting");
         //    root.Delete("Transfer Server");
-        //    root.Delete("Submission Path");
+        //    
         //}
         //else
         //{
@@ -1073,39 +1244,36 @@ order by sysBoard.SystemId desc
         //    root.Delete("Kit Description");
         //}
 
-        //if (!string.Equals(root.GetValue("Component Type"), "Firmware", StringComparison.OrdinalIgnoreCase))
-        //{
-        //    root.Delete("ROM Family");
-        //    root.Delete("ROM Components");
-        //}
-        //else
-        //{
-        //    root.Delete("Packagings");
-        //}
+        if (!string.Equals(root.GetValue("Component Type"), "Firmware", StringComparison.OrdinalIgnoreCase))
+        {
+            root.Delete("ROM Components");
+        }
 
         //if (!string.Equals(root.GetValue("Component Type"), "Software", StringComparison.OrdinalIgnoreCase))
         //{
         //    root.Delete("Property Tabs Added");
         //}
 
-        //if (!root.GetValue("CD Types : Replicator Only - Only available from the Replicator").Equals("CD Types : Replicator Only - Only available from the Replicator", StringComparison.OrdinalIgnoreCase)
-        //    && !root.GetValue("CD Types : ISO Image -An ISO image of a CD will be released").Equals("CD Types : ISO Image -An ISO image of a CD will be released", StringComparison.OrdinalIgnoreCase))
-        //{
-        //    root.Delete("CDs Replicated By");
-        //}
+        if (!root.GetValue("CD Types : Replicator Only - Only available from the Replicator").Equals("CD Types : Replicator Only - Only available from the Replicator", StringComparison.OrdinalIgnoreCase)
+            && !root.GetValue("CD Types : ISO Image -An ISO image of a CD will be released").Equals("CD Types : ISO Image -An ISO image of a CD will be released", StringComparison.OrdinalIgnoreCase))
+        {
+            root.Delete("CDs Replicated By");
+        }
 
-        //if (root.GetValue("CD Types : Replicator Only - Only available from the Replicator").Equals("CD Types : Replicator Only - Only available from the Replicator", StringComparison.OrdinalIgnoreCase)
-        //    || root.GetValue("CD Types : ISO Image -An ISO image of a CD will be released").Equals("CD Types : ISO Image -An ISO image of a CD will be released", StringComparison.OrdinalIgnoreCase)
-        //    || root.GetValue("CD Types : CD Files - Files copied from a CD will be released").Equals("CD Types : CD Files - Files copied from a CD will be released", StringComparison.OrdinalIgnoreCase))
-        //{
-        //    root.Delete("Submission Path");
-        //}
+        if (!root.GetValue("CD Types : Replicator Only - Only available from the Replicator").Equals("CD Types : Replicator Only - Only available from the Replicator", StringComparison.OrdinalIgnoreCase)
+            && !root.GetValue("CD Types : ISO Image -An ISO image of a CD will be released").Equals("CD Types : ISO Image -An ISO image of a CD will be released", StringComparison.OrdinalIgnoreCase)
+            && !root.GetValue("CD Types : CD Files - Files copied from a CD will be released").Equals("CD Types : CD Files - Files copied from a CD will be released", StringComparison.OrdinalIgnoreCase))
+        {
+            root.Delete("FTP Site");
+            root.Delete("Kit Number");
+            root.Delete("CD/DVD Part Number");
+        }
 
-        //if (root.GetValue("Packagings").Contains("Internal Tool"))
-        //{
-        //    root.Delete("Touch Points");
-        //    root.Delete("Other Setting");
-        //}
+        if (root.GetValue("Packagings").Contains("Internal Tool"))
+        {
+            root.Delete("Touch Points");
+            root.Delete("Other Setting");
+        }
 
         //if (root.GetValue("Packagings").Contains("CD"))
         //{
@@ -1124,12 +1292,19 @@ order by sysBoard.SystemId desc
             root.Delete("Samples Available");
             root.Delete("Samples Confidence");
             root.Delete("End Of Life Date");
+            root.Delete("Service Team - Available Until Date");
+            root.Delete("Engineering Team - Available Until Date");
         }
         else
         {
             root.Delete("Recovery Option");
             root.Delete("MD5");
             root.Delete("Property Tabs Added");
+            root.Delete("Touch Points");
+            root.Delete("Other Setting");
+            root.Delete("Transfer Server");
+            root.Delete("Submission Path");
+            root.Delete("Component Location - FileName");
         }
 
         if (string.Equals(root.GetValue("Component Type"), "Firmware", StringComparison.OrdinalIgnoreCase)
@@ -1142,6 +1317,7 @@ order by sysBoard.SystemId desc
         {
             root.Delete("Pass");
             root.Delete("Build Level");
+            root.Delete("Vendor Version");
         }
 
         if (!string.Equals(root.GetValue("Component Type"), "Software", StringComparison.OrdinalIgnoreCase))
@@ -1155,9 +1331,36 @@ order by sysBoard.SystemId desc
             root.Delete("Packaging");
         }
 
+        if (!string.IsNullOrEmpty(root.GetValue("SWPartNumber"))
+           && !string.Equals(root.GetValue("SWPartNumber"), "Pending...", StringComparison.OrdinalIgnoreCase)
+           && !string.Equals(root.GetValue("SWPartNumber"), "N/A", StringComparison.OrdinalIgnoreCase)
+           && !string.Equals(root.GetValue("FccRequired"), "False", StringComparison.OrdinalIgnoreCase)
+           && !string.Equals(root.GetValue("IsWorkflowCompleted"), "True", StringComparison.OrdinalIgnoreCase))
+        {
+            root.Delete("CD Types");
+            root.Delete("FTP Site");
+            root.Delete("Component Location - FileName");
+        }
+
+        if (!string.Equals(root.GetValue("KoreanCertificationRequired"), "True", StringComparison.OrdinalIgnoreCase))
+        {
+            root.Delete("KoreanCertificationId");
+        }
+
+        if (!string.Equals(root.GetValue("RequiresTts"), "True", StringComparison.OrdinalIgnoreCase))
+        {
+            root.Delete("WWAN EDID");
+            root.Delete("");
+            root.Delete("");
+
+        }
+
         root.Delete("Abbreviation");
+        root.Delete("SWPartNumber");
         //root.Delete("RequiredPrismSWType");
-        //root.Delete("IrsCategoryId");
+        root.Delete("IsWorkflowCompleted");
+        root.Delete("KoreanCertificationRequired");
+        root.Delete("FccRequired");
 
         return root;
     }
