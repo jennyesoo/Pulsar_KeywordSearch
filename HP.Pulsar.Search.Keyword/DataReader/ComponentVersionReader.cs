@@ -363,6 +363,42 @@ ORDER BY
 ";
     }
 
+    private static string GetSBExpansionSlotCommandText()
+    {
+        return @"
+SELECT 
+    vals.SBHardwareComponentId,
+    code.Value AS Type,
+    vals.Quantity AS Quantity
+FROM
+    SBExpansionSlot code
+LEFT JOIN
+    SB_ExpansionSlot vals ON code.ID = vals.ExpansionSlotId 
+WHERE
+    code.Disabled IS NULL
+ORDER BY
+    code.Value;
+";
+    }
+
+    private static string GetSBConnectorCommandText()
+    {
+        return @"
+SELECT 
+    vals.SBHardwareComponentId,
+    code.Value AS Type,
+    vals.Quantity AS Quantity
+FROM
+    SBExpansionSlot code
+LEFT JOIN
+    SB_ExpansionSlot vals ON code.ID = vals.ExpansionSlotId 
+WHERE
+    code.Disabled IS NULL
+ORDER BY
+    code.Value;
+";
+    }
+
     private static CommonDataModel HandlePropertyValue(CommonDataModel componentVersion)
     {
         if (componentVersion.GetValue("Packaging Preinstall").Equals("1", StringComparison.OrdinalIgnoreCase))
@@ -640,6 +676,9 @@ ORDER BY
             {
                 componentVersion.Delete("CD Types : ISO Image -An ISO image of a CD will be released");
             }
+
+            componentVersion.Delete("Prism SW Type");
+
         }
         else
         {
@@ -961,6 +1000,9 @@ ORDER BY
                 {
                     version.Delete("CD Types : ISO Image -An ISO image of a CD will be released");
                 }
+
+                version.Delete("Prism SW Type");
+
             }
             else
             {
@@ -1099,6 +1141,88 @@ ORDER BY
         return Task.CompletedTask;
     }
 
+    private async Task<Dictionary<string, string>> GetSBConnectorSlotAsync()
+    {
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetSBConnectorCommandText(), connection);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<string, string> connector = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (string.IsNullOrWhiteSpace(reader["SBHardwareComponentId"].ToString())
+                || string.Equals(reader["Quantity"].ToString(), "0", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            string rowResult = string.Empty;
+
+            if (!string.IsNullOrWhiteSpace(reader["Type"].ToString()))
+            {
+                rowResult += "Type : " + reader["Type"].ToString() + " ";
+            }
+
+            if (!string.IsNullOrWhiteSpace(reader["Quantity"].ToString()))
+            {
+                rowResult += "Quantity : " + reader["Quantity"].ToString() + " ";
+            }
+
+            if (!connector.ContainsKey(reader["SBHardwareComponentId"].ToString()))
+            {
+                connector[reader["SBHardwareComponentId"].ToString()] = rowResult.Trim();
+            }
+            else
+            {
+                connector[reader["SBHardwareComponentId"].ToString()] += " , " + rowResult.Trim();
+            }
+        }
+
+        return connector;
+    }
+
+    private async Task<Dictionary<string, string>> GetSBExpansionSlotAsync()
+    {
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetSBExpansionSlotCommandText(), connection);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<string, string> expansionSlot = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (string.IsNullOrWhiteSpace(reader["SBHardwareComponentId"].ToString())
+                || string.Equals(reader["Quantity"].ToString(), "0", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            string rowResult = string.Empty;
+
+            if (!string.IsNullOrWhiteSpace(reader["Type"].ToString()))
+            {
+                rowResult += "Type : " + reader["Type"].ToString() + " ";
+            }
+
+            if (!string.IsNullOrWhiteSpace(reader["Quantity"].ToString()))
+            {
+                rowResult += "Quantity : " + reader["Quantity"].ToString() + " ";
+            }
+
+            if (!expansionSlot.ContainsKey(reader["SBHardwareComponentId"].ToString()))
+            {
+                expansionSlot[reader["SBHardwareComponentId"].ToString()] = rowResult.Trim();
+            }
+            else
+            {
+                expansionSlot[reader["SBHardwareComponentId"].ToString()] += " , " + rowResult.Trim();
+            }
+        }
+
+        return expansionSlot;
+    }
+
     private async Task<Dictionary<string, string>> GetChipSetTableAsync()
     {
         using SqlConnection connection = new(_info.DatabaseConnectionString);
@@ -1146,7 +1270,7 @@ ORDER BY
             }
         }
 
-        return chipSet; 
+        return chipSet;
     }
 
     private async Task FillSystemBoardAsync(CommonDataModel root)
@@ -1157,6 +1281,8 @@ ORDER BY
         }
 
         Dictionary<string, string> chipSet = await GetChipSetTableAsync();
+        Dictionary<string, string> expansionSlot = await GetSBExpansionSlotAsync();
+        Dictionary<string, string> connector = await GetSBConnectorSlotAsync();
 
         using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();
@@ -1208,10 +1334,22 @@ ORDER BY
                 if (!string.Equals(item, "SBHardwareComponentId", StringComparison.OrdinalIgnoreCase))
                 {
                     root.Add(item, systemBoard[componentVersionId].GetValue(item));
+                    continue;
                 }
-                else if (chipSet.ContainsKey(systemBoard[componentVersionId].GetValue(item)))
+
+                if (chipSet.ContainsKey(systemBoard[componentVersionId].GetValue(item)))
                 {
                     root.Add("ChipSet Table", chipSet[systemBoard[componentVersionId].GetValue(item)]);
+                }
+
+                if (expansionSlot.ContainsKey(systemBoard[componentVersionId].GetValue(item)))
+                {
+                    root.Add("Expansion Slot", expansionSlot[systemBoard[componentVersionId].GetValue(item)]);
+                }
+
+                if (connector.ContainsKey(systemBoard[componentVersionId].GetValue(item)))
+                {
+                    root.Add("Connector", expansionSlot[systemBoard[componentVersionId].GetValue(item)]);
                 }
             }
         }
@@ -1220,6 +1358,8 @@ ORDER BY
     private async Task FillSystemBoardAsync(IEnumerable<CommonDataModel> roots)
     {
         Dictionary<string, string> chipSet = await GetChipSetTableAsync();
+        Dictionary<string, string> expansionSlot = await GetSBExpansionSlotAsync();
+        Dictionary<string, string> connector = await GetSBConnectorSlotAsync();
 
         using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();
@@ -1274,10 +1414,22 @@ ORDER BY
                     if (!string.Equals(item, "SBHardwareComponentId", StringComparison.OrdinalIgnoreCase))
                     {
                         root.Add(item, systemBoard[componentVersionId].GetValue(item));
+                        continue;
                     }
-                    else if (chipSet.ContainsKey(systemBoard[componentVersionId].GetValue(item)))
+                    
+                    if (chipSet.ContainsKey(systemBoard[componentVersionId].GetValue(item)))
                     {
                         root.Add("ChipSet Table", chipSet[systemBoard[componentVersionId].GetValue(item)]);
+                    }
+
+                    if (expansionSlot.ContainsKey(systemBoard[componentVersionId].GetValue(item)))
+                    {
+                        root.Add("Expansion Slot", expansionSlot[systemBoard[componentVersionId].GetValue(item)]);
+                    }
+
+                    if (connector.ContainsKey(systemBoard[componentVersionId].GetValue(item)))
+                    {
+                        root.Add("Connector", expansionSlot[systemBoard[componentVersionId].GetValue(item)]);
                     }
                 }
             }
@@ -1363,54 +1515,15 @@ ORDER BY
 
     private static CommonDataModel DeleteProperty(CommonDataModel root)
     {
-        //if (!string.Equals(root.GetValue("RequiredPrismSWType"), "True", StringComparison.OrdinalIgnoreCase)
-        //    || string.Equals(root.GetValue("Component Type"), "Hardware", StringComparison.OrdinalIgnoreCase)
-        //    || string.Equals(root.GetValue("IrsCategoryId"), "0", StringComparison.OrdinalIgnoreCase))
-        //{
-        //    root.Delete("Prism SW Type");
-        //}
-
-        //if (string.Equals(root.GetValue("Component Type"), "Hardware", StringComparison.OrdinalIgnoreCase))
-        //{
-        //    root.Delete("Recovery Option");
-        //}
-
-        //if (string.Equals(root.GetValue("Abbreviation"), "SBD", StringComparison.OrdinalIgnoreCase))
-        //{
-        //    root.Delete("Kit Number");
-        //}
-
-        //if (!string.Equals(root.GetValue("Agency Lead"), "WLAN", StringComparison.OrdinalIgnoreCase))
-        //{
-        //    root.Delete("Agency Lead");
-        //}
-
-        //if (string.Equals(root.GetValue("Component Type"), "Hardware", StringComparison.OrdinalIgnoreCase))
-        //{
-        //    root.Delete("Target Partition");
-        //    root.Delete("Packagings");
-        //    root.Delete("WHQL Certification Require");
-        //    root.Delete("Touch Points");
-        //    root.Delete("Other Setting");
-        //    root.Delete("Transfer Server");
-        //    
-        //}
-        //else
-        //{
-        //    root.Delete("Special Notes");
-        //    root.Delete("Kit Number");
-        //    root.Delete("Kit Description");
-        //}
+        if (!string.Equals(root.GetValue("RequiredPrismSWType"), "True", StringComparison.OrdinalIgnoreCase))
+        {
+            root.Delete("Prism SW Type");
+        }
 
         if (!string.Equals(root.GetValue("Component Type"), "Firmware", StringComparison.OrdinalIgnoreCase))
         {
             root.Delete("ROM Components");
         }
-
-        //if (!string.Equals(root.GetValue("Component Type"), "Software", StringComparison.OrdinalIgnoreCase))
-        //{
-        //    root.Delete("Property Tabs Added");
-        //}
 
         if (!root.GetValue("CD Types : Replicator Only - Only available from the Replicator").Equals("CD Types : Replicator Only - Only available from the Replicator", StringComparison.OrdinalIgnoreCase)
             && !root.GetValue("CD Types : ISO Image -An ISO image of a CD will be released").Equals("CD Types : ISO Image -An ISO image of a CD will be released", StringComparison.OrdinalIgnoreCase))
@@ -1432,11 +1545,6 @@ ORDER BY
             root.Delete("Touch Points");
             root.Delete("Other Setting");
         }
-
-        //if (root.GetValue("Packagings").Contains("CD"))
-        //{
-        //    root.Delete("Submission Path");
-        //}
 
         if (!string.Equals(root.GetValue("Component Type"), "Hardware", StringComparison.OrdinalIgnoreCase)
             && !string.Equals(root.GetValue("Category"), "PCA Setting", StringComparison.OrdinalIgnoreCase))
@@ -1504,6 +1612,10 @@ ORDER BY
             root.Delete("FTP Site");
             root.Delete("Component Location - FileName");
         }
+        else if (root.GetValue("Packagings").Contains("CD"))
+        {
+            root.Delete("CVA Path");
+        }
 
         if (!string.Equals(root.GetValue("KoreanCertificationRequired"), "True", StringComparison.OrdinalIgnoreCase))
         {
@@ -1528,7 +1640,6 @@ ORDER BY
         root.Delete("TeamID");
         root.Delete("Abbreviation");
         root.Delete("SWPartNumber");
-        //root.Delete("RequiredPrismSWType");
         root.Delete("IsWorkflowCompleted");
         root.Delete("KoreanCertificationRequired");
         root.Delete("FccRequired");
