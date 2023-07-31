@@ -25,7 +25,7 @@ public class ComponentVersionReader : IKeywordSearchDataReader
 
         List<Task> tasks = new()
             {
-                FillSystemBoardPartOneAsync(componentVersion),
+                FillSystemBoardAsync(componentVersion),
                 FillIsWorkflowCompletedAsync(componentVersion)
             };
 
@@ -46,7 +46,7 @@ public class ComponentVersionReader : IKeywordSearchDataReader
             {
                 HandlePropertyValuesAsync(componentVersions),
                 HandleDifferentPropertyNameBasedOnCategoryAsync(componentVersions),
-                FillSystemBoardPartOneAsync(componentVersions),
+                FillSystemBoardAsync(componentVersions),
                 FillIsWorkflowCompletedAsync(componentVersions)
             };
 
@@ -304,8 +304,8 @@ select Dv.ID As ComponentVersionID,
     V.VendorPartNumber AS 'Vendor Part Number',
     V.MaxMemorySize + V.MaxMemorySizeUnit AS 'Maximum Memory Size',
     V.CPUSpeed + V.CPUSpeedUnit As 'CPU Speed',
-    V.ReworkDescription AS 'Rework Description'
-
+    V.ReworkDescription AS 'Rework Description',
+    V.ID AS 'SBHardwareComponentId'
 from DeliverableVersion Dv 
 left join SBHardwareComponent V on V.DeliverableVersionId = Dv.ID
 left join PlatformAndSystemBoard sysBoard on sysBoard.SystemBoard = Dv.DeliverableName
@@ -336,6 +336,30 @@ where ws.MilestoneOrder = (select min(ws1.MilestoneOrder)
                 @ComponentVersionId = - 1
                 OR ws.ComponentVersionID = @ComponentVersionId
                 )
+";
+    }
+
+    private static string GetChipSetTableCommandText()
+    {
+        return @"
+SELECT 
+    val.SBHardwareComponentId AS 'SBHardwareComponentId',
+    rows.Value AS Type,
+    cs.value AS ChipSet,
+    c.value AS Component,
+    s.value AS Step
+FROM
+    SBChipSetTable rows
+LEFT JOIN
+    (
+        SELECT *
+        FROM SB_ChipSetTable
+    ) val ON rows.ID = val.ChipSetTableId
+left join SBChipSetStep s on s.id = val.ChipSetStepId
+left join SBChipSetComponent c on c.id = val.ChipSetComponentId
+left join SBChipSet cs on cs.id = val.ChipSetId
+ORDER BY
+    rows.ID;
 ";
     }
 
@@ -1075,12 +1099,64 @@ where ws.MilestoneOrder = (select min(ws1.MilestoneOrder)
         return Task.CompletedTask;
     }
 
-    private async Task FillSystemBoardPartOneAsync(CommonDataModel root)
+    private async Task<Dictionary<string, string>> GetChipSetTableAsync()
+    {
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetChipSetTableCommandText(), connection);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<string, string> chipSet = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (string.IsNullOrWhiteSpace(reader["SBHardwareComponentId"].ToString()))
+            {
+                continue;
+            }
+
+            string rowResult = string.Empty;
+
+            if (!string.IsNullOrWhiteSpace(reader["Type"].ToString()))
+            {
+                rowResult += "Type : " + reader["Type"].ToString() + " ";
+            }
+
+            if (!string.IsNullOrWhiteSpace(reader["ChipSet"].ToString()))
+            {
+                rowResult += "ChipSet : " + reader["ChipSet"].ToString() + " ";
+            }
+
+            if (!string.IsNullOrWhiteSpace(reader["Component"].ToString()))
+            {
+                rowResult += "Component : " + reader["Component"].ToString() + " ";
+            }
+
+            if (!string.IsNullOrWhiteSpace(reader["Step"].ToString()))
+            {
+                rowResult += "Step : " + reader["Step"].ToString() + " ";
+            }
+
+            if (!chipSet.ContainsKey(reader["SBHardwareComponentId"].ToString()))
+            {
+                chipSet[reader["SBHardwareComponentId"].ToString()] = rowResult.Trim();
+            }
+            else
+            {
+                chipSet[reader["SBHardwareComponentId"].ToString()] += " , " + rowResult.Trim();
+            }
+        }
+
+        return chipSet; 
+    }
+
+    private async Task FillSystemBoardAsync(CommonDataModel root)
     {
         if (!int.TryParse(root.GetValue("Component Version Id"), out int componentVersionId))
         {
             return;
         }
+
+        Dictionary<string, string> chipSet = await GetChipSetTableAsync();
 
         using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();
@@ -1129,13 +1205,22 @@ where ws.MilestoneOrder = (select min(ws1.MilestoneOrder)
         {
             foreach (string item in systemBoard[componentVersionId].GetKeys())
             {
-                root.Add(item, systemBoard[componentVersionId].GetValue(item));
+                if (!string.Equals(item, "SBHardwareComponentId", StringComparison.OrdinalIgnoreCase))
+                {
+                    root.Add(item, systemBoard[componentVersionId].GetValue(item));
+                }
+                else if (chipSet.ContainsKey(systemBoard[componentVersionId].GetValue(item)))
+                {
+                    root.Add("ChipSet Table", chipSet[systemBoard[componentVersionId].GetValue(item)]);
+                }
             }
         }
     }
 
-    private async Task FillSystemBoardPartOneAsync(IEnumerable<CommonDataModel> roots)
+    private async Task FillSystemBoardAsync(IEnumerable<CommonDataModel> roots)
     {
+        Dictionary<string, string> chipSet = await GetChipSetTableAsync();
+
         using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();
         SqlCommand command = new(GetSystemBoardCommandText(), connection);
@@ -1186,7 +1271,14 @@ where ws.MilestoneOrder = (select min(ws1.MilestoneOrder)
             {
                 foreach (string item in systemBoard[componentVersionId].GetKeys())
                 {
-                    root.Add(item, systemBoard[componentVersionId].GetValue(item));
+                    if (!string.Equals(item, "SBHardwareComponentId", StringComparison.OrdinalIgnoreCase))
+                    {
+                        root.Add(item, systemBoard[componentVersionId].GetValue(item));
+                    }
+                    else if (chipSet.ContainsKey(systemBoard[componentVersionId].GetValue(item)))
+                    {
+                        root.Add("ChipSet Table", chipSet[systemBoard[componentVersionId].GetValue(item)]);
+                    }
                 }
             }
         }
