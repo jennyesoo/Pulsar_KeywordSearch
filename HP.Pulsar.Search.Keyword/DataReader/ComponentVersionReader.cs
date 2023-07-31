@@ -25,7 +25,7 @@ public class ComponentVersionReader : IKeywordSearchDataReader
 
         List<Task> tasks = new()
             {
-                FillSystemBoardPartOneAsync(componentVersion),
+                FillSystemBoardAsync(componentVersion),
                 FillIsWorkflowCompletedAsync(componentVersion)
             };
 
@@ -46,7 +46,7 @@ public class ComponentVersionReader : IKeywordSearchDataReader
             {
                 HandlePropertyValuesAsync(componentVersions),
                 HandleDifferentPropertyNameBasedOnCategoryAsync(componentVersions),
-                FillSystemBoardPartOneAsync(componentVersions),
+                FillSystemBoardAsync(componentVersions),
                 FillIsWorkflowCompletedAsync(componentVersions)
             };
 
@@ -264,14 +264,7 @@ public class ComponentVersionReader : IKeywordSearchDataReader
     Dv.KoreanCertificationId,
     Dv.KoreanCertificationRequired,
     cate.RequiresTTS,
-    Dv.edid + ' MHZ' AS 'WWAN EDID',
-    Dv.TTS AS 'WWAN TTS Results',
-    Dv.WWANTestSpecRev AS 'WWAN TTS Spec Rev',
-    cate.TeamID,
-    Dv.SecondaryRFKill AS 'RF Kill Mechanism',
-    Dv.FCCID AS 'FCC ID',
-    Dv.Anatel,
-    Dv.ICASA 
+    Dv.edid + ' MHZ' AS 'WWAN EDID'
 
 
 FROM DeliverableVersion Dv
@@ -297,17 +290,9 @@ WHERE (
     private static string GetSystemBoardCommandText()
     {
         return @"
-select Dv.ID As ComponentVersionID,
-    sysBoard.SystemBoard AS 'System Board',
-    sysBoard.ProductFamily AS 'Product Families (Intro Year)',
-    sysBoard.SystemId AS 'ROM System Board ID (Hex)',
-    V.VendorPartNumber AS 'Vendor Part Number',
-    V.MaxMemorySize + V.MaxMemorySizeUnit AS 'Maximum Memory Size',
-    V.CPUSpeed + V.CPUSpeedUnit As 'CPU Speed',
-    V.ReworkDescription AS 'Rework Description'
-
+select Dv.ID As ComponentVersionId,
+    sysBoard.SystemBoard AS 'System Board'
 from DeliverableVersion Dv 
-left join SBHardwareComponent V on V.DeliverableVersionId = Dv.ID
 left join PlatformAndSystemBoard sysBoard on sysBoard.SystemBoard = Dv.DeliverableName
 left join DeliverableRoot root on root.id = Dv.DeliverableRootID
 left JOIN componentCategory cate ON cate.CategoryId = root.categoryid
@@ -319,7 +304,6 @@ where cate.Abbreviation = 'SBD'
 order by sysBoard.SystemId desc
 ";
     }
-
 
     private static string GetIsWorkflowCompletedCommandText()
     {
@@ -1075,7 +1059,7 @@ where ws.MilestoneOrder = (select min(ws1.MilestoneOrder)
         return Task.CompletedTask;
     }
 
-    private async Task FillSystemBoardPartOneAsync(CommonDataModel root)
+    private async Task FillSystemBoardAsync(CommonDataModel root)
     {
         if (!int.TryParse(root.GetValue("Component Version Id"), out int componentVersionId))
         {
@@ -1085,10 +1069,10 @@ where ws.MilestoneOrder = (select min(ws1.MilestoneOrder)
         using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();
         SqlCommand command = new(GetSystemBoardCommandText(), connection);
-        SqlParameter parameter = new("ComponentVersionId", componentVersionId);
+        SqlParameter parameter = new("ComponentVersionId", "-1");
         command.Parameters.Add(parameter);
         using SqlDataReader reader = command.ExecuteReader();
-        Dictionary<int, CommonDataModel> systemBoard = new();
+        Dictionary<int, string> systemBoard = new();
 
         while (await reader.ReadAsync())
         {
@@ -1097,44 +1081,19 @@ where ws.MilestoneOrder = (select min(ws1.MilestoneOrder)
                 continue;
             }
 
-            CommonDataModel item = new();
-            int fieldCount = reader.FieldCount;
-
-            for (int i = 0; i < fieldCount; i++)
-            {
-                if (await reader.IsDBNullAsync(i))
-                {
-                    continue;
-                }
-
-                string columnName = reader.GetName(i);
-                string value = reader[i].ToString().Trim();
-
-                if (string.IsNullOrWhiteSpace(value)
-                    || string.Equals(value, "None"))
-                {
-                    continue;
-                }
-
-                item.Add(columnName, value);
-            }
-
             if (!systemBoard.ContainsKey(dbComponentVersionId))
             {
-                systemBoard[dbComponentVersionId] = item;
+                systemBoard[dbComponentVersionId] = reader["System Board"].ToString();
             }
         }
 
         if (systemBoard.ContainsKey(componentVersionId))
         {
-            foreach (string item in systemBoard[componentVersionId].GetKeys())
-            {
-                root.Add(item, systemBoard[componentVersionId].GetValue(item));
-            }
+            root.Add("System Board", systemBoard[componentVersionId]);
         }
     }
 
-    private async Task FillSystemBoardPartOneAsync(IEnumerable<CommonDataModel> roots)
+    private async Task FillSystemBoardAsync(IEnumerable<CommonDataModel> roots)
     {
         using SqlConnection connection = new(_info.DatabaseConnectionString);
         await connection.OpenAsync();
@@ -1142,7 +1101,7 @@ where ws.MilestoneOrder = (select min(ws1.MilestoneOrder)
         SqlParameter parameter = new("ComponentVersionId", "-1");
         command.Parameters.Add(parameter);
         using SqlDataReader reader = command.ExecuteReader();
-        Dictionary<int, CommonDataModel> systemBoard = new();
+        Dictionary<int, string> systemBoard = new();
 
         while (await reader.ReadAsync())
         {
@@ -1151,31 +1110,9 @@ where ws.MilestoneOrder = (select min(ws1.MilestoneOrder)
                 continue;
             }
 
-            CommonDataModel item = new();
-            int fieldCount = reader.FieldCount;
-
-            for (int i = 0; i < fieldCount; i++)
-            {
-                if (await reader.IsDBNullAsync(i))
-                {
-                    continue;
-                }
-
-                string columnName = reader.GetName(i);
-                string value = reader[i].ToString().Trim();
-
-                if (string.IsNullOrWhiteSpace(value)
-                    || string.Equals(value, "None"))
-                {
-                    continue;
-                }
-
-                item.Add(columnName, value);
-            }
-
             if (!systemBoard.ContainsKey(componentVersionId))
             {
-                systemBoard[componentVersionId] = item;
+                systemBoard[componentVersionId] = reader["System Board"].ToString();
             }
         }
 
@@ -1184,10 +1121,7 @@ where ws.MilestoneOrder = (select min(ws1.MilestoneOrder)
             if (int.TryParse(root.GetValue("Component Version Id"), out int componentVersionId)
               && systemBoard.ContainsKey(componentVersionId))
             {
-                foreach (string item in systemBoard[componentVersionId].GetKeys())
-                {
-                    root.Add(item, systemBoard[componentVersionId].GetValue(item));
-                }
+                root.Add("System Board", systemBoard[componentVersionId]);
             }
         }
     }
@@ -1360,10 +1294,6 @@ where ws.MilestoneOrder = (select min(ws1.MilestoneOrder)
             root.Delete("End Of Life Date");
             root.Delete("Service Team - Available Until Date");
             root.Delete("Engineering Team - Available Until Date");
-            root.Delete("Code Name");
-            root.Delete("HP Part Number");
-            root.Delete("Model Number");
-            root.Delete("Green Spec Level");
         }
         else
         {
@@ -1375,7 +1305,6 @@ where ws.MilestoneOrder = (select min(ws1.MilestoneOrder)
             root.Delete("Transfer Server");
             root.Delete("Submission Path");
             root.Delete("Component Location - FileName");
-            root.Delete("SW Part Number");
         }
 
         if (string.Equals(root.GetValue("Component Type"), "Firmware", StringComparison.OrdinalIgnoreCase)
@@ -1421,19 +1350,11 @@ where ws.MilestoneOrder = (select min(ws1.MilestoneOrder)
         if (!string.Equals(root.GetValue("RequiresTts"), "True", StringComparison.OrdinalIgnoreCase))
         {
             root.Delete("WWAN EDID");
-            root.Delete("WWAN TTS Results");
-            root.Delete("WWAN TTS Spec Rev");
+            root.Delete("");
+            root.Delete("");
+
         }
 
-        if (!string.Equals(root.GetValue("TeamID"), "3", StringComparison.OrdinalIgnoreCase))
-        {
-            root.Delete("FCC ID");
-            root.Delete("Anatel");
-            root.Delete("ICASA");
-            root.Delete("RF Kill Mechanism");
-        }
-
-        root.Delete("TeamID");
         root.Delete("Abbreviation");
         root.Delete("SWPartNumber");
         //root.Delete("RequiredPrismSWType");
