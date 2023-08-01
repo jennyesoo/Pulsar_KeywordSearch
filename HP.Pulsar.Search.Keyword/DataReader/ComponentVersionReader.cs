@@ -185,7 +185,7 @@ public class ComponentVersionReader : IKeywordSearchDataReader
     Dv.SettingFWML as 'FWML',
     Dv.SettingUWPCompliant as 'UWP Compliant',
     Dv.Active AS Visibility,
-    cts.Name AS 'Transfer Server',
+    cts.TransferPath AS 'Transfer Server',
     Dv.SubmissionPath as 'Submission Path',
     Dv.VendorVersion as 'Vendor Version',
     Dv.Comments,
@@ -281,7 +281,7 @@ public class ComponentVersionReader : IKeywordSearchDataReader
     Case When cate.IrsCategoryId is null Then 'True'
              When cate.IrsCategoryId > 0 Then 'False'
              When cate.IrsCategoryId <= 0 Then 'True'
-        End AS IrsCategoryHidePrism,
+        End AS IrsCategoryHidePrism
 
 FROM DeliverableVersion Dv
 LEFT JOIN ComponentPrismSWType CPSW ON CPSW.PRISMTypeID = Dv.PrismSWType
@@ -295,7 +295,6 @@ LEFT JOIN GreenSpec gs ON gs.id = Dv.GreenSpecID
 LEFT JOIN DeliverableRoot root ON root.id = Dv.DeliverableRootID
 LEFT JOIN ComponentVersion cv ON cv.componentversionid = Dv.ID
 LEFT JOIN componentCategory cate ON cate.CategoryId = root.categoryid
-LEFT JOIN ComponentVersion cv on cv.ComponentVersionid = Dv.id 
 WHERE (
         @ComponentVersionId = - 1
         OR Dv.ID = @ComponentVersionId
@@ -1687,6 +1686,8 @@ ORDER BY
         root.Delete("Component Type");
         root.Delete("Patch");
         root.Delete("HidePrism");
+        root.Delete("IrsCategoryHidePrism");
+        root.Delete("RequiredPrismSWType");
 
         return root;
     }
