@@ -172,9 +172,9 @@ public class ComponentVersionReader : IKeywordSearchDataReader
     Dv.PropertyTabs AS 'Property Tabs Added',
     Dv.Preinstall as 'Packaging Preinstall',
     Dv.DrDvd,
-    Dv.Scriptpaq as 'Softpaq', 
+    cv.Softpaq, 
     Dv.MsStore as 'Ms Store',
-    Dv.FloppyDisk as 'Internal Tool',
+    cv.InternalTool as 'Internal Tool',
     Dv.IconDesktop as 'Desktop',
     Dv.IconMenu as 'Start Menu',
     Dv.IconTray as 'System Tray',
@@ -218,7 +218,6 @@ public class ComponentVersionReader : IKeywordSearchDataReader
         WHEN root.TypeID = 8
             THEN 'Factory'
         END AS 'Component Type',
-    root.Softpaq As 'Rom Components Softpaq',
     CASE WHEN dv.IntroConfidence = 0 
             THEN ''
          WHEN dv.IntroConfidence = 1 
@@ -271,7 +270,8 @@ public class ComponentVersionReader : IKeywordSearchDataReader
     Dv.SecondaryRFKill AS 'RF Kill Mechanism',
     Dv.FCCID AS 'FCC ID',
     Dv.Anatel,
-    Dv.ICASA 
+    Dv.ICASA,
+    Dv.Rompaq AS 'Rom Component Binary(Rompaq)'
 
 
 FROM DeliverableVersion Dv
@@ -435,6 +435,15 @@ ORDER BY
             {
                 componentVersion.Add("Packaging", componentVersion.GetValue("Packaging") + ", Softpaq");
             }
+
+            if (string.IsNullOrEmpty(componentVersion.GetValue("ROM components")))
+            {
+                componentVersion.Add("ROM components", "Softpaq");
+            }
+            else
+            {
+                componentVersion.Add("ROM components", componentVersion.GetValue("ROM components") + ", Softpaq");
+            }
         }
 
         if (componentVersion.GetValue("Ms Store").Equals("True", StringComparison.OrdinalIgnoreCase)
@@ -474,6 +483,18 @@ ORDER BY
             }
         }
 
+        if (componentVersion.GetValue("Rom Component Binary(Rompaq)").Equals("1", StringComparison.OrdinalIgnoreCase))
+        {
+            if (string.IsNullOrEmpty(componentVersion.GetValue("ROM components")))
+            {
+                componentVersion.Add("ROM components", "Binary");
+            }
+            else
+            {
+                componentVersion.Add("ROM components", componentVersion.GetValue("ROM components") + ", Binary");
+            }
+        }
+        
         if (componentVersion.GetValue("ROM Component Preinstall").Equals("1", StringComparison.OrdinalIgnoreCase))
         {
             if (string.IsNullOrEmpty(componentVersion.GetValue("ROM components")))
@@ -483,18 +504,6 @@ ORDER BY
             else
             {
                 componentVersion.Add("ROM components", componentVersion.GetValue("ROM components") + ", Preinstall");
-            }
-        }
-
-        if (componentVersion.GetValue("Rom Components Softpaq").Equals("1", StringComparison.OrdinalIgnoreCase))
-        {
-            if (string.IsNullOrEmpty(componentVersion.GetValue("ROM components")))
-            {
-                componentVersion.Add("ROM components", "Softpaq");
-            }
-            else
-            {
-                componentVersion.Add("ROM components", componentVersion.GetValue("ROM components") + ", Softpaq");
             }
         }
 
@@ -699,6 +708,7 @@ ORDER BY
             componentVersion.Delete("This is an HFCN release");
         }
 
+        componentVersion.Delete("Rom Component Binary(Rompaq)");
         componentVersion.Delete("Packaging Preinstall");
         componentVersion.Delete("DrDvd");
         componentVersion.Delete("Softpaq");
@@ -717,7 +727,7 @@ ORDER BY
         componentVersion.Delete("Start Menu Tile");
         componentVersion.Delete("Task Pinned Icon");
         componentVersion.Delete("SoftPaq In Preinstall");
-        componentVersion.Delete("Rom Components Softpaq");
+
         return componentVersion;
     }
 
@@ -759,6 +769,15 @@ ORDER BY
                 {
                     version.Add("Packaging", version.GetValue("Packaging") + ", Softpaq");
                 }
+
+                if (string.IsNullOrEmpty(version.GetValue("ROM components")))
+                {
+                    version.Add("ROM components", "Softpaq");
+                }
+                else
+                {
+                    version.Add("ROM components", version.GetValue("ROM components") + ", Softpaq");
+                }
             }
 
             if (version.GetValue("Ms Store").Equals("True", StringComparison.OrdinalIgnoreCase)
@@ -798,6 +817,18 @@ ORDER BY
                 }
             }
 
+            if (version.GetValue("Rom Component Binary(Rompaq)").Equals("1", StringComparison.OrdinalIgnoreCase))
+            {
+                if (string.IsNullOrEmpty(version.GetValue("ROM components")))
+                {
+                    version.Add("ROM components", "Binary");
+                }
+                else
+                {
+                    version.Add("ROM components", version.GetValue("ROM components") + ", Binary");
+                }
+            }
+            
             if (version.GetValue("ROM Component Preinstall").Equals("1", StringComparison.OrdinalIgnoreCase))
             {
                 if (string.IsNullOrEmpty(version.GetValue("ROM components")))
@@ -819,18 +850,6 @@ ORDER BY
                 else
                 {
                     version.Add("ROM components", version.GetValue("ROM components") + ", CAB");
-                }
-            }
-
-            if (version.GetValue("Rom Components Softpaq").Equals("1", StringComparison.OrdinalIgnoreCase))
-            {
-                if (string.IsNullOrEmpty(version.GetValue("ROM components")))
-                {
-                    version.Add("ROM components", "Softpaq");
-                }
-                else
-                {
-                    version.Add("ROM components", version.GetValue("ROM components") + ", Softpaq");
                 }
             }
 
@@ -1024,6 +1043,7 @@ ORDER BY
                 version.Delete("This is an HFCN release");
             }
 
+            version.Delete("Rom Component Binary(Rompaq)");
             version.Delete("Packaging Preinstall");
             version.Delete("DrDvd");
             version.Delete("Softpaq");
@@ -1042,7 +1062,6 @@ ORDER BY
             version.Delete("Start Menu Tile");
             version.Delete("Taskbar Pinned Icon");
             version.Delete("SoftPaq In Preinstall");
-            version.Delete("Rom Components Softpaq");
         }
 
         return Task.CompletedTask;
@@ -1056,11 +1075,6 @@ ORDER BY
         }
 
         if (rootversion.GetValue("CD Types : ISO Image -An ISO image of a CD will be released").Equals("1", StringComparison.OrdinalIgnoreCase))
-        {
-            return Task.FromResult(1);
-        }
-
-        if (rootversion.GetValue("CD Types : Replicator Only - Only available from the Replicator").Equals("1", StringComparison.OrdinalIgnoreCase))
         {
             return Task.FromResult(1);
         }
@@ -1608,7 +1622,9 @@ ORDER BY
            && !string.Equals(root.GetValue("FccRequired"), "False", StringComparison.OrdinalIgnoreCase)
            && !string.Equals(root.GetValue("IsWorkflowCompleted"), "True", StringComparison.OrdinalIgnoreCase))
         {
-            root.Delete("CD Types");
+            root.Delete("CD Types : Replicator Only -Only available from the Replicator");
+            root.Delete("CD Types : ISO Image -An ISO image of a CD will be released");
+            root.Delete("CD Types : CD Files - Files copied from a CD will be released");
             root.Delete("FTP Site");
             root.Delete("Component Location - FileName");
         }
