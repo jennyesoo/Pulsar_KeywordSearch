@@ -277,7 +277,11 @@ public class ComponentVersionReader : IKeywordSearchDataReader
     Case When Dv.TransferServerId > 0 Then 'True'
             WHEN Dv.TransferServerId <= 0 Then 'False'
             WHEN Dv.TransferServerId is null Then 'False'
-        End AS 'HidePrism'
+        End AS 'HidePrism',
+    Case When cate.IrsCategoryId is null Then 'True'
+             When cate.IrsCategoryId > 0 Then 'False'
+             When cate.IrsCategoryId <= 0 Then 'True'
+        End AS IrsCategoryHidePrism,
 
 FROM DeliverableVersion Dv
 LEFT JOIN ComponentPrismSWType CPSW ON CPSW.PRISMTypeID = Dv.PrismSWType
@@ -1548,7 +1552,8 @@ ORDER BY
                 && !root.GetValue("Rom Components").Contains("ROM Component Preinstall"))
             || (string.IsNullOrWhiteSpace(root.GetValue("SWPartNumber"))
                 || string.Equals(root.GetValue("SWPartNumber"), "N/A", StringComparison.OrdinalIgnoreCase))
-            || string.Equals(root.GetValue("HidePrism"),"True",StringComparison.OrdinalIgnoreCase))
+            || string.Equals(root.GetValue("HidePrism"),"True",StringComparison.OrdinalIgnoreCase)
+            || string.Equals(root.GetValue("IrsCategoryHidePrism"),"True",StringComparison.OrdinalIgnoreCase))
         {
             root.Delete("Prism SW Type");
         }
