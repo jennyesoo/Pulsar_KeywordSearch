@@ -252,6 +252,7 @@ public class ComponentVersionReader : IKeywordSearchDataReader
     DV.HFCN AS 'This is an HFCN release',
     cate.Abbreviation,
     cate.FccRequired,
+    cate.RequiredPrismSWType,
     cv.CDFiles AS 'CD Types : CD Files - Files copied from a CD will be released',
     Dv.IsoImage AS 'CD Types : ISO Image -An ISO image of a CD will be released',
     Dv.Ar AS 'CD Types : Replicator Only - Only available from the Replicator',
@@ -1659,6 +1660,8 @@ ORDER BY
         root.Delete("IsWorkflowCompleted");
         root.Delete("KoreanCertificationRequired");
         root.Delete("FccRequired");
+        root.Delete("RequiresTTS");
+        root.Delete("Component Type");
 
         return root;
     }
