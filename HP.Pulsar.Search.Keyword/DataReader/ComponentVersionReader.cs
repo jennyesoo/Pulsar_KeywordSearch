@@ -272,8 +272,12 @@ public class ComponentVersionReader : IKeywordSearchDataReader
     Dv.FCCID AS 'FCC ID',
     Dv.Anatel,
     Dv.ICASA,
-    Dv.Rompaq AS 'Rom Component Binary(Rompaq)'
-
+    Dv.Rompaq AS 'Rom Component Binary(Rompaq)',
+    Dv.Patch,
+    Case When Dv.TransferServerId > 0 Then 'True'
+            WHEN Dv.TransferServerId <= 0 Then 'False'
+            WHEN Dv.TransferServerId is null Then 'False'
+        End AS 'HidePrism'
 
 FROM DeliverableVersion Dv
 LEFT JOIN ComponentPrismSWType CPSW ON CPSW.PRISMTypeID = Dv.PrismSWType
@@ -495,7 +499,7 @@ ORDER BY
                 componentVersion.Add("ROM components", componentVersion.GetValue("ROM components") + ", Binary");
             }
         }
-        
+
         if (componentVersion.GetValue("ROM Component Preinstall").Equals("1", StringComparison.OrdinalIgnoreCase))
         {
             if (string.IsNullOrEmpty(componentVersion.GetValue("ROM components")))
@@ -829,7 +833,7 @@ ORDER BY
                     version.Add("ROM components", version.GetValue("ROM components") + ", Binary");
                 }
             }
-            
+
             if (version.GetValue("ROM Component Preinstall").Equals("1", StringComparison.OrdinalIgnoreCase))
             {
                 if (string.IsNullOrEmpty(version.GetValue("ROM components")))
@@ -1431,7 +1435,7 @@ ORDER BY
                         root.Add(item, systemBoard[componentVersionId].GetValue(item));
                         continue;
                     }
-                    
+
                     if (chipSet.ContainsKey(systemBoard[componentVersionId].GetValue(item)))
                     {
                         root.Add("ChipSet Table", chipSet[systemBoard[componentVersionId].GetValue(item)]);
@@ -1530,7 +1534,21 @@ ORDER BY
 
     private static CommonDataModel DeleteProperty(CommonDataModel root)
     {
-        if (!string.Equals(root.GetValue("RequiredPrismSWType"), "True", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(root.GetValue("RequiredPrismSWType"), "True", StringComparison.OrdinalIgnoreCase)
+            || (root.GetValue("Packagings").Contains("Internal Tool")
+                && !root.GetValue("Packagings").Contains("Preinstall")
+                && !root.GetValue("Packagings").Contains("CD")
+                && !root.GetValue("Packagings").Contains("Softpaq")
+                && string.Equals(root.GetValue("Patch"), "0", StringComparison.OrdinalIgnoreCase))
+            || ((string.Equals(root.GetValue("Patch"), "1", StringComparison.OrdinalIgnoreCase)
+                 || root.GetValue("Packagings").Contains("Softpaq"))
+                && !root.GetValue("Packagings").Contains("Preinstall")
+                && !root.GetValue("Packagings").Contains("CD")
+                && !root.GetValue("Rom Components").Contains("Binary")
+                && !root.GetValue("Rom Components").Contains("ROM Component Preinstall"))
+            || (string.IsNullOrWhiteSpace(root.GetValue("SWPartNumber"))
+                || string.Equals(root.GetValue("SWPartNumber"), "N/A", StringComparison.OrdinalIgnoreCase))
+            || string.Equals(root.GetValue("HidePrism"),"True",StringComparison.OrdinalIgnoreCase))
         {
             root.Delete("Prism SW Type");
         }
@@ -1662,6 +1680,8 @@ ORDER BY
         root.Delete("FccRequired");
         root.Delete("RequiresTTS");
         root.Delete("Component Type");
+        root.Delete("Patch");
+        root.Delete("HidePrism");
 
         return root;
     }
