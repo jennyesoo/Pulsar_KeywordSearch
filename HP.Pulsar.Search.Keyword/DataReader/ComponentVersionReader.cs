@@ -268,7 +268,6 @@ public class ComponentVersionReader : IKeywordSearchDataReader
     Dv.TTS AS 'WWAN TTS Results',
     Dv.WWANTestSpecRev AS 'WWAN TTS Spec Rev',
     cate.TeamID,
-    Dv.SecondaryRFKill AS 'RF Kill Mechanism',
     Dv.FCCID AS 'FCC ID',
     Dv.Anatel,
     Dv.ICASA,
@@ -281,7 +280,11 @@ public class ComponentVersionReader : IKeywordSearchDataReader
     Case When cate.IrsCategoryId is null Then 'True'
              When cate.IrsCategoryId > 0 Then 'False'
              When cate.IrsCategoryId <= 0 Then 'True'
-        End AS IrsCategoryHidePrism
+        End AS IrsCategoryHidePrism,
+    Case When Dv.SecondaryRFKill is null Then '0 Hardware Pin (via SW)'
+        When Dv.SecondaryRFKill = 0 Then '1 Hardware Pin'
+        When Dv.SecondaryRFKill = 1 Then 'Discrete Hardware Pins'
+        End AS 'RF Kill Mechanism'
 
 FROM DeliverableVersion Dv
 LEFT JOIN ComponentPrismSWType CPSW ON CPSW.PRISMTypeID = Dv.PrismSWType
@@ -733,8 +736,8 @@ ORDER BY
         componentVersion.Delete("Control Panel");
         componentVersion.Delete("Info Center");
         componentVersion.Delete("Start Menu Tile");
-        componentVersion.Delete("Task Pinned Icon");
         componentVersion.Delete("SoftPaq In Preinstall");
+        componentVersion.Delete("Taskbar Pinned Icon");
 
         return componentVersion;
     }
@@ -1083,6 +1086,11 @@ ORDER BY
         }
 
         if (rootversion.GetValue("CD Types : ISO Image -An ISO image of a CD will be released").Equals("1", StringComparison.OrdinalIgnoreCase))
+        {
+            return Task.FromResult(1);
+        }
+
+        if (rootversion.GetValue("CD Types : Replicator Only -Only available from the Replicator").Equals("1", StringComparison.OrdinalIgnoreCase))
         {
             return Task.FromResult(1);
         }
@@ -1551,8 +1559,8 @@ ORDER BY
                 && !root.GetValue("Rom Components").Contains("ROM Component Preinstall"))
             || (string.IsNullOrWhiteSpace(root.GetValue("SWPartNumber"))
                 || string.Equals(root.GetValue("SWPartNumber"), "N/A", StringComparison.OrdinalIgnoreCase))
-            || string.Equals(root.GetValue("HidePrism"),"True",StringComparison.OrdinalIgnoreCase)
-            || string.Equals(root.GetValue("IrsCategoryHidePrism"),"True",StringComparison.OrdinalIgnoreCase))
+            || string.Equals(root.GetValue("HidePrism"), "True", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(root.GetValue("IrsCategoryHidePrism"), "True", StringComparison.OrdinalIgnoreCase))
         {
             root.Delete("Prism SW Type");
         }
@@ -1613,6 +1621,7 @@ ORDER BY
             root.Delete("Submission Path");
             root.Delete("Component Location - FileName");
             root.Delete("SW Part Number");
+            root.Delete("Visibility");
         }
 
         if (string.Equals(root.GetValue("Component Type"), "Firmware", StringComparison.OrdinalIgnoreCase)
