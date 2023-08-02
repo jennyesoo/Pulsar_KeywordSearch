@@ -20,11 +20,11 @@ namespace HP.Pulsar.Search.Keyword.Orchestrator
 
         public async Task UpdateAsync()
         {
-            await UpdateProductAsync(3124);
+            //await UpdateProductAsync(3124);
             //await UpdateProductDropAsync(1234);
             //await UpdateHpAMOPartNumberAsync(1234);
             //await UpdateFeatureAsync(1234);
-            //await UpdateVersionAsync(1234);
+            await UpdateVersionAsync(113087);
             //await UpdateRootAsync(12342);
             //await UpdateChangeRequestAsync(1234);
         }
