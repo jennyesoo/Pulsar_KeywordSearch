@@ -23,8 +23,17 @@ public class ComponentVersionReader : IKeywordSearchDataReader
             return null;
         }
 
+        List<Task> tasks = new()
+            {
+                FillSystemBoardAsync(componentVersion),
+                FillIsWorkflowCompletedAsync(componentVersion)
+            };
+
+        await Task.WhenAll(tasks);
+
         HandlePropertyValue(componentVersion);
         HandleDifferentPropertyNameBasedOnCategory(componentVersion);
+        DeleteProperty(componentVersion);
 
         return componentVersion;
     }
@@ -36,10 +45,14 @@ public class ComponentVersionReader : IKeywordSearchDataReader
         List<Task> tasks = new()
             {
                 HandlePropertyValuesAsync(componentVersions),
-                HandleDifferentPropertyNameBasedOnCategoryAsync(componentVersions)
+                HandleDifferentPropertyNameBasedOnCategoryAsync(componentVersions),
+                FillSystemBoardAsync(componentVersions),
+                FillIsWorkflowCompletedAsync(componentVersions)
             };
 
         await Task.WhenAll(tasks);
+
+        DeleteProperty(componentVersions);
 
         return componentVersions;
     }
@@ -159,12 +172,9 @@ public class ComponentVersionReader : IKeywordSearchDataReader
     Dv.PropertyTabs AS 'Property Tabs Added',
     Dv.Preinstall as 'Packaging Preinstall',
     Dv.DrDvd,
-    Dv.Scriptpaq as 'Softpaq', 
+    cv.Softpaq, 
     Dv.MsStore as 'Ms Store',
-    Dv.FloppyDisk as 'Internal Tool',
-    Dv.CDImage,
-    Dv.ISOImage,
-    Dv.AR,
+    cv.InternalTool as 'Internal Tool',
     Dv.IconDesktop as 'Desktop',
     Dv.IconMenu as 'Start Menu',
     Dv.IconTray as 'System Tray',
@@ -175,7 +185,7 @@ public class ComponentVersionReader : IKeywordSearchDataReader
     Dv.SettingFWML as 'FWML',
     Dv.SettingUWPCompliant as 'UWP Compliant',
     Dv.Active AS Visibility,
-    cts.Name AS 'Transfer Server',
+    cts.TransferPath AS 'Transfer Server',
     Dv.SubmissionPath as 'Submission Path',
     Dv.VendorVersion as 'Vendor Version',
     Dv.Comments,
@@ -208,7 +218,6 @@ public class ComponentVersionReader : IKeywordSearchDataReader
         WHEN root.TypeID = 8
             THEN 'Factory'
         END AS 'Component Type',
-    root.Softpaq As 'Rom Components Softpaq',
     CASE WHEN dv.IntroConfidence = 0 
             THEN ''
          WHEN dv.IntroConfidence = 1 
@@ -230,7 +239,50 @@ public class ComponentVersionReader : IKeywordSearchDataReader
     Dv.CVASubPath AS 'CVA Path',
     Dv.ServiceEOADate AS 'Service Team - Available Until Date',
     Dv.Path2Location As 'Component Location - FileName',
-    cv.FactoryEOADate AS 'Engineering Team - Available Until Date'
+    cv.FactoryEOADate AS 'Engineering Team - Available Until Date',
+    CASE WHEN Dv.BiosIntegrationType = 1 Then 'DPTF'
+        WHEN Dv.BiosIntegrationType = 2 Then 'HW'
+        WHEN Dv.BiosIntegrationType = 3 Then 'COMM'
+        WHEN Dv.BiosIntegrationType = 4 Then 'Thermal'
+        WHEN Dv.BiosIntegrationType = 5 Then 'Audio'
+        WHEN Dv.BiosIntegrationType = 6 Then 'Power'
+        WHEN Dv.BiosIntegrationType = 7 Then 'F10'
+        WHEN Dv.BiosIntegrationType is null Then ''
+        End AS 'This is for BIOS Integration',
+    DV.HFCN AS 'This is an HFCN release',
+    cate.Abbreviation,
+    cate.FccRequired,
+    cate.RequiredPrismSWType,
+    cv.CDFiles AS 'CD Types : CD Files - Files copied from a CD will be released',
+    Dv.IsoImage AS 'CD Types : ISO Image -An ISO image of a CD will be released',
+    Dv.Ar AS 'CD Types : Replicator Only - Only available from the Replicator',
+    cv.SWPartNumber,
+    Dv.FtpSitePath AS 'FTP Site',
+    Dv.Replicater AS 'CDs Replicated By',
+    Dv.CDKitNumber AS 'Kit Number',
+    Dv.CdPartNumber AS 'CD/DVD Part Number',
+    Dv.KoreanCertificationId,
+    Dv.KoreanCertificationRequired,
+    cate.RequiresTTS,
+    Dv.edid + ' MHZ' AS 'WWAN EDID',
+    Dv.TTS AS 'WWAN TTS Results',
+    Dv.WWANTestSpecRev AS 'WWAN TTS Spec Rev',
+    cate.TeamID,
+    Dv.SecondaryRFKill AS 'RF Kill Mechanism',
+    Dv.FCCID AS 'FCC ID',
+    Dv.Anatel,
+    Dv.ICASA,
+    Dv.Rompaq AS 'Rom Component Binary(Rompaq)',
+    Dv.Patch,
+    Case When Dv.TransferServerId > 0 Then 'True'
+            WHEN Dv.TransferServerId <= 0 Then 'False'
+            WHEN Dv.TransferServerId is null Then 'False'
+        End AS 'HidePrism',
+    Case When cate.IrsCategoryId is null Then 'True'
+             When cate.IrsCategoryId > 0 Then 'False'
+             When cate.IrsCategoryId <= 0 Then 'True'
+        End AS IrsCategoryHidePrism
+
 FROM DeliverableVersion Dv
 LEFT JOIN ComponentPrismSWType CPSW ON CPSW.PRISMTypeID = Dv.PrismSWType
 LEFT JOIN userinfo user1 ON user1.userid = Dv.DeveloperID
@@ -241,11 +293,117 @@ LEFT JOIN SWSetupCategory sws ON sws.ID = Dv.SWSetupCategoryID
 LEFT JOIN ComponentTransferServer cts ON cts.Id = Dv.TransferServerId
 LEFT JOIN GreenSpec gs ON gs.id = Dv.GreenSpecID
 LEFT JOIN DeliverableRoot root ON root.id = Dv.DeliverableRootID
-LEFT JOIN ComponentVersion cv ON cv.componentversionid = Dv.ID 
+LEFT JOIN ComponentVersion cv ON cv.componentversionid = Dv.ID
+LEFT JOIN componentCategory cate ON cate.CategoryId = root.categoryid
 WHERE (
         @ComponentVersionId = - 1
         OR Dv.ID = @ComponentVersionId
         )
+";
+    }
+
+    private static string GetSystemBoardCommandText()
+    {
+        return @"
+select Dv.ID As ComponentVersionID,
+    sysBoard.SystemBoard AS 'System Board',
+    sysBoard.ProductFamily AS 'Product Families (Intro Year)',
+    sysBoard.SystemId AS 'ROM System Board ID (Hex)',
+    V.VendorPartNumber AS 'Vendor Part Number',
+    V.MaxMemorySize + V.MaxMemorySizeUnit AS 'Maximum Memory Size',
+    V.CPUSpeed + V.CPUSpeedUnit As 'CPU Speed',
+    V.ReworkDescription AS 'Rework Description',
+    V.ID AS 'SBHardwareComponentId'
+from DeliverableVersion Dv 
+left join SBHardwareComponent V on V.DeliverableVersionId = Dv.ID
+left join PlatformAndSystemBoard sysBoard on sysBoard.SystemBoard = Dv.DeliverableName
+left join DeliverableRoot root on root.id = Dv.DeliverableRootID
+left JOIN componentCategory cate ON cate.CategoryId = root.categoryid
+where cate.Abbreviation = 'SBD'
+        AND (
+                @ComponentVersionId = - 1
+                OR Dv.ID = @ComponentVersionId
+                )
+order by sysBoard.SystemId desc
+";
+    }
+
+
+    private static string GetIsWorkflowCompletedCommandText()
+    {
+        return @"
+select  ws.ComponentVersionID,
+        Case When ws.StatusID = 3 Then 'true'
+        When ws.StatusID !=3 Then 'false'
+        End AS IsWorkFlowCompleted
+from ComponentVersionWorkflowStep ws
+where ws.MilestoneOrder = (select min(ws1.MilestoneOrder) 
+                            from ComponentVersionWorkflowStep ws1
+                            where ws1.ComponentVersionID = ws.ComponentVersionID)
+        AND (
+                @ComponentVersionId = - 1
+                OR ws.ComponentVersionID = @ComponentVersionId
+                )
+";
+    }
+
+    private static string GetChipSetTableCommandText()
+    {
+        return @"
+SELECT 
+    val.SBHardwareComponentId AS 'SBHardwareComponentId',
+    rows.Value AS Type,
+    cs.value AS ChipSet,
+    c.value AS Component,
+    s.value AS Step
+FROM
+    SBChipSetTable rows
+LEFT JOIN
+    (
+        SELECT *
+        FROM SB_ChipSetTable
+    ) val ON rows.ID = val.ChipSetTableId
+left join SBChipSetStep s on s.id = val.ChipSetStepId
+left join SBChipSetComponent c on c.id = val.ChipSetComponentId
+left join SBChipSet cs on cs.id = val.ChipSetId
+ORDER BY
+    rows.ID;
+";
+    }
+
+    private static string GetSBExpansionSlotCommandText()
+    {
+        return @"
+SELECT 
+    vals.SBHardwareComponentId,
+    code.Value AS Type,
+    vals.Quantity AS Quantity
+FROM
+    SBExpansionSlot code
+LEFT JOIN
+    SB_ExpansionSlot vals ON code.ID = vals.ExpansionSlotId 
+WHERE
+    code.Disabled IS NULL
+ORDER BY
+    code.Value;
+";
+    }
+
+    private static string GetSBConnectorCommandText()
+    {
+        return @"
+SELECT 
+    vals.SBHardwareComponentId,
+    code.Value AS Type,
+    vals.Quantity AS Quantity
+FROM
+    SBExpansionSlot code
+LEFT JOIN
+    SB_ExpansionSlot vals ON code.ID = vals.ExpansionSlotId 
+WHERE
+    code.Disabled IS NULL
+ORDER BY
+    code.Value;
 ";
     }
 
@@ -285,9 +443,19 @@ WHERE (
             {
                 componentVersion.Add("Packaging", componentVersion.GetValue("Packaging") + ", Softpaq");
             }
+
+            if (string.IsNullOrEmpty(componentVersion.GetValue("ROM components")))
+            {
+                componentVersion.Add("ROM components", "Softpaq");
+            }
+            else
+            {
+                componentVersion.Add("ROM components", componentVersion.GetValue("ROM components") + ", Softpaq");
+            }
         }
 
-        if (componentVersion.GetValue("Ms Store").Equals("True", StringComparison.OrdinalIgnoreCase))
+        if (componentVersion.GetValue("Ms Store").Equals("True", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(componentVersion.GetValue("Component Type"), "Software", StringComparison.OrdinalIgnoreCase))
         {
             if (string.IsNullOrEmpty(componentVersion.GetValue("Packaging")))
             {
@@ -323,6 +491,18 @@ WHERE (
             }
         }
 
+        if (componentVersion.GetValue("Rom Component Binary(Rompaq)").Equals("1", StringComparison.OrdinalIgnoreCase))
+        {
+            if (string.IsNullOrEmpty(componentVersion.GetValue("ROM components")))
+            {
+                componentVersion.Add("ROM components", "Binary");
+            }
+            else
+            {
+                componentVersion.Add("ROM components", componentVersion.GetValue("ROM components") + ", Binary");
+            }
+        }
+
         if (componentVersion.GetValue("ROM Component Preinstall").Equals("1", StringComparison.OrdinalIgnoreCase))
         {
             if (string.IsNullOrEmpty(componentVersion.GetValue("ROM components")))
@@ -332,18 +512,6 @@ WHERE (
             else
             {
                 componentVersion.Add("ROM components", componentVersion.GetValue("ROM components") + ", Preinstall");
-            }
-        }
-
-        if (componentVersion.GetValue("Rom Components Softpaq").Equals("1", StringComparison.OrdinalIgnoreCase))
-        {
-            if (string.IsNullOrEmpty(componentVersion.GetValue("ROM components")))
-            {
-                componentVersion.Add("ROM components", "Softpaq");
-            }
-            else
-            {
-                componentVersion.Add("ROM components", componentVersion.GetValue("ROM components") + ", Softpaq");
             }
         }
 
@@ -498,10 +666,57 @@ WHERE (
             {
                 componentVersion.Add("Packaging", componentVersion.GetValue("Packaging") + ", CD");
             }
+
+            if (componentVersion.GetValue("CD Types : CD Files - Files copied from a CD will be released").Equals("1", StringComparison.OrdinalIgnoreCase))
+            {
+                componentVersion.Add("CD Types : CD Files - Files copied from a CD will be released", "CD Types : CD Files - Files copied from a CD will be released");
+            }
+            else
+            {
+                componentVersion.Delete("CD Types : CD Files - Files copied from a CD will be released");
+            }
+
+            if (componentVersion.GetValue("CD Types : Replicator Only - Only available from the Replicator").Equals("1", StringComparison.OrdinalIgnoreCase))
+            {
+                componentVersion.Add("CD Types : Replicator Only - Only available from the Replicator", "CD Types : Replicator Only - Only available from the Replicator");
+            }
+            else
+            {
+                componentVersion.Delete("CD Types : Replicator Only - Only available from the Replicator");
+            }
+
+            if (componentVersion.GetValue("CD Types : ISO Image -An ISO image of a CD will be released").Equals("1", StringComparison.OrdinalIgnoreCase))
+            {
+                componentVersion.Add("CD Types : ISO Image -An ISO image of a CD will be released", "CD Types : ISO Image -An ISO image of a CD will be released");
+            }
+            else
+            {
+                componentVersion.Delete("CD Types : ISO Image -An ISO image of a CD will be released");
+            }
+
+            componentVersion.Delete("Prism SW Type");
+
         }
-        componentVersion.Delete("CDImage");
-        componentVersion.Delete("ISOImage");
-        componentVersion.Delete("AR");
+        else
+        {
+            componentVersion.Delete("CD Types : CD Files - Files copied from a CD will be released");
+            componentVersion.Delete("CD Types : Replicator Only - Only available from the Replicator");
+            componentVersion.Delete("CD Types : ISO Image -An ISO image of a CD will be released");
+            componentVersion.Delete("FTP Site");
+            componentVersion.Delete("Kit Number");
+            componentVersion.Delete("CD/DVD Part Number");
+        }
+
+        if (componentVersion.GetValue("This is an HFCN release").Equals("True", StringComparison.OrdinalIgnoreCase))
+        {
+            componentVersion.Add("This is an HFCN release", "This is an HFCN release");
+        }
+        else
+        {
+            componentVersion.Delete("This is an HFCN release");
+        }
+
+        componentVersion.Delete("Rom Component Binary(Rompaq)");
         componentVersion.Delete("Packaging Preinstall");
         componentVersion.Delete("DrDvd");
         componentVersion.Delete("Softpaq");
@@ -520,7 +735,7 @@ WHERE (
         componentVersion.Delete("Start Menu Tile");
         componentVersion.Delete("Task Pinned Icon");
         componentVersion.Delete("SoftPaq In Preinstall");
-        componentVersion.Delete("Rom Components Softpaq");
+
         return componentVersion;
     }
 
@@ -562,9 +777,19 @@ WHERE (
                 {
                     version.Add("Packaging", version.GetValue("Packaging") + ", Softpaq");
                 }
+
+                if (string.IsNullOrEmpty(version.GetValue("ROM components")))
+                {
+                    version.Add("ROM components", "Softpaq");
+                }
+                else
+                {
+                    version.Add("ROM components", version.GetValue("ROM components") + ", Softpaq");
+                }
             }
 
-            if (version.GetValue("Ms Store").Equals("True", StringComparison.OrdinalIgnoreCase))
+            if (version.GetValue("Ms Store").Equals("True", StringComparison.OrdinalIgnoreCase)
+                && string.Equals(version.GetValue("Component Type"), "Software", StringComparison.OrdinalIgnoreCase))
             {
                 if (string.IsNullOrEmpty(version.GetValue("Packaging")))
                 {
@@ -600,6 +825,18 @@ WHERE (
                 }
             }
 
+            if (version.GetValue("Rom Component Binary(Rompaq)").Equals("1", StringComparison.OrdinalIgnoreCase))
+            {
+                if (string.IsNullOrEmpty(version.GetValue("ROM components")))
+                {
+                    version.Add("ROM components", "Binary");
+                }
+                else
+                {
+                    version.Add("ROM components", version.GetValue("ROM components") + ", Binary");
+                }
+            }
+
             if (version.GetValue("ROM Component Preinstall").Equals("1", StringComparison.OrdinalIgnoreCase))
             {
                 if (string.IsNullOrEmpty(version.GetValue("ROM components")))
@@ -621,18 +858,6 @@ WHERE (
                 else
                 {
                     version.Add("ROM components", version.GetValue("ROM components") + ", CAB");
-                }
-            }
-
-            if (version.GetValue("Rom Components Softpaq").Equals("1", StringComparison.OrdinalIgnoreCase))
-            {
-                if (string.IsNullOrEmpty(version.GetValue("ROM components")))
-                {
-                    version.Add("ROM components", "Softpaq");
-                }
-                else
-                {
-                    version.Add("ROM components", version.GetValue("ROM components") + ", Softpaq");
                 }
             }
 
@@ -775,10 +1000,58 @@ WHERE (
                 {
                     version.Add("Packaging", version.GetValue("Packaging") + ", CD");
                 }
+
+                if (version.GetValue("CD Types : CD Files - Files copied from a CD will be released").Equals("1", StringComparison.OrdinalIgnoreCase))
+                {
+                    version.Add("CD Types : CD Files - Files copied from a CD will be released", "CD Types : CD Files - Files copied from a CD will be released");
+                }
+                else
+                {
+                    version.Delete("CD Types : CD Files - Files copied from a CD will be released");
+                }
+
+                if (version.GetValue("CD Types : Replicator Only - Only available from the Replicator").Equals("1", StringComparison.OrdinalIgnoreCase))
+                {
+                    version.Add("CD Types : Replicator Only - Only available from the Replicator", "CD Types : Replicator Only - Only available from the Replicator");
+                }
+                else
+                {
+                    version.Delete("CD Types : Replicator Only - Only available from the Replicator");
+                }
+
+                if (version.GetValue("CD Types : ISO Image -An ISO image of a CD will be released").Equals("1", StringComparison.OrdinalIgnoreCase))
+                {
+                    version.Add("CD Types : ISO Image -An ISO image of a CD will be released", "CD Types : ISO Image -An ISO image of a CD will be released");
+                }
+                else
+                {
+                    version.Delete("CD Types : ISO Image -An ISO image of a CD will be released");
+                }
+
+                version.Delete("Prism SW Type");
+
             }
-            version.Delete("CDImage");
-            version.Delete("ISOImage");
-            version.Delete("AR");
+            else
+            {
+                version.Delete("CD Types : CD Files - Files copied from a CD will be released");
+                version.Delete("CD Types : Replicator Only - Only available from the Replicator");
+                version.Delete("CD Types : ISO Image -An ISO image of a CD will be released");
+                version.Delete("FTP Site");
+                version.Delete("Kit Number");
+                version.Delete("CD/DVD Part Number");
+                version.Delete("Component Location - FileName");
+            }
+
+            if (version.GetValue("This is an HFCN release").Equals("True", StringComparison.OrdinalIgnoreCase))
+            {
+                version.Add("This is an HFCN release", "This is an HFCN release");
+            }
+            else
+            {
+                version.Delete("This is an HFCN release");
+            }
+
+            version.Delete("Rom Component Binary(Rompaq)");
             version.Delete("Packaging Preinstall");
             version.Delete("DrDvd");
             version.Delete("Softpaq");
@@ -797,7 +1070,6 @@ WHERE (
             version.Delete("Start Menu Tile");
             version.Delete("Taskbar Pinned Icon");
             version.Delete("SoftPaq In Preinstall");
-            version.Delete("Rom Components Softpaq");
         }
 
         return Task.CompletedTask;
@@ -805,17 +1077,12 @@ WHERE (
 
     private static Task<int> GetCdAsync(CommonDataModel rootversion)
     {
-        if (rootversion.GetValue("CDImage").Equals("1", StringComparison.OrdinalIgnoreCase))
+        if (rootversion.GetValue("CD Types : CD Files - Files copied from a CD will be released").Equals("1", StringComparison.OrdinalIgnoreCase))
         {
             return Task.FromResult(1);
         }
 
-        if (rootversion.GetValue("ISOImage").Equals("1", StringComparison.OrdinalIgnoreCase))
-        {
-            return Task.FromResult(1);
-        }
-
-        if (rootversion.GetValue("AR").Equals("1", StringComparison.OrdinalIgnoreCase))
+        if (rootversion.GetValue("CD Types : ISO Image -An ISO image of a CD will be released").Equals("1", StringComparison.OrdinalIgnoreCase))
         {
             return Task.FromResult(1);
         }
@@ -894,5 +1161,534 @@ WHERE (
         }
 
         return Task.CompletedTask;
+    }
+
+    private async Task<Dictionary<string, string>> GetSBConnectorSlotAsync()
+    {
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetSBConnectorCommandText(), connection);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<string, string> connector = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (string.IsNullOrWhiteSpace(reader["SBHardwareComponentId"].ToString())
+                || string.Equals(reader["Quantity"].ToString(), "0", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            string rowResult = string.Empty;
+
+            if (!string.IsNullOrWhiteSpace(reader["Type"].ToString()))
+            {
+                rowResult += "Type : " + reader["Type"].ToString() + " ";
+            }
+
+            if (!string.IsNullOrWhiteSpace(reader["Quantity"].ToString()))
+            {
+                rowResult += "Quantity : " + reader["Quantity"].ToString() + " ";
+            }
+
+            if (!connector.ContainsKey(reader["SBHardwareComponentId"].ToString()))
+            {
+                connector[reader["SBHardwareComponentId"].ToString()] = rowResult.Trim();
+            }
+            else
+            {
+                connector[reader["SBHardwareComponentId"].ToString()] += " , " + rowResult.Trim();
+            }
+        }
+
+        return connector;
+    }
+
+    private async Task<Dictionary<string, string>> GetSBExpansionSlotAsync()
+    {
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetSBExpansionSlotCommandText(), connection);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<string, string> expansionSlot = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (string.IsNullOrWhiteSpace(reader["SBHardwareComponentId"].ToString())
+                || string.Equals(reader["Quantity"].ToString(), "0", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            string rowResult = string.Empty;
+
+            if (!string.IsNullOrWhiteSpace(reader["Type"].ToString()))
+            {
+                rowResult += "Type : " + reader["Type"].ToString() + " ";
+            }
+
+            if (!string.IsNullOrWhiteSpace(reader["Quantity"].ToString()))
+            {
+                rowResult += "Quantity : " + reader["Quantity"].ToString() + " ";
+            }
+
+            if (!expansionSlot.ContainsKey(reader["SBHardwareComponentId"].ToString()))
+            {
+                expansionSlot[reader["SBHardwareComponentId"].ToString()] = rowResult.Trim();
+            }
+            else
+            {
+                expansionSlot[reader["SBHardwareComponentId"].ToString()] += " , " + rowResult.Trim();
+            }
+        }
+
+        return expansionSlot;
+    }
+
+    private async Task<Dictionary<string, string>> GetChipSetTableAsync()
+    {
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetChipSetTableCommandText(), connection);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<string, string> chipSet = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (string.IsNullOrWhiteSpace(reader["SBHardwareComponentId"].ToString()))
+            {
+                continue;
+            }
+
+            string rowResult = string.Empty;
+
+            if (!string.IsNullOrWhiteSpace(reader["Type"].ToString()))
+            {
+                rowResult += "Type : " + reader["Type"].ToString() + " ";
+            }
+
+            if (!string.IsNullOrWhiteSpace(reader["ChipSet"].ToString()))
+            {
+                rowResult += "ChipSet : " + reader["ChipSet"].ToString() + " ";
+            }
+
+            if (!string.IsNullOrWhiteSpace(reader["Component"].ToString()))
+            {
+                rowResult += "Component : " + reader["Component"].ToString() + " ";
+            }
+
+            if (!string.IsNullOrWhiteSpace(reader["Step"].ToString()))
+            {
+                rowResult += "Step : " + reader["Step"].ToString() + " ";
+            }
+
+            if (!chipSet.ContainsKey(reader["SBHardwareComponentId"].ToString()))
+            {
+                chipSet[reader["SBHardwareComponentId"].ToString()] = rowResult.Trim();
+            }
+            else
+            {
+                chipSet[reader["SBHardwareComponentId"].ToString()] += " , " + rowResult.Trim();
+            }
+        }
+
+        return chipSet;
+    }
+
+    private async Task FillSystemBoardAsync(CommonDataModel root)
+    {
+        if (!int.TryParse(root.GetValue("Component Version Id"), out int componentVersionId))
+        {
+            return;
+        }
+
+        Dictionary<string, string> chipSet = await GetChipSetTableAsync();
+        Dictionary<string, string> expansionSlot = await GetSBExpansionSlotAsync();
+        Dictionary<string, string> connector = await GetSBConnectorSlotAsync();
+
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetSystemBoardCommandText(), connection);
+        SqlParameter parameter = new("ComponentVersionId", componentVersionId);
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, CommonDataModel> systemBoard = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["ComponentVersionId"].ToString(), out int dbComponentVersionId))
+            {
+                continue;
+            }
+
+            CommonDataModel item = new();
+            int fieldCount = reader.FieldCount;
+
+            for (int i = 0; i < fieldCount; i++)
+            {
+                if (await reader.IsDBNullAsync(i))
+                {
+                    continue;
+                }
+
+                string columnName = reader.GetName(i);
+                string value = reader[i].ToString().Trim();
+
+                if (string.IsNullOrWhiteSpace(value)
+                    || string.Equals(value, "None"))
+                {
+                    continue;
+                }
+
+                item.Add(columnName, value);
+            }
+
+            if (!systemBoard.ContainsKey(dbComponentVersionId))
+            {
+                systemBoard[dbComponentVersionId] = item;
+            }
+        }
+
+        if (systemBoard.ContainsKey(componentVersionId))
+        {
+            foreach (string item in systemBoard[componentVersionId].GetKeys())
+            {
+                if (!string.Equals(item, "SBHardwareComponentId", StringComparison.OrdinalIgnoreCase))
+                {
+                    root.Add(item, systemBoard[componentVersionId].GetValue(item));
+                    continue;
+                }
+
+                if (chipSet.ContainsKey(systemBoard[componentVersionId].GetValue(item)))
+                {
+                    root.Add("ChipSet Table", chipSet[systemBoard[componentVersionId].GetValue(item)]);
+                }
+
+                if (expansionSlot.ContainsKey(systemBoard[componentVersionId].GetValue(item)))
+                {
+                    root.Add("Expansion Slot", expansionSlot[systemBoard[componentVersionId].GetValue(item)]);
+                }
+
+                if (connector.ContainsKey(systemBoard[componentVersionId].GetValue(item)))
+                {
+                    root.Add("Connector", expansionSlot[systemBoard[componentVersionId].GetValue(item)]);
+                }
+            }
+        }
+    }
+
+    private async Task FillSystemBoardAsync(IEnumerable<CommonDataModel> roots)
+    {
+        Dictionary<string, string> chipSet = await GetChipSetTableAsync();
+        Dictionary<string, string> expansionSlot = await GetSBExpansionSlotAsync();
+        Dictionary<string, string> connector = await GetSBConnectorSlotAsync();
+
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetSystemBoardCommandText(), connection);
+        SqlParameter parameter = new("ComponentVersionId", "-1");
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, CommonDataModel> systemBoard = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["ComponentVersionId"].ToString(), out int componentVersionId))
+            {
+                continue;
+            }
+
+            CommonDataModel item = new();
+            int fieldCount = reader.FieldCount;
+
+            for (int i = 0; i < fieldCount; i++)
+            {
+                if (await reader.IsDBNullAsync(i))
+                {
+                    continue;
+                }
+
+                string columnName = reader.GetName(i);
+                string value = reader[i].ToString().Trim();
+
+                if (string.IsNullOrWhiteSpace(value)
+                    || string.Equals(value, "None"))
+                {
+                    continue;
+                }
+
+                item.Add(columnName, value);
+            }
+
+            if (!systemBoard.ContainsKey(componentVersionId))
+            {
+                systemBoard[componentVersionId] = item;
+            }
+        }
+
+        foreach (CommonDataModel root in roots)
+        {
+            if (int.TryParse(root.GetValue("Component Version Id"), out int componentVersionId)
+              && systemBoard.ContainsKey(componentVersionId))
+            {
+                foreach (string item in systemBoard[componentVersionId].GetKeys())
+                {
+                    if (!string.Equals(item, "SBHardwareComponentId", StringComparison.OrdinalIgnoreCase))
+                    {
+                        root.Add(item, systemBoard[componentVersionId].GetValue(item));
+                        continue;
+                    }
+
+                    if (chipSet.ContainsKey(systemBoard[componentVersionId].GetValue(item)))
+                    {
+                        root.Add("ChipSet Table", chipSet[systemBoard[componentVersionId].GetValue(item)]);
+                    }
+
+                    if (expansionSlot.ContainsKey(systemBoard[componentVersionId].GetValue(item)))
+                    {
+                        root.Add("Expansion Slot", expansionSlot[systemBoard[componentVersionId].GetValue(item)]);
+                    }
+
+                    if (connector.ContainsKey(systemBoard[componentVersionId].GetValue(item)))
+                    {
+                        root.Add("Connector", expansionSlot[systemBoard[componentVersionId].GetValue(item)]);
+                    }
+                }
+            }
+        }
+    }
+
+    private async Task FillIsWorkflowCompletedAsync(CommonDataModel root)
+    {
+        if (!int.TryParse(root.GetValue("Component Version Id"), out int componentVersionId))
+        {
+            return;
+        }
+
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetIsWorkflowCompletedCommandText(), connection);
+        SqlParameter parameter = new("ComponentVersionId", componentVersionId);
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, string> isWorkflowCompleted = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["ComponentVersionId"].ToString(), out int dbComponentVersionId))
+            {
+                continue;
+            }
+
+            if (!isWorkflowCompleted.ContainsKey(dbComponentVersionId))
+            {
+                isWorkflowCompleted[dbComponentVersionId] = reader["IsWorkflowCompleted"].ToString();
+            }
+        }
+
+        if (isWorkflowCompleted.ContainsKey(componentVersionId))
+        {
+            root.Add("IsWorkflowCompleted", isWorkflowCompleted[componentVersionId]);
+        }
+    }
+
+    private async Task FillIsWorkflowCompletedAsync(IEnumerable<CommonDataModel> roots)
+    {
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetIsWorkflowCompletedCommandText(), connection);
+        SqlParameter parameter = new("ComponentVersionId", "-1");
+        command.Parameters.Add(parameter);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, string> isWorkflowCompleted = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["ComponentVersionId"].ToString(), out int componentVersionId))
+            {
+                continue;
+            }
+
+            if (!isWorkflowCompleted.ContainsKey(componentVersionId))
+            {
+                isWorkflowCompleted[componentVersionId] = reader["IsWorkflowCompleted"].ToString();
+            }
+        }
+
+        foreach (CommonDataModel root in roots)
+        {
+            if (int.TryParse(root.GetValue("Component Version Id"), out int componentVersionId)
+              && isWorkflowCompleted.ContainsKey(componentVersionId))
+            {
+                root.Add("IsWorkflowCompleted", isWorkflowCompleted[componentVersionId]);
+            }
+        }
+    }
+
+    private static IEnumerable<CommonDataModel> DeleteProperty(IEnumerable<CommonDataModel> roots)
+    {
+        foreach (CommonDataModel root in roots)
+        {
+            DeleteProperty(root);
+        }
+
+        return roots;
+    }
+
+    private static CommonDataModel DeleteProperty(CommonDataModel root)
+    {
+        if (!string.Equals(root.GetValue("RequiredPrismSWType"), "True", StringComparison.OrdinalIgnoreCase)
+            || (root.GetValue("Packagings").Contains("Internal Tool")
+                && !root.GetValue("Packagings").Contains("Preinstall")
+                && !root.GetValue("Packagings").Contains("CD")
+                && !root.GetValue("Packagings").Contains("Softpaq")
+                && string.Equals(root.GetValue("Patch"), "0", StringComparison.OrdinalIgnoreCase))
+            || ((string.Equals(root.GetValue("Patch"), "1", StringComparison.OrdinalIgnoreCase)
+                 || root.GetValue("Packagings").Contains("Softpaq"))
+                && !root.GetValue("Packagings").Contains("Preinstall")
+                && !root.GetValue("Packagings").Contains("CD")
+                && !root.GetValue("Rom Components").Contains("Binary")
+                && !root.GetValue("Rom Components").Contains("ROM Component Preinstall"))
+            || (string.IsNullOrWhiteSpace(root.GetValue("SWPartNumber"))
+                || string.Equals(root.GetValue("SWPartNumber"), "N/A", StringComparison.OrdinalIgnoreCase))
+            || string.Equals(root.GetValue("HidePrism"),"True",StringComparison.OrdinalIgnoreCase)
+            || string.Equals(root.GetValue("IrsCategoryHidePrism"),"True",StringComparison.OrdinalIgnoreCase))
+        {
+            root.Delete("Prism SW Type");
+        }
+
+        if (!string.Equals(root.GetValue("Component Type"), "Firmware", StringComparison.OrdinalIgnoreCase))
+        {
+            root.Delete("ROM Components");
+        }
+
+        if (!root.GetValue("CD Types : Replicator Only - Only available from the Replicator").Equals("CD Types : Replicator Only - Only available from the Replicator", StringComparison.OrdinalIgnoreCase)
+            && !root.GetValue("CD Types : ISO Image -An ISO image of a CD will be released").Equals("CD Types : ISO Image -An ISO image of a CD will be released", StringComparison.OrdinalIgnoreCase))
+        {
+            root.Delete("CDs Replicated By");
+        }
+
+        if (!root.GetValue("CD Types : Replicator Only - Only available from the Replicator").Equals("CD Types : Replicator Only - Only available from the Replicator", StringComparison.OrdinalIgnoreCase)
+            && !root.GetValue("CD Types : ISO Image -An ISO image of a CD will be released").Equals("CD Types : ISO Image -An ISO image of a CD will be released", StringComparison.OrdinalIgnoreCase)
+            && !root.GetValue("CD Types : CD Files - Files copied from a CD will be released").Equals("CD Types : CD Files - Files copied from a CD will be released", StringComparison.OrdinalIgnoreCase))
+        {
+            root.Delete("FTP Site");
+            root.Delete("Kit Number");
+            root.Delete("CD/DVD Part Number");
+        }
+
+        if (root.GetValue("Packagings").Contains("Internal Tool"))
+        {
+            root.Delete("Touch Points");
+            root.Delete("Other Setting");
+        }
+
+        if (!string.Equals(root.GetValue("Component Type"), "Hardware", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(root.GetValue("Category"), "PCA Setting", StringComparison.OrdinalIgnoreCase))
+        {
+            root.Delete("This is for BIOS Integration");
+        }
+
+        if (!string.Equals(root.GetValue("Component Type"), "Hardware", StringComparison.OrdinalIgnoreCase))
+        {
+            root.Delete("This is an HFCN release");
+            root.Delete("Samples Available");
+            root.Delete("Samples Confidence");
+            root.Delete("End Of Life Date");
+            root.Delete("Service Team - Available Until Date");
+            root.Delete("Engineering Team - Available Until Date");
+            root.Delete("Code Name");
+            root.Delete("HP Part Number");
+            root.Delete("Model Number");
+            root.Delete("Green Spec Level");
+        }
+        else
+        {
+            root.Delete("Recovery Option");
+            root.Delete("MD5");
+            root.Delete("Property Tabs Added");
+            root.Delete("Touch Points");
+            root.Delete("Other Setting");
+            root.Delete("Transfer Server");
+            root.Delete("Submission Path");
+            root.Delete("Component Location - FileName");
+            root.Delete("SW Part Number");
+        }
+
+        if (string.Equals(root.GetValue("Component Type"), "Firmware", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(root.GetValue("Abbreviation"), "SBD", StringComparison.OrdinalIgnoreCase))
+        {
+            root.Delete("Revision");
+        }
+
+        if (string.Equals(root.GetValue("Abbreviation"), "SBD", StringComparison.OrdinalIgnoreCase))
+        {
+            root.Delete("Pass");
+            root.Delete("Build Level");
+            root.Delete("Vendor Version");
+        }
+
+        if (!string.Equals(root.GetValue("Component Type"), "Software", StringComparison.OrdinalIgnoreCase))
+        {
+            root.Delete("SHA256");
+        }
+
+        if (!string.Equals(root.GetValue("Component Type"), "Software", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(root.GetValue("Component Type"), "Documentation", StringComparison.OrdinalIgnoreCase))
+        {
+            root.Delete("Packaging");
+        }
+
+        if (!string.IsNullOrEmpty(root.GetValue("SWPartNumber"))
+           && !string.Equals(root.GetValue("SWPartNumber"), "Pending...", StringComparison.OrdinalIgnoreCase)
+           && !string.Equals(root.GetValue("SWPartNumber"), "N/A", StringComparison.OrdinalIgnoreCase)
+           && !string.Equals(root.GetValue("FccRequired"), "False", StringComparison.OrdinalIgnoreCase)
+           && !string.Equals(root.GetValue("IsWorkflowCompleted"), "True", StringComparison.OrdinalIgnoreCase))
+        {
+            root.Delete("CD Types : Replicator Only -Only available from the Replicator");
+            root.Delete("CD Types : ISO Image -An ISO image of a CD will be released");
+            root.Delete("CD Types : CD Files - Files copied from a CD will be released");
+            root.Delete("FTP Site");
+            root.Delete("Component Location - FileName");
+        }
+        else if (root.GetValue("Packagings").Contains("CD"))
+        {
+            root.Delete("CVA Path");
+        }
+
+        if (!string.Equals(root.GetValue("KoreanCertificationRequired"), "True", StringComparison.OrdinalIgnoreCase))
+        {
+            root.Delete("KoreanCertificationId");
+        }
+
+        if (!string.Equals(root.GetValue("RequiresTts"), "True", StringComparison.OrdinalIgnoreCase))
+        {
+            root.Delete("WWAN EDID");
+            root.Delete("WWAN TTS Results");
+            root.Delete("WWAN TTS Spec Rev");
+        }
+
+        if (!string.Equals(root.GetValue("TeamID"), "3", StringComparison.OrdinalIgnoreCase))
+        {
+            root.Delete("FCC ID");
+            root.Delete("Anatel");
+            root.Delete("ICASA");
+            root.Delete("RF Kill Mechanism");
+        }
+
+        root.Delete("TeamID");
+        root.Delete("Abbreviation");
+        root.Delete("SWPartNumber");
+        root.Delete("IsWorkflowCompleted");
+        root.Delete("KoreanCertificationRequired");
+        root.Delete("FccRequired");
+        root.Delete("RequiresTTS");
+        root.Delete("Component Type");
+        root.Delete("Patch");
+        root.Delete("HidePrism");
+        root.Delete("IrsCategoryHidePrism");
+        root.Delete("RequiredPrismSWType");
+
+        return root;
     }
 }

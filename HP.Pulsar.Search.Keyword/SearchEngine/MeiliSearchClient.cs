@@ -47,6 +47,7 @@ internal class MeiliSearchClient
         await SendUpdatePaginationAsync();
         await SendElementsCreationAsync(allDocuments);
         await UpdateSearchableAttributesAsync(allProperty);
+        await UpdateDisplayedAttributesAsync(allProperty);
     }
 
     /// <summary>
@@ -143,6 +144,28 @@ internal class MeiliSearchClient
         };
 
         await _client.Index(_indexName).UpdatePaginationAsync(pagination);
+    }
+
+    /// <summary>
+    /// This method is only for sending signal to meilisearch to update search-able attributes.
+    /// When this method completes, it doesn't mean the attributes has been updated in meilisearch.
+    /// </summary>
+    /// <param name="displayedAttributes"></param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentException"></exception>
+    public async Task UpdateDisplayedAttributesAsync(IEnumerable<string> displayedAttributes)
+    {
+        if (displayedAttributes == null)
+        {
+            throw new ArgumentNullException(nameof(displayedAttributes));
+        }
+
+        if (displayedAttributes?.Any() != true)
+        {
+            return;
+        }
+
+        await _client.Index(_indexName).UpdateDisplayedAttributesAsync(displayedAttributes);
     }
 
     /// <summary>
