@@ -264,7 +264,10 @@ public class ComponentVersionReader : IKeywordSearchDataReader
     Dv.KoreanCertificationId,
     Dv.KoreanCertificationRequired,
     cate.RequiresTTS,
-    Dv.edid + ' MHZ' AS 'WWAN EDID',
+    Case when Dv.edid is null Then Dv.edid 
+         When Dv.edid = '' Then Dv.edid 
+         When Dv.edid is not null Then (Dv.edid + ' MHZ')
+    END AS 'WWAN EDID',
     Dv.TTS AS 'WWAN TTS Results',
     Dv.WWANTestSpecRev AS 'WWAN TTS Spec Rev',
     cate.TeamID,
