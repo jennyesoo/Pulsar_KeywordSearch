@@ -31,6 +31,6 @@ internal class ProductOrchestrator : IInitializationOrchestrator
 
         // write to meiliesearch
         MeiliSearchClient writer = new(_keywordSearchInfo.SearchEngineUrl, IndexName.Product);
-        await writer.InitializeIndexCreationStepsAsync(products, elementKeyContainer.Get());
+        await writer.InitializeIndexCreationStepsAsync(products, elementKeyContainer.Get(), 500);
     }
 }

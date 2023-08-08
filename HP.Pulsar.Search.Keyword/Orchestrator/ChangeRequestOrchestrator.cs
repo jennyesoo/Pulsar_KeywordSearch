@@ -31,6 +31,6 @@ internal class ChangeRequestOrchestrator : IInitializationOrchestrator
 
         // write to meiliesearch
         MeiliSearchClient writer = new(_keywordSearchInfo.SearchEngineUrl, IndexName.Dcr);
-        await writer.InitializeIndexCreationStepsAsync(changeRequests, elementKeyContainer.Get());
+        await writer.InitializeIndexCreationStepsAsync(changeRequests, elementKeyContainer.Get(), 10000);
     }
 }

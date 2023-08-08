@@ -31,6 +31,6 @@ internal class ComponentVersionOrchestrator : IInitializationOrchestrator
 
         // write to meiliesearch
         MeiliSearchClient writer = new(_keywordSearchInfo.SearchEngineUrl, IndexName.ComponentVersion);
-        await writer.InitializeIndexCreationStepsAsync(versions, elementKeyContainer.Get());
+        await writer.InitializeIndexCreationStepsAsync(versions, elementKeyContainer.Get(), 8000);
     }
 }

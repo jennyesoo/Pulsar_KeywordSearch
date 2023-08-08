@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Text;
 using System.Text.Json;
 using HP.Pulsar.Search.Keyword.CommonDataStructure;
@@ -39,13 +40,13 @@ internal class MeiliSearchClient
     /// </summary>
     /// <returns></returns>
     /// <exception cref="ArgumentException"></exception>
-    public async Task InitializeIndexCreationStepsAsync(IEnumerable<CommonDataModel> allDocuments, IReadOnlyCollection<string> allProperty)
+    public async Task InitializeIndexCreationStepsAsync(IEnumerable<CommonDataModel> allDocuments, IReadOnlyCollection<string> allProperty, int num)
     {
         await SendIndexDeletionAsync();
         await SendIndexCreationAsync();
         await SendUpdateSettingAsync();
         await SendUpdatePaginationAsync();
-        await SendElementsCreationAsync(allDocuments);
+        await SendElementsCreationAsync(allDocuments, num);
         await UpdateSearchableAttributesAsync(allProperty);
         await UpdateDisplayedAttributesAsync(allProperty);
     }
@@ -78,7 +79,7 @@ internal class MeiliSearchClient
     /// </summary>
     /// <param name="elements"></param>
     /// <exception cref="ArgumentException"></exception>
-    public async Task SendElementsCreationAsync(IEnumerable<CommonDataModel> elements)
+    public async Task SendElementsCreationAsync(IEnumerable<CommonDataModel> elements, int num)
     {
         if (elements?.Any() != true)
         {
@@ -91,7 +92,33 @@ internal class MeiliSearchClient
         {
             pairs.Add(product.GetElements());
         }
-        await index.AddDocumentsAsync(pairs);
+
+        if (pairs.Count > num)
+        {
+            for (int i = 0; i <= (pairs.Count) / num; i++)
+            {
+                Console.WriteLine("First: " + num * i);
+                Console.WriteLine("Final: " + (num * i + num));
+                //Console.WriteLine("(pairs.Count) / num): " + (pairs.Count) / num);
+                //Console.WriteLine("pairs.Count - num * i: " + (pairs.Count - num * i));
+                //Console.WriteLine("i: " + i);
+                //Console.WriteLine("-----------------------");
+
+                if (i.Equals((pairs.Count) / num))
+                {
+                    await index.AddDocumentsAsync(pairs.GetRange(num * i, (pairs.Count - num * i)));
+                }
+                else
+                {
+                    await index.AddDocumentsAsync(pairs.GetRange(num * i, num));
+                    //Console.WriteLine("-----------------------");
+                }
+            }
+        }
+        else
+        {
+            await index.AddDocumentsAsync(pairs);
+        }
     }
 
     /// <summary>

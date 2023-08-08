@@ -31,6 +31,6 @@ internal class HpAMOPartNumberOrchestrator : IInitializationOrchestrator
 
         // write to meiliesearch
         MeiliSearchClient writer = new(_keywordSearchInfo.SearchEngineUrl, IndexName.AmoPartNumber);
-        await writer.InitializeIndexCreationStepsAsync(hpAMOPartNumber, elementKeyContainer.Get());
+        await writer.InitializeIndexCreationStepsAsync(hpAMOPartNumber, elementKeyContainer.Get(), 10000);
     }
 }
