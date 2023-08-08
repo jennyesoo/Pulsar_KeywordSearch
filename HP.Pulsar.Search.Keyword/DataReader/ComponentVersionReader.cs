@@ -26,7 +26,9 @@ public class ComponentVersionReader : IKeywordSearchDataReader
         List<Task> tasks = new()
             {
                 FillSystemBoardAsync(componentVersion),
-                FillIsWorkflowCompletedAsync(componentVersion)
+                FillIsWorkflowCompletedAsync(componentVersion),
+                FillOBConnectorAsync(componentVersion),
+                FillOBExpansionSlotAsync(componentVersion)
             };
 
         await Task.WhenAll(tasks);
@@ -47,7 +49,9 @@ public class ComponentVersionReader : IKeywordSearchDataReader
                 HandlePropertyValuesAsync(componentVersions),
                 HandleDifferentPropertyNameBasedOnCategoryAsync(componentVersions),
                 FillSystemBoardAsync(componentVersions),
-                FillIsWorkflowCompletedAsync(componentVersions)
+                FillIsWorkflowCompletedAsync(componentVersions),
+                FillOBConnectorAsync(componentVersions),
+                FillOBExpansionSlotAsync(componentVersions)
             };
 
         await Task.WhenAll(tasks);
@@ -254,7 +258,7 @@ public class ComponentVersionReader : IKeywordSearchDataReader
     cate.FccRequired,
     cate.RequiredPrismSWType,
     cv.CDFiles AS 'CD Types : CD Files - Files copied from a CD will be released',
-    Dv.IsoImage AS 'CD Types : ISO Image -An ISO image of a CD will be released',
+    Dv.IsoImage AS 'CD Types : ISO Image - An ISO image of a CD will be released',
     Dv.Ar AS 'CD Types : Replicator Only - Only available from the Replicator',
     cv.SWPartNumber,
     Dv.FtpSitePath AS 'FTP Site',
@@ -264,11 +268,13 @@ public class ComponentVersionReader : IKeywordSearchDataReader
     Dv.KoreanCertificationId,
     Dv.KoreanCertificationRequired,
     cate.RequiresTTS,
-    Dv.edid + ' MHZ' AS 'WWAN EDID',
+    Case when Dv.edid is null Then Dv.edid 
+         When Dv.edid = '' Then Dv.edid 
+         When Dv.edid is not null Then (Dv.edid + ' MHZ')
+    END AS 'WWAN EDID',
     Dv.TTS AS 'WWAN TTS Results',
     Dv.WWANTestSpecRev AS 'WWAN TTS Spec Rev',
     cate.TeamID,
-    Dv.SecondaryRFKill AS 'RF Kill Mechanism',
     Dv.FCCID AS 'FCC ID',
     Dv.Anatel,
     Dv.ICASA,
@@ -281,7 +287,11 @@ public class ComponentVersionReader : IKeywordSearchDataReader
     Case When cate.IrsCategoryId is null Then 'True'
              When cate.IrsCategoryId > 0 Then 'False'
              When cate.IrsCategoryId <= 0 Then 'True'
-        End AS IrsCategoryHidePrism
+        End AS IrsCategoryHidePrism,
+    Case When Dv.SecondaryRFKill is null Then '0 Hardware Pin (via SW)'
+        When Dv.SecondaryRFKill = 0 Then '1 Hardware Pin'
+        When Dv.SecondaryRFKill = 1 Then 'Discrete Hardware Pins'
+        End AS 'RF Kill Mechanism'
 
 FROM DeliverableVersion Dv
 LEFT JOIN ComponentPrismSWType CPSW ON CPSW.PRISMTypeID = Dv.PrismSWType
@@ -358,11 +368,7 @@ SELECT
     s.value AS Step
 FROM
     SBChipSetTable rows
-LEFT JOIN
-    (
-        SELECT *
-        FROM SB_ChipSetTable
-    ) val ON rows.ID = val.ChipSetTableId
+LEFT JOIN SB_ChipSetTable val ON rows.ID = val.ChipSetTableId
 left join SBChipSetStep s on s.id = val.ChipSetStepId
 left join SBChipSetComponent c on c.id = val.ChipSetComponentId
 left join SBChipSet cs on cs.id = val.ChipSetId
@@ -404,6 +410,41 @@ WHERE
     code.Disabled IS NULL
 ORDER BY
     code.Value;
+";
+    }
+
+    private static string GetOBExpansionSlotCommandText()
+    {
+        return @"
+SELECT 
+    vals.ComponentVersionId,
+    code.Value AS Type,
+    vals.Quantity AS Quantity
+FROM OBExpansionSlot code
+LEFT JOIN OB_ExpansionSlot vals ON code.ID = vals.ExpansionSlotId 
+left join DeliverableVersion Dv on Dv.id = vals.ComponentVersionId
+left join DeliverableRoot root on root.id = Dv.DeliverableRootID
+left JOIN componentCategory cate ON cate.CategoryId = root.categoryid
+WHERE
+    code.IsActive = 1 AND cate.Abbreviation = 'ROPTB'
+ORDER BY
+    code.Value;
+";
+    }
+
+    private static string GetOBConnectorCommandText()
+    {
+        return @"
+select vals.ComponentVersionId,
+       code.Value AS Type,
+       vals.Quantity AS Quantity
+from OBConnector code
+left join OB_Connector vals on code.ID = vals.ConnectorId
+left join DeliverableVersion Dv on Dv.id = vals.ComponentVersionId
+left join DeliverableRoot root on root.id = Dv.DeliverableRootID
+left JOIN componentCategory cate ON cate.CategoryId = root.categoryid
+where code.IsActive = 1 AND cate.Abbreviation = 'ROPTB'
+ORDER BY code.Value;
 ";
     }
 
@@ -685,13 +726,13 @@ ORDER BY
                 componentVersion.Delete("CD Types : Replicator Only - Only available from the Replicator");
             }
 
-            if (componentVersion.GetValue("CD Types : ISO Image -An ISO image of a CD will be released").Equals("1", StringComparison.OrdinalIgnoreCase))
+            if (componentVersion.GetValue("CD Types : ISO Image - An ISO image of a CD will be released").Equals("1", StringComparison.OrdinalIgnoreCase))
             {
-                componentVersion.Add("CD Types : ISO Image -An ISO image of a CD will be released", "CD Types : ISO Image -An ISO image of a CD will be released");
+                componentVersion.Add("CD Types : ISO Image - An ISO image of a CD will be released", "CD Types : ISO Image - An ISO image of a CD will be released");
             }
             else
             {
-                componentVersion.Delete("CD Types : ISO Image -An ISO image of a CD will be released");
+                componentVersion.Delete("CD Types : ISO Image - An ISO image of a CD will be released");
             }
 
             componentVersion.Delete("Prism SW Type");
@@ -701,7 +742,7 @@ ORDER BY
         {
             componentVersion.Delete("CD Types : CD Files - Files copied from a CD will be released");
             componentVersion.Delete("CD Types : Replicator Only - Only available from the Replicator");
-            componentVersion.Delete("CD Types : ISO Image -An ISO image of a CD will be released");
+            componentVersion.Delete("CD Types : ISO Image - An ISO image of a CD will be released");
             componentVersion.Delete("FTP Site");
             componentVersion.Delete("Kit Number");
             componentVersion.Delete("CD/DVD Part Number");
@@ -733,8 +774,8 @@ ORDER BY
         componentVersion.Delete("Control Panel");
         componentVersion.Delete("Info Center");
         componentVersion.Delete("Start Menu Tile");
-        componentVersion.Delete("Task Pinned Icon");
         componentVersion.Delete("SoftPaq In Preinstall");
+        componentVersion.Delete("Taskbar Pinned Icon");
 
         return componentVersion;
     }
@@ -1019,13 +1060,13 @@ ORDER BY
                     version.Delete("CD Types : Replicator Only - Only available from the Replicator");
                 }
 
-                if (version.GetValue("CD Types : ISO Image -An ISO image of a CD will be released").Equals("1", StringComparison.OrdinalIgnoreCase))
+                if (version.GetValue("CD Types : ISO Image - An ISO image of a CD will be released").Equals("1", StringComparison.OrdinalIgnoreCase))
                 {
-                    version.Add("CD Types : ISO Image -An ISO image of a CD will be released", "CD Types : ISO Image -An ISO image of a CD will be released");
+                    version.Add("CD Types : ISO Image - An ISO image of a CD will be released", "CD Types : ISO Image - An ISO image of a CD will be released");
                 }
                 else
                 {
-                    version.Delete("CD Types : ISO Image -An ISO image of a CD will be released");
+                    version.Delete("CD Types : ISO Image - An ISO image of a CD will be released");
                 }
 
                 version.Delete("Prism SW Type");
@@ -1035,7 +1076,7 @@ ORDER BY
             {
                 version.Delete("CD Types : CD Files - Files copied from a CD will be released");
                 version.Delete("CD Types : Replicator Only - Only available from the Replicator");
-                version.Delete("CD Types : ISO Image -An ISO image of a CD will be released");
+                version.Delete("CD Types : ISO Image - An ISO image of a CD will be released");
                 version.Delete("FTP Site");
                 version.Delete("Kit Number");
                 version.Delete("CD/DVD Part Number");
@@ -1082,7 +1123,12 @@ ORDER BY
             return Task.FromResult(1);
         }
 
-        if (rootversion.GetValue("CD Types : ISO Image -An ISO image of a CD will be released").Equals("1", StringComparison.OrdinalIgnoreCase))
+        if (rootversion.GetValue("CD Types : ISO Image - An ISO image of a CD will be released").Equals("1", StringComparison.OrdinalIgnoreCase))
+        {
+            return Task.FromResult(1);
+        }
+
+        if (rootversion.GetValue("CD Types : Replicator Only - Only available from the Replicator").Equals("1", StringComparison.OrdinalIgnoreCase))
         {
             return Task.FromResult(1);
         }
@@ -1535,6 +1581,196 @@ ORDER BY
         return roots;
     }
 
+    private async Task FillOBExpansionSlotAsync(CommonDataModel root)
+    {
+        if (int.TryParse(root.GetValue("Component Version Id"), out int componentVersionId))
+        {
+            return;
+        }
+
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetOBExpansionSlotCommandText(), connection);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, string> obExpansionSlot = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["ComponentVersionId"].ToString(), out int dbComponentVersionId))
+            {
+                continue;
+            }
+
+            string rowResult = string.Empty;
+
+            if (!string.IsNullOrWhiteSpace(reader["Type"].ToString()))
+            {
+                rowResult += "Type : " + reader["Type"].ToString() + " ";
+            }
+
+            if (!string.IsNullOrWhiteSpace(reader["Quantity"].ToString()))
+            {
+                rowResult += "Quantity : " + reader["Quantity"].ToString() + " ";
+            }
+
+            if (!obExpansionSlot.ContainsKey(dbComponentVersionId))
+            {
+                obExpansionSlot[dbComponentVersionId] = rowResult.Trim();
+            }
+            else
+            {
+                obExpansionSlot[dbComponentVersionId] += " , " + rowResult.Trim();
+            }
+        }
+
+        if (obExpansionSlot.ContainsKey(componentVersionId))
+        {
+            root.Add("Expansion Slot", obExpansionSlot[componentVersionId]);
+        }
+    }
+
+    private async Task FillOBExpansionSlotAsync(IEnumerable<CommonDataModel> roots)
+    {
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetOBExpansionSlotCommandText(), connection);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, string> obExpansionSlot = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["ComponentVersionId"].ToString(), out int componentVersionId))
+            {
+                continue;
+            }
+
+            string rowResult = string.Empty;
+
+            if (!string.IsNullOrWhiteSpace(reader["Type"].ToString()))
+            {
+                rowResult += "Type : " + reader["Type"].ToString() + " ";
+            }
+
+            if (!string.IsNullOrWhiteSpace(reader["Quantity"].ToString()))
+            {
+                rowResult += "Quantity : " + reader["Quantity"].ToString() + " ";
+            }
+
+            if (!obExpansionSlot.ContainsKey(componentVersionId))
+            {
+                obExpansionSlot[componentVersionId] = rowResult.Trim();
+            }
+            else
+            {
+                obExpansionSlot[componentVersionId] += " , " + rowResult.Trim();
+            }
+        }
+
+        foreach (CommonDataModel root in roots)
+        {
+            if (int.TryParse(root.GetValue("Component Version Id"), out int componentVersionId)
+              && obExpansionSlot.ContainsKey(componentVersionId))
+            {
+                root.Add("Expansion Slot", obExpansionSlot[componentVersionId]);
+            }
+        }
+    }
+
+    private async Task FillOBConnectorAsync(CommonDataModel root)
+    {
+        if (int.TryParse(root.GetValue("Component Version Id"), out int componentVersionId))
+        {
+            return;
+        }
+
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetOBConnectorCommandText(), connection);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, string> obConnector = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["ComponentVersionId"].ToString(), out int dbComponentVersionId))
+            {
+                continue;
+            }
+
+            string rowResult = string.Empty;
+
+            if (!string.IsNullOrWhiteSpace(reader["Type"].ToString()))
+            {
+                rowResult += "Type : " + reader["Type"].ToString() + " ";
+            }
+
+            if (!string.IsNullOrWhiteSpace(reader["Quantity"].ToString()))
+            {
+                rowResult += "Quantity : " + reader["Quantity"].ToString() + " ";
+            }
+
+            if (!obConnector.ContainsKey(dbComponentVersionId))
+            {
+                obConnector[dbComponentVersionId] = rowResult.Trim();
+            }
+            else
+            {
+                obConnector[dbComponentVersionId] += " , " + rowResult.Trim();
+            }
+        }
+
+        if (obConnector.ContainsKey(componentVersionId))
+        {
+            root.Add("Connector", obConnector[componentVersionId]);
+        }
+    }
+
+    private async Task FillOBConnectorAsync(IEnumerable<CommonDataModel> roots)
+    {
+        using SqlConnection connection = new(_info.DatabaseConnectionString);
+        await connection.OpenAsync();
+        SqlCommand command = new(GetOBConnectorCommandText(), connection);
+        using SqlDataReader reader = command.ExecuteReader();
+        Dictionary<int, string> obConnector = new();
+
+        while (await reader.ReadAsync())
+        {
+            if (!int.TryParse(reader["ComponentVersionId"].ToString(), out int componentVersionId))
+            {
+                continue;
+            }
+
+            string rowResult = string.Empty;
+
+            if (!string.IsNullOrWhiteSpace(reader["Type"].ToString()))
+            {
+                rowResult += "Type : " + reader["Type"].ToString() + " ";
+            }
+
+            if (!string.IsNullOrWhiteSpace(reader["Quantity"].ToString()))
+            {
+                rowResult += "Quantity : " + reader["Quantity"].ToString() + " ";
+            }
+
+            if (!obConnector.ContainsKey(componentVersionId))
+            {
+                obConnector[componentVersionId] = rowResult.Trim();
+            }
+            else
+            {
+                obConnector[componentVersionId] += " , " + rowResult.Trim();
+            }
+        }
+
+        foreach (CommonDataModel root in roots)
+        {
+            if (int.TryParse(root.GetValue("Component Version Id"), out int componentVersionId)
+              && obConnector.ContainsKey(componentVersionId))
+            {
+                root.Add("Connector", obConnector[componentVersionId]);
+            }
+        }
+    }
+
     private static CommonDataModel DeleteProperty(CommonDataModel root)
     {
         if (!string.Equals(root.GetValue("RequiredPrismSWType"), "True", StringComparison.OrdinalIgnoreCase)
@@ -1551,8 +1787,8 @@ ORDER BY
                 && !root.GetValue("Rom Components").Contains("ROM Component Preinstall"))
             || (string.IsNullOrWhiteSpace(root.GetValue("SWPartNumber"))
                 || string.Equals(root.GetValue("SWPartNumber"), "N/A", StringComparison.OrdinalIgnoreCase))
-            || string.Equals(root.GetValue("HidePrism"),"True",StringComparison.OrdinalIgnoreCase)
-            || string.Equals(root.GetValue("IrsCategoryHidePrism"),"True",StringComparison.OrdinalIgnoreCase))
+            || string.Equals(root.GetValue("HidePrism"), "True", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(root.GetValue("IrsCategoryHidePrism"), "True", StringComparison.OrdinalIgnoreCase))
         {
             root.Delete("Prism SW Type");
         }
@@ -1563,13 +1799,13 @@ ORDER BY
         }
 
         if (!root.GetValue("CD Types : Replicator Only - Only available from the Replicator").Equals("CD Types : Replicator Only - Only available from the Replicator", StringComparison.OrdinalIgnoreCase)
-            && !root.GetValue("CD Types : ISO Image -An ISO image of a CD will be released").Equals("CD Types : ISO Image -An ISO image of a CD will be released", StringComparison.OrdinalIgnoreCase))
+            && !root.GetValue("CD Types : ISO Image - An ISO image of a CD will be released").Equals("CD Types : ISO Image - An ISO image of a CD will be released", StringComparison.OrdinalIgnoreCase))
         {
             root.Delete("CDs Replicated By");
         }
 
         if (!root.GetValue("CD Types : Replicator Only - Only available from the Replicator").Equals("CD Types : Replicator Only - Only available from the Replicator", StringComparison.OrdinalIgnoreCase)
-            && !root.GetValue("CD Types : ISO Image -An ISO image of a CD will be released").Equals("CD Types : ISO Image -An ISO image of a CD will be released", StringComparison.OrdinalIgnoreCase)
+            && !root.GetValue("CD Types : ISO Image - An ISO image of a CD will be released").Equals("CD Types : ISO Image - An ISO image of a CD will be released", StringComparison.OrdinalIgnoreCase)
             && !root.GetValue("CD Types : CD Files - Files copied from a CD will be released").Equals("CD Types : CD Files - Files copied from a CD will be released", StringComparison.OrdinalIgnoreCase))
         {
             root.Delete("FTP Site");
@@ -1613,6 +1849,7 @@ ORDER BY
             root.Delete("Submission Path");
             root.Delete("Component Location - FileName");
             root.Delete("SW Part Number");
+            root.Delete("Visibility");
         }
 
         if (string.Equals(root.GetValue("Component Type"), "Firmware", StringComparison.OrdinalIgnoreCase)
@@ -1645,9 +1882,6 @@ ORDER BY
            && !string.Equals(root.GetValue("FccRequired"), "False", StringComparison.OrdinalIgnoreCase)
            && !string.Equals(root.GetValue("IsWorkflowCompleted"), "True", StringComparison.OrdinalIgnoreCase))
         {
-            root.Delete("CD Types : Replicator Only -Only available from the Replicator");
-            root.Delete("CD Types : ISO Image -An ISO image of a CD will be released");
-            root.Delete("CD Types : CD Files - Files copied from a CD will be released");
             root.Delete("FTP Site");
             root.Delete("Component Location - FileName");
         }
