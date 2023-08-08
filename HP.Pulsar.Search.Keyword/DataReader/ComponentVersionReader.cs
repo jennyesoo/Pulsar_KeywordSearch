@@ -697,7 +697,7 @@ ORDER BY code.Value;
             componentVersion.Delete("Visibility");
         }
 
-        if (GetCdAsync(componentVersion).Equals(1))
+        if (GetCdAsync(componentVersion).Result.Equals(1))
         {
             if (string.IsNullOrEmpty(componentVersion.GetValue("Packaging")))
             {
@@ -1031,7 +1031,7 @@ ORDER BY code.Value;
                 version.Delete("Visibility");
             }
 
-            if (GetCdAsync(version).Equals(1))
+            if (GetCdAsync(version).Result.Equals(1))
             {
                 if (string.IsNullOrEmpty(version.GetValue("Packaging")))
                 {
